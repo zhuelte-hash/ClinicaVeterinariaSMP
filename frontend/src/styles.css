@@ -9,6 +9,7 @@
 
 body {
   min-height: 100vh;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 ::-webkit-scrollbar {
