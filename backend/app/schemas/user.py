@@ -6,8 +6,6 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str
     full_name: str | None = None
-    is_active: bool = True
-    is_superuser: bool = False
 
 
 class UserCreate(UserBase):
@@ -20,16 +18,14 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     password: str | None = None
     is_active: bool | None = None
+    is_superuser: bool | None = None
 
 
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    is_active: bool
+    is_superuser: bool
     created_at: datetime.datetime
     updated_at: datetime.datetime
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str

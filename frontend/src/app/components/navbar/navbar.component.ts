@@ -87,7 +87,7 @@ import { CartService } from '../../services/cart.service';
               <span *ngIf="cart.count() > 0" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[11px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center font-bold">{{ cart.count() }}</span>
             </a>
             <!-- Mi cuenta: personita -->
-            <a routerLink="/users" title="Mi cuenta" class="w-10 h-10 flex items-center justify-center rounded-full border-2 border-pet-100 bg-pet-50 text-pet-900 hover:bg-pet-900 hover:text-white hover:border-pet-900 transition">
+            <a routerLink="/login" title="Mi cuenta" class="w-10 h-10 flex items-center justify-center rounded-full border-2 border-pet-100 bg-pet-50 text-pet-900 hover:bg-pet-900 hover:text-white hover:border-pet-900 transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </a>
             <a routerLink="/contacto" class="hidden md:inline-flex ml-1 px-5 py-2.5 bg-brand-500 text-white text-[13px] font-bold uppercase tracking-wider rounded-full hover:bg-brand-600 shadow-md shadow-brand-200 transition">Reservar Cita</a>

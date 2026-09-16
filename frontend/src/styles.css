@@ -3,13 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #3b82f6;
-  --color-primary-dark: #1d4ed8;
+  --admin-primary: #32A8B5;
+  --admin-primary-dark: #238B98;
+  --admin-background: #F5F7FA;
+  --admin-surface: #FFFFFF;
+  --admin-active: #111827;
+  --admin-selection: #2939D8;
+  --admin-text: #1F2937;
+  --admin-muted: #6B7280;
+  --admin-error: #EF4444;
+  --admin-success: #22C55E;
+  --color-primary: var(--admin-primary);
+  --color-primary-dark: var(--admin-primary-dark);
 }
 
 body {
   min-height: 100vh;
+  margin: 0;
   font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--admin-text);
 }
 
 ::-webkit-scrollbar {

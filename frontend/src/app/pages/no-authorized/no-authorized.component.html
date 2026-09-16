@@ -1,0 +1,17 @@
+<main class="unauthorized-page">
+  <section class="message-card" aria-labelledby="unauthorized-title">
+    <div class="status-mark" aria-hidden="true">
+      <span>!</span>
+    </div>
+    <p class="status-code">Acceso restringido</p>
+    <h1 id="unauthorized-title">No tienes autorización</h1>
+    <p class="description">
+      Tu sesión es válida, pero tu cuenta no tiene permisos para ingresar al panel administrativo.
+    </p>
+    <div class="actions">
+      <a routerLink="/" class="primary-action">Volver al inicio</a>
+      <button type="button" (click)="logout()">Cerrar sesión</button>
+    </div>
+    <p class="help-text">Si necesitas acceso, comunícate con el administrador de la clínica.</p>
+  </section>
+</main>

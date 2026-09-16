@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
@@ -17,9 +18,24 @@ export const routes: Routes = [
       import('./components/carrito/carrito.component').then((m) => m.CarritoComponent),
   },
   {
-    path: 'users',
+    path: 'login',
     loadComponent: () =>
-      import('./components/users/users.component').then((m) => m.UsersComponent),
+      import('./pages/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'no-autorizado',
+    loadComponent: () =>
+      import('./pages/no-authorized/no-authorized.component').then((m) => m.NoAuthorizedComponent),
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadChildren: () =>
+      import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  {
+    path: 'users',
+    redirectTo: 'admin/usuarios',
   },
   { path: '**', redirectTo: '' },
 ];

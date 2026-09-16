@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -14,6 +15,12 @@ class UserService:
     def _hash_password(self, password: str) -> str:
         return pwd_context.hash(password)
 
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except ValueError:
+            return False
+
     def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
         return self.db.query(User).offset(skip).limit(limit).all()
 
@@ -26,14 +33,19 @@ class UserService:
     def get_by_username(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username).first()
 
+    def get_by_identifier(self, identifier: str) -> User | None:
+        return self.db.query(User).filter(
+            or_(User.email == identifier, User.username == identifier)
+        ).first()
+
     def create(self, data: UserCreate) -> User:
         user = User(
             email=data.email,
             username=data.username,
             full_name=data.full_name,
             hashed_password=self._hash_password(data.password),
-            is_active=data.is_active,
-            is_superuser=data.is_superuser,
+            is_active=True,
+            is_superuser=False,
         )
         self.db.add(user)
         self.db.commit()

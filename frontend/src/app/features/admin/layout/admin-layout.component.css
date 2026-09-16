@@ -1,0 +1,8 @@
+.sidebar { width: 16.5rem; }
+.sidebar-collapsed { width: 5rem; }
+.page-shell { margin-left: 16.5rem; }
+.page-collapsed { margin-left: 5rem; }
+.nav-link:hover, .active-link { background: rgb(255 255 255 / .14); color: white; }
+.active-link { box-shadow: inset 3px 0 white; }
+.dropdown { position: absolute; top: calc(100% + .6rem); overflow: hidden; border: 1px solid rgb(226 232 240); border-radius: .85rem; background: white; box-shadow: 0 14px 35px rgb(15 23 42 / .14); }
+@media (max-width: 1023px) { .sidebar { width: min(18rem, 86vw); transform: translateX(-105%); } .sidebar.drawer-open { transform: translateX(0); } .page-shell, .page-collapsed { margin-left: 0; } }

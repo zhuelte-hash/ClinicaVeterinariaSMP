@@ -3,18 +3,27 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.security import get_current_admin_user
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/", response_model=list[UserRead])
+@router.get(
+    "/",
+    response_model=list[UserRead],
+    dependencies=[Depends(get_current_admin_user)],
+)
 def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     service = UserService(db)
     return service.get_all(skip=skip, limit=limit)
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@router.get(
+    "/{user_id}",
+    response_model=UserRead,
+    dependencies=[Depends(get_current_admin_user)],
+)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     service = UserService(db)
     user = service.get_by_id(user_id)
@@ -35,7 +44,11 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     return service.create(user_data)
 
 
-@router.put("/{user_id}", response_model=UserRead)
+@router.put(
+    "/{user_id}",
+    response_model=UserRead,
+    dependencies=[Depends(get_current_admin_user)],
+)
 def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
     service = UserService(db)
     user = service.get_by_id(user_id)
@@ -44,7 +57,11 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
     return service.update(user, user_data)
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_admin_user)],
+)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     service = UserService(db)
     user = service.get_by_id(user_id)
