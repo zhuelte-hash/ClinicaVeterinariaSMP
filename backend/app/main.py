@@ -2,16 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+<<<<<<< Updated upstream
 from app.database import engine, Base
 from app.routers import auth, users
+=======
+from app.routers import users
+>>>>>>> Stashed changes
 
 settings = get_settings()
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title=settings.app_name,
-    description="FullStack API with FastAPI + PostgreSQL + Angular",
+    description="API del sistema de gestion para clinica veterinaria",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
