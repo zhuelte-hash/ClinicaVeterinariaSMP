@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 
 export interface CartItem { id: string; nombre: string; precio: number; imagen?: string; cantidad: number; }
 
@@ -9,13 +9,6 @@ export class CartService {
   count = computed(() => this._items().reduce((a, i) => a + i.cantidad, 0));
   total = computed(() => this._items().reduce((a, i) => a + i.cantidad * i.precio, 0));
 
-  constructor() {
-    try {
-      const raw = localStorage.getItem('cart');
-      if (raw) this._items.set(JSON.parse(raw));
-    } catch {}
-    effect(() => localStorage.setItem('cart', JSON.stringify(this._items())));
-  }
   add(item: Omit<CartItem, 'cantidad'>, qty = 1) {
     const list = [...this._items()];
     const f = list.find(i => i.id === item.id);

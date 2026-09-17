@@ -40,3 +40,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
+
+.services-dialog-backdrop {
+  background: rgb(26 30 39 / 72%);
+  backdrop-filter: blur(4px);
+}
+
+.services-dialog-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

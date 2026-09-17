@@ -4,11 +4,13 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { FooterComponent } from './components/footer/footer.component';
+import { NoticeComponent } from './shared/notice/notice.component';
+import { WhatsappButtonComponent } from './shared/whatsapp-button/whatsapp-button.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent, FooterComponent],
+  imports: [RouterOutlet, NavbarComponent, FooterComponent, NoticeComponent, WhatsappButtonComponent],
   template: `
     @if (showPublicChrome()) {
       <app-navbar />
@@ -16,12 +18,10 @@ import { FooterComponent } from './components/footer/footer.component';
     <main class="min-h-screen" [class.bg-[#fffdf8]]="showPublicChrome()">
       <router-outlet />
     </main>
+    <app-notice />
     @if (showPublicChrome()) {
       <app-footer />
-      <a href="https://wa.me/51965939522?text=Hola%20necesito%20m%C3%A1s%20informaci%C3%B3n"
-         target="_blank" rel="noopener noreferrer"
-         class="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-3xl shadow-xl transition hover:scale-105"
-         title="Escríbenos por WhatsApp" aria-label="Escríbenos por WhatsApp">💬</a>
+      <app-whatsapp-button />
     }
   `,
 })

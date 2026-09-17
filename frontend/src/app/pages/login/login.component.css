@@ -4,18 +4,18 @@
 
 .auth-input {
   width: 100%;
-  border: 1px solid #cbdad7;
+  border: 1px solid #d7dce6;
   border-radius: 0.8rem;
   background: #fff;
   padding: 0.85rem 1rem;
-  color: #153d3a;
+  color: #17191c;
   outline: none;
   transition: border-color 160ms, box-shadow 160ms;
 }
 
 .auth-input:focus {
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgb(20 184 166 / 15%);
+  border-color: #0799ae;
+  box-shadow: 0 0 0 3px rgb(7 153 174 / 14%);
 }
 
 .auth-input[aria-invalid='true'] {
@@ -29,11 +29,6 @@
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 700ms linear infinite;
-}
-
-.clinic-panel {
-  background: linear-gradient(180deg, rgb(8 47 46 / 12%), rgb(8 47 46 / 88%)),
-    url('https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=1200&q=85') center / cover;
 }
 
 @keyframes spin {

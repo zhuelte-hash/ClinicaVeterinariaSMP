@@ -23,12 +23,12 @@ import { RouterLink } from '@angular/router';
         <div>
           <h4 class="text-white font-bold mb-3">Links</h4>
           <ul class="space-y-2 text-sm">
-            <li><a routerLink="/" class="hover:text-brand-500">Inicio</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Sobre Nosotros</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Nuestros Servicios</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Laboratorio</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Tienda y farmacia</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Nuestro Blog</a></li>
+            <li><a routerLink="/inicio" class="hover:text-brand-500">Inicio</a></li>
+            <li><a routerLink="/inicio" class="hover:text-brand-500">Sobre Nosotros</a></li>
+            <li><a routerLink="/servicios" class="hover:text-brand-500">Nuestros Servicios</a></li>
+            <li><a routerLink="/servicios" class="hover:text-brand-500">Laboratorio</a></li>
+            <li><a routerLink="/productos" class="hover:text-brand-500">Tienda y farmacia</a></li>
+            <li><a routerLink="/blog" class="hover:text-brand-500">Nuestro Blog</a></li>
           </ul>
         </div>
         <div>
