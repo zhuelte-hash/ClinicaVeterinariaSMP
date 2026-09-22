@@ -2,12 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-<<<<<<< Updated upstream
-from app.database import engine, Base
 from app.routers import auth, users
-=======
-from app.routers import users
->>>>>>> Stashed changes
 
 settings = get_settings()
 

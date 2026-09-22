@@ -42,6 +42,10 @@
         <a href="#" (click)="showUpcomingFeature($event)" class="font-bold text-[#0799AE] hover:underline">¿Olvidaste tu contraseña?</a>
       </div>
 
+      @if (errorMessage()) {
+        <p role="alert" class="m-0 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+      }
+
       <button type="submit" [disabled]="loginForm.invalid || isSubmitting()" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#0B1B6D] font-extrabold text-white shadow-lg shadow-blue-950/15 transition hover:-translate-y-0.5 hover:bg-[#0799AE] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0">
         @if (isSubmitting()) { <span class="spinner" aria-hidden="true"></span>Ingresando... } @else { Iniciar sesión }
       </button>

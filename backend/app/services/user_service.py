@@ -1,10 +1,6 @@
 from passlib.context import CryptContext
-<<<<<<< Updated upstream
-from sqlalchemy import or_
-=======
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
->>>>>>> Stashed changes
 from sqlalchemy.orm import Session
 
 from app.models.user import Usuario
@@ -28,20 +24,15 @@ class UserService:
     def _hash_password(self, password: str) -> str:
         return pwd_context.hash(password)
 
-<<<<<<< Updated upstream
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         try:
             return pwd_context.verify(plain_password, hashed_password)
         except ValueError:
             return False
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
-        return self.db.query(User).offset(skip).limit(limit).all()
-=======
     def get_all(self, skip: int = 0, limit: int = 100) -> list[Usuario]:
         statement = select(Usuario).order_by(Usuario.id).offset(skip).limit(limit)
         return list(self.db.scalars(statement).all())
->>>>>>> Stashed changes
 
     def get_by_id(self, user_id: int) -> Usuario | None:
         return self.db.get(Usuario, user_id)
@@ -52,31 +43,15 @@ class UserService:
         )
         return self.db.scalar(statement)
 
-<<<<<<< Updated upstream
-    def get_by_username(self, username: str) -> User | None:
-        return self.db.query(User).filter(User.username == username).first()
+    def get_by_identifier(self, identifier: str) -> Usuario | None:
+        return self.get_by_email(identifier)
 
-    def get_by_identifier(self, identifier: str) -> User | None:
-        return self.db.query(User).filter(
-            or_(User.email == identifier, User.username == identifier)
-        ).first()
-
-    def create(self, data: UserCreate) -> User:
-        user = User(
-            email=data.email,
-            username=data.username,
-            full_name=data.full_name,
-            hashed_password=self._hash_password(data.password),
-            is_active=True,
-            is_superuser=False,
-=======
     def create(self, data: UsuarioCreate) -> Usuario:
         user = Usuario(
             nombre=data.nombre,
             correo=str(data.correo),
             contrasena=self._hash_password(data.contrasena),
             tipo=data.tipo,
->>>>>>> Stashed changes
         )
         self.db.add(user)
         return self._commit(user)

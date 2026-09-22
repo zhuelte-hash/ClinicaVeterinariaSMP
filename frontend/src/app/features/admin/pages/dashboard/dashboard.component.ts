@@ -28,7 +28,7 @@ export class DashboardComponent {
     this.bestSellers = computed(() => [...data.products()].sort((a, b) => a.stock - b.stock).slice(0, 3));
     this.categoryChart = computed(() => data.categories().map((category) => ({ label: category.name, value: category.products })));
     this.maxChart = computed(() => Math.max(1, ...this.categoryChart().map((item) => item.value)));
-    this.administratorName = computed(() => (auth.currentUser()?.full_name || auth.currentUser()?.username || 'Administrador').split(' ')[0]);
+    this.administratorName = computed(() => (auth.currentUser()?.nombre || 'Administrador').split(' ')[0]);
   }
 
   setPeriod(period: 'dia' | 'semana' | 'mes'): void {

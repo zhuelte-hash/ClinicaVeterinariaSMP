@@ -24,17 +24,7 @@ export class AuthService {
   );
   readonly isAdmin = computed(() => {
     const user = this.userState();
-    if (!user) {
-      return false;
-    }
-
-    const role = (user.role ?? user.rol)?.trim().toUpperCase();
-    return (
-      user.is_superuser === true ||
-      user.es_admin === true ||
-      role === 'ADMIN' ||
-      role === 'ADMINISTRADOR'
-    );
+    return user?.tipo === 'administrador';
   });
   readonly isLoading = computed(() => this.loadingState());
 

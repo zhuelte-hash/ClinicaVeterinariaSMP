@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.user import User
+from app.models.user import TipoUsuario, Usuario
 from app.schemas.auth import TokenPayload
 from app.services.user_service import UserService
 
@@ -52,7 +52,7 @@ def decode_access_token(token: str) -> TokenPayload:
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> User:
+) -> Usuario:
     token_data = decode_access_token(token)
     user = UserService(db).get_by_id(token_data.user_id)
     if user is None:
@@ -60,17 +60,14 @@ def get_current_user(
     return user
 
 
-def get_current_active_user(user: User = Depends(get_current_user)) -> User:
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
-        )
+def get_current_active_user(user: Usuario = Depends(get_current_user)) -> Usuario:
     return user
 
 
-def get_current_admin_user(user: User = Depends(get_current_active_user)) -> User:
-    if not user.is_superuser:
+def get_current_admin_user(
+    user: Usuario = Depends(get_current_active_user),
+) -> Usuario:
+    if user.tipo != TipoUsuario.ADMINISTRADOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrator access required",

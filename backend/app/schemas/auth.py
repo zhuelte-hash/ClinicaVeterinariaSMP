@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from app.schemas.user import UserRead
+from app.schemas.user import UsuarioRead
 
 
 class LoginRequest(BaseModel):
@@ -17,4 +17,4 @@ class TokenPayload(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: UserRead
+    user: UsuarioRead

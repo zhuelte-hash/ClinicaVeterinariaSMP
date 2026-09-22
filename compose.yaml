@@ -1,0 +1,19 @@
+services:
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: fullstack_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - veterinary_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fullstack_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  veterinary_postgres_data:

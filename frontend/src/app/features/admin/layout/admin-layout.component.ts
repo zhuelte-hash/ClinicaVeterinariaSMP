@@ -16,7 +16,7 @@ export class AdminLayoutComponent {
   readonly notificationOpen = signal(false);
   readonly searchOpen = signal(false);
   readonly unread = computed(() => this.data.notifications().filter((item) => !item.read).length);
-  readonly administratorName = computed(() => this.auth.currentUser()?.full_name || this.auth.currentUser()?.username || 'Administrador');
+  readonly administratorName = computed(() => this.auth.currentUser()?.nombre || 'Administrador');
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', path: 'dashboard', icon: 'grid' }, { label: 'Productos', path: 'productos', icon: 'box' },

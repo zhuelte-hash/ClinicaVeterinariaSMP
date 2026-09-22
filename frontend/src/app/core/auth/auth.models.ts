@@ -1,11 +1,10 @@
-import type { User } from '../../models/user.model';
-
 export const AUTH_TOKEN_KEY = 'clinic_access_token';
 
-export interface AuthUser extends User {
-  role?: string | null;
-  rol?: string | null;
-  es_admin?: boolean;
+export interface AuthUser {
+  id: number;
+  nombre: string;
+  correo: string;
+  tipo: 'cliente' | 'veterinario' | 'cajero' | 'administrador';
 }
 
 export interface LoginCredentials {
