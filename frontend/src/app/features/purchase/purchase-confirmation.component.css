@@ -1,0 +1,13 @@
+:host { display: block; }
+.receipt-label { color: #64748b; font-size: .7rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.receipt-value { margin-top: .25rem; color: #1a1e27; font-weight: 800; }
+dl div { display: flex; justify-content: space-between; gap: 1rem; }
+dl dt { color: #64748b; }
+dl dd { text-align: right; font-weight: 800; color: #1a1e27; }
+
+@media print {
+  :host { background: #fff; }
+  .no-print { display: none !important; }
+  section { min-height: auto; padding: 0; background: #fff; }
+  .print-area { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+}

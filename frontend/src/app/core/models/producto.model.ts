@@ -5,6 +5,7 @@ export interface Product {
   name: string;
   category: ProductCategory;
   price: number;
+  stock: number;
   previousPrice?: number;
   image: string;
   imageAlt: string;
@@ -22,6 +23,7 @@ export interface PharmacyProduct {
   presentation: PharmacyPresentation;
   species: PharmacySpecies;
   price: number;
+  stock: number;
   image: string;
   imageAlt: string;
   badge?: 'Disponible' | 'Recomendado' | 'Nuevo';

@@ -1,0 +1,208 @@
+<section class="purchase-checkout min-h-screen bg-[#F7F6F4] py-10 sm:py-14">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <nav class="mb-7 flex items-center gap-2 text-sm font-semibold text-slate-500" aria-label="Navegación secundaria">
+      <a routerLink="/carrito" class="transition hover:text-[#1A98A2]">Carrito</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-[#1A1E27]">Finalizar compra</span>
+    </nav>
+
+    @if (items().length) {
+      <div class="mb-8 max-w-3xl">
+        <p class="text-xs font-black uppercase tracking-[0.22em] text-[#1A98A2]">Compra segura y coordinada</p>
+        <h1 class="mt-3 text-3xl font-black tracking-tight text-[#1A1E27] sm:text-4xl">Finaliza tu pedido</h1>
+        <p class="mt-3 text-slate-600">Completa tus datos y envía tu comprobante para que caja valide el pago.</p>
+      </div>
+
+      <form [formGroup]="checkoutForm" (ngSubmit)="submitOrder()" novalidate class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_370px]">
+        <div class="space-y-7">
+          <section class="checkout-card" aria-labelledby="customer-title">
+            <div class="section-heading">
+              <span>1</span>
+              <div><h2 id="customer-title">Datos del cliente</h2><p>Información para coordinar tu pedido.</p></div>
+            </div>
+
+            <div class="mt-7 grid gap-5 sm:grid-cols-2">
+              <label class="field sm:col-span-2">
+                <span>Nombre completo *</span>
+                <input type="text" formControlName="fullName" autocomplete="name" placeholder="Nombres y apellidos" />
+                @if (hasError(checkoutForm.controls.fullName)) { <small>Ingresa tu nombre completo.</small> }
+              </label>
+              <label class="field">
+                <span>Celular / WhatsApp *</span>
+                <input type="tel" formControlName="phone" inputmode="numeric" autocomplete="tel" placeholder="987654321" />
+                @if (hasError(checkoutForm.controls.phone)) { <small>Ingresa entre 9 y 15 dígitos.</small> }
+              </label>
+              <label class="field">
+                <span>Correo electrónico</span>
+                <input type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com" />
+                @if (hasError(checkoutForm.controls.email)) { <small>Ingresa un correo válido.</small> }
+              </label>
+            </div>
+
+            <fieldset class="mt-7">
+              <legend class="field-label">Tipo de entrega *</legend>
+              <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <label class="choice-card" [class.selected]="deliveryType() === 'pickup'">
+                  <input type="radio" formControlName="delivery" value="pickup" (change)="changeDelivery($event)" />
+                  <span class="choice-icon">⌂</span>
+                  <span><strong>Recojo en clínica</strong><small>Sin costo adicional</small></span>
+                </label>
+                <label class="choice-card" [class.selected]="deliveryType() === 'delivery'">
+                  <input type="radio" formControlName="delivery" value="delivery" (change)="changeDelivery($event)" />
+                  <span class="choice-icon">→</span>
+                  <span><strong>Delivery</strong><small>S/ {{ deliveryCost().toFixed(2) }}</small></span>
+                </label>
+              </div>
+            </fieldset>
+
+            @if (deliveryType() === 'delivery') {
+              <div class="mt-5 grid gap-5 sm:grid-cols-2">
+                <label class="field sm:col-span-2">
+                  <span>Dirección *</span>
+                  <input type="text" formControlName="address" autocomplete="street-address" placeholder="Jirón, avenida, número y distrito" />
+                  @if (hasError(checkoutForm.controls.address)) { <small>La dirección es obligatoria para delivery.</small> }
+                </label>
+                <label class="field sm:col-span-2">
+                  <span>Referencia de dirección</span>
+                  <input type="text" formControlName="reference" placeholder="Frente a, cerca de..." />
+                </label>
+              </div>
+            }
+
+            <fieldset class="mt-7 border-t border-slate-100 pt-7">
+              <legend class="field-label">Tipo de comprobante *</legend>
+              <div class="mt-3 flex flex-wrap gap-3">
+                @for (receipt of ['boleta', 'factura']; track receipt) {
+                  <label class="pill-choice" [class.selected]="receiptType() === receipt">
+                    <input type="radio" formControlName="receipt" [value]="receipt" (change)="changeReceipt($event)" />
+                    {{ receipt === 'boleta' ? 'Boleta' : 'Factura' }}
+                  </label>
+                }
+              </div>
+            </fieldset>
+
+            <div class="mt-5 grid gap-5 sm:grid-cols-2">
+              @if (receiptType() === 'boleta') {
+                <label class="field">
+                  <span>DNI *</span>
+                  <input type="text" formControlName="dni" inputmode="numeric" maxlength="8" placeholder="8 dígitos" />
+                  @if (hasError(checkoutForm.controls.dni)) { <small>Ingresa un DNI válido de 8 dígitos.</small> }
+                </label>
+              } @else {
+                <label class="field">
+                  <span>RUC *</span>
+                  <input type="text" formControlName="ruc" inputmode="numeric" maxlength="11" placeholder="11 dígitos" />
+                  @if (hasError(checkoutForm.controls.ruc)) { <small>Ingresa un RUC válido de 11 dígitos.</small> }
+                </label>
+                <label class="field">
+                  <span>Razón social *</span>
+                  <input type="text" formControlName="businessName" autocomplete="organization" placeholder="Nombre de la empresa" />
+                  @if (hasError(checkoutForm.controls.businessName)) { <small>Ingresa la razón social.</small> }
+                </label>
+              }
+            </div>
+          </section>
+
+          <section class="checkout-card" aria-labelledby="payment-title">
+            <div class="section-heading">
+              <span>2</span>
+              <div><h2 id="payment-title">Método de pago</h2><p>Selecciona Yape o Plin y registra tu operación.</p></div>
+            </div>
+
+            <div class="mt-7 grid gap-4 sm:grid-cols-2">
+              @for (method of paymentMethods; track method) {
+                <button type="button" (click)="selectPayment(method)" class="payment-card" [class.selected]="paymentMethod() === method" [attr.aria-pressed]="paymentMethod() === method">
+                  <span class="payment-mark" [class.yape]="method === 'Yape'" [class.plin]="method === 'Plin'">{{ method.charAt(0) }}</span>
+                  <span><strong>{{ method }}</strong><small>Pago desde tu aplicación</small></span>
+                  <span class="check">✓</span>
+                </button>
+              }
+            </div>
+            @if (submitted() && !paymentMethod()) { <p class="mt-3 text-sm font-semibold text-red-700">Selecciona Yape o Plin para continuar.</p> }
+
+            @if (paymentMethod(); as selectedMethod) {
+              <div class="mt-6 grid gap-6 rounded-3xl bg-[#F7F6F4] p-5 sm:grid-cols-[210px_1fr] sm:p-6">
+                <div class="qr-area">
+                  @if (paymentConfig()?.qrUrl; as qrUrl) {
+                    <!-- Reemplaza qrUrl en purchase.config.ts con la ruta del QR oficial. -->
+                    <img [src]="qrUrl" [alt]="'QR oficial de ' + selectedMethod" class="h-full w-full object-contain" />
+                  } @else {
+                    <!-- Placeholder temporal: configurar el QR real en purchase.config.ts. -->
+                    <svg class="h-14 w-14 text-[#1A98A2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM15 14h2v2h-2zM19 14h1v4h-3v2h-3v-3h2"/></svg>
+                    <p>Coloca aquí el QR oficial de {{ selectedMethod }}</p>
+                  }
+                </div>
+                <div class="self-center">
+                  <p class="text-xs font-black uppercase tracking-[0.16em] text-[#1A98A2]">Monto exacto a pagar</p>
+                  <p class="mt-1 text-4xl font-black text-[#1A1E27]">S/ {{ total().toFixed(2) }}</p>
+                  <dl class="mt-5 grid gap-2 text-sm">
+                    <div><dt>Titular</dt><dd>{{ paymentConfig()?.holder }}</dd></div>
+                    <div><dt>Celular</dt><dd>{{ paymentConfig()?.phone }}</dd></div>
+                  </dl>
+                  <p class="mt-5 inline-flex rounded-full bg-[#E0A71A]/15 px-3 py-1.5 text-xs font-extrabold text-[#521B32]">Pago pendiente de validación</p>
+                </div>
+              </div>
+
+              <div class="mt-6 grid gap-5 sm:grid-cols-2">
+                <label class="field">
+                  <span>Número de operación *</span>
+                  <input type="text" formControlName="operationNumber" inputmode="numeric" placeholder="Ej. 12345678" />
+                  @if (hasError(checkoutForm.controls.operationNumber)) { <small>Ingresa el número de operación.</small> }
+                </label>
+                <div>
+                  <span class="field-label">Comprobante de pago *</span>
+                  <input #proofInput type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" (change)="selectProof($event)" class="sr-only" />
+                  @if (!proofFile()) {
+                    <button type="button" (click)="proofInput.click()" class="upload-button">Subir JPG, PNG o PDF</button>
+                  } @else {
+                    <div class="file-chip"><span class="min-w-0 flex-1 truncate">{{ proofFile()!.name }}</span><button type="button" (click)="removeProof()" aria-label="Eliminar comprobante">Eliminar</button></div>
+                  }
+                  @if (fileError()) { <small class="mt-1 block text-xs font-semibold text-red-700">{{ fileError() }}</small> }
+                  @if (submitted() && !proofFile()) { <small class="mt-1 block text-xs font-semibold text-red-700">Adjunta el comprobante para continuar.</small> }
+                </div>
+              </div>
+              @if (proofPreview()) {
+                <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3"><p class="mb-2 text-xs font-bold text-slate-500">Vista previa</p><img [src]="proofPreview()" alt="Vista previa del comprobante" class="max-h-64 w-full rounded-xl object-contain" /></div>
+              }
+            }
+          </section>
+        </div>
+
+        <aside class="checkout-card top-28 lg:sticky" aria-labelledby="summary-title">
+          <h2 id="summary-title" class="text-xl font-black text-[#1A1E27]">Resumen de compra</h2>
+          <div class="mt-5 max-h-[420px] space-y-3 overflow-y-auto pr-1">
+            @for (item of items(); track item.id) {
+              <div class="flex gap-3 rounded-2xl bg-[#F7F6F4] p-3">
+                <img [src]="item.imagen" [alt]="item.imageAlt" class="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-sm font-extrabold leading-5 text-[#1A1E27]">{{ item.nombre }}</h3>
+                  <p class="mt-1 text-xs text-slate-500">{{ item.cantidad }} × S/ {{ item.precio.toFixed(2) }}</p>
+                </div>
+                <strong class="shrink-0 text-sm text-[#521B32]">S/ {{ (item.precio * item.cantidad).toFixed(2) }}</strong>
+              </div>
+            }
+          </div>
+          <a routerLink="/carrito" class="mt-4 inline-flex text-xs font-extrabold text-[#1A98A2] hover:underline">Editar productos y cantidades</a>
+
+          <dl class="mt-6 space-y-3 border-t border-slate-200 pt-5 text-sm">
+            <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-bold">S/ {{ subtotal().toFixed(2) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">Delivery</dt><dd class="font-bold">S/ {{ deliveryCost().toFixed(2) }}</dd></div>
+            <div class="flex justify-between border-t border-dashed border-slate-200 pt-4 text-lg"><dt class="font-black text-[#1A1E27]">Total</dt><dd class="font-black text-[#521B32]">S/ {{ total().toFixed(2) }}</dd></div>
+          </dl>
+
+          <button type="submit" class="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[#1A1E27] px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#1A98A2]">
+            Confirmar y enviar comprobante
+          </button>
+          <p class="mt-4 text-center text-xs leading-5 text-slate-500">No se realizará ningún cobro automático. Caja validará el comprobante posteriormente.</p>
+        </aside>
+      </form>
+    } @else {
+      <div class="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#E0A71A]/15 text-3xl">🐾</div>
+        <h1 class="mt-5 text-2xl font-black text-[#1A1E27]">Tu carrito está vacío</h1>
+        <p class="mt-2 text-slate-500">Añade uno o más productos antes de continuar con la compra.</p>
+        <a routerLink="/productos" class="mt-6 inline-flex rounded-full bg-[#1A98A2] px-6 py-3 font-bold text-white">Ver productos</a>
+      </div>
+    }
+  </div>
+</section>

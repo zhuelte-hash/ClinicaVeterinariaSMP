@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { NoticeService } from '../../core/services/notice.service';
+import { VisualSessionService } from '../../core/services/visual-session.service';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-login',
@@ -20,10 +22,15 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notice = inject(NoticeService);
+  private readonly visualSession = inject(VisualSessionService);
+  private readonly cart = inject(CartService);
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
   readonly showPassword = signal(false);
+  readonly isPurchaseLogin = this.isSafePurchaseUrl(
+    this.route.snapshot.queryParamMap.get('returnUrl'),
+  );
   readonly loginForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
@@ -40,11 +47,23 @@ export class LoginComponent {
 
     this.isSubmitting.set(true);
     const { email, password } = this.loginForm.getRawValue();
+
+    if (this.isPurchaseLogin) {
+      this.visualSession.login(email);
+      if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
+      void this.router.navigateByUrl(
+        this.route.snapshot.queryParamMap.get('returnUrl')!,
+      );
+      this.isSubmitting.set(false);
+      return;
+    }
+
     this.auth
       .login({ identifier: email, password })
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: () => {
+          this.visualSession.login(email, this.auth.currentUser()?.nombre ?? 'Cliente');
           const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
           const destination =
             this.auth.isAdmin() && requestedUrl?.startsWith('/admin')
@@ -56,6 +75,14 @@ export class LoginComponent {
         },
         error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
       });
+  }
+
+  private isSafePurchaseUrl(url: string | null): boolean {
+    return Boolean(
+      url
+      && !url.startsWith('//')
+      && ['/carrito', '/checkout', '/compra/confirmacion'].includes(url),
+    );
   }
 
   showUpcomingFeature(event: Event): void {

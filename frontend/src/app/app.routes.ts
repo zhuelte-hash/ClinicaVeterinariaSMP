@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
+import { purchaseGuard } from './core/guards/purchase.guard';
 
 export const routes: Routes = [
   {
@@ -46,6 +47,18 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./pages/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'checkout',
+    canActivate: [purchaseGuard],
+    loadComponent: () =>
+      import('./features/purchase/purchase-checkout.component').then((m) => m.PurchaseCheckoutComponent),
+  },
+  {
+    path: 'compra/confirmacion',
+    canActivate: [purchaseGuard],
+    loadComponent: () =>
+      import('./features/purchase/purchase-confirmation.component').then((m) => m.PurchaseConfirmationComponent),
   },
   {
     path: 'servicios',

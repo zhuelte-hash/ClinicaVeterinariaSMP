@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { PharmacyProduct, Product } from '../../core/models/producto.model';
 import { NoticeService } from '../../core/services/notice.service';
+import { VisualSessionService } from '../../core/services/visual-session.service';
 import { CartService } from '../../services/cart.service';
 
 @Component({
@@ -25,7 +27,12 @@ import { CartService } from '../../services/cart.service';
           <strong class="text-xl text-[#0B1B6D]">S/ {{ item().price.toFixed(2) }}</strong>
           @if (previousPrice()) { <span class="pb-0.5 text-sm text-slate-400 line-through">S/ {{ previousPrice()!.toFixed(2) }}</span> }
         </div>
-        <button type="button" (click)="addToCart()" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0B1B6D] px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500">
+        <p class="mt-2 text-xs font-semibold text-[#276508]">{{ item().stock }} unidades disponibles</p>
+        <button type="button" (click)="buyNow()" [disabled]="item().stock <= 0" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#E0A71A] px-5 py-3 text-sm font-extrabold text-[#1A1E27] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1A98A2] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2] disabled:cursor-not-allowed disabled:bg-[#D5D2D3] disabled:text-slate-500 disabled:hover:translate-y-0">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18m6-12H6"/><path d="M5 7h14l-1 13H6L5 7Z"/></svg>
+          {{ item().stock > 0 ? 'Comprar ahora' : 'Producto agotado' }}
+        </button>
+        <button type="button" (click)="addToCart()" class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#1A1E27]/20 bg-white px-5 py-2.5 text-sm font-bold text-[#1A1E27] transition hover:border-[#1A98A2] hover:bg-[#1A98A2]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2 12h11l2-8H6m4 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
           {{ compactLabel() ? 'Agregar' : 'Añadir al carrito' }}
         </button>
@@ -39,6 +46,8 @@ export class ProductCardComponent {
   readonly favorite = signal(false);
   private readonly cart = inject(CartService);
   private readonly notice = inject(NoticeService);
+  private readonly session = inject(VisualSessionService);
+  private readonly router = inject(Router);
 
   badge(): string | undefined {
     const product = this.item();
@@ -57,7 +66,38 @@ export class ProductCardComponent {
 
   addToCart(): void {
     const product = this.item();
-    this.cart.add({ id: product.id, nombre: product.name, precio: product.price, imagen: product.image });
+    if (product.stock <= 0) return;
+    const cartItem = this.toCartItem(product);
+    if (!this.session.isLoggedIn()) {
+      this.cart.queuePending(cartItem);
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      return;
+    }
+    this.cart.add(cartItem);
     this.notice.show('Producto añadido al carrito');
+  }
+
+  buyNow(): void {
+    const product = this.item();
+    if (product.stock <= 0) return;
+    const cartItem = this.toCartItem(product);
+    if (!this.session.isLoggedIn()) {
+      this.cart.queuePending(cartItem);
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      return;
+    }
+    this.cart.add(cartItem);
+    void this.router.navigate(['/carrito']);
+  }
+
+  private toCartItem(product: Product | PharmacyProduct) {
+    return {
+      id: product.id,
+      nombre: product.name,
+      precio: product.price,
+      imagen: product.image,
+      imageAlt: product.imageAlt,
+      stock: product.stock,
+    };
   }
 }

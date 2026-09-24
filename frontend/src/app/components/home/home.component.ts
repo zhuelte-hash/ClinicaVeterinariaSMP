@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { VisualSessionService } from '../../core/services/visual-session.service';
 import { CartService } from '../../services/cart.service';
 import { PRODUCTS } from '../../core/data/productos.mock';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
@@ -123,12 +124,30 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
   `,
 })
 export class HomeComponent {
-  cart = inject(CartService);
+  private readonly cart = inject(CartService);
+  private readonly session = inject(VisualSessionService);
+  private readonly router = inject(Router);
   readonly featuredProducts = PRODUCTS.filter((product) => product.featured).slice(0, 3);
   readonly favoriteCategories = [
     { title: 'Alimentos para mascotas', text: 'Opciones para acompañar su nutrición diaria.', filter: 'Alimentos', image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85', alt: 'Alimentos para mascotas' },
     { title: 'Accesorios para paseo', text: 'Paseos cómodos, seguros y llenos de aventura.', filter: 'Accesorios', image: 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85', alt: 'Perro disfrutando un paseo' },
     { title: 'Descanso y comodidad', text: 'Espacios suaves para recuperar energía.', filter: 'Descanso y dormitorio', image: 'https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85', alt: 'Mascota descansando cómodamente' },
   ];
-  add(id: string, nombre: string, precio: number) { this.cart.add({ id, nombre, precio }); }
+
+  add(id: string, nombre: string, precio: number): void {
+    const item = {
+      id,
+      nombre,
+      precio,
+      imagen: '/logo.png',
+      imageAlt: nombre,
+      stock: 99,
+    };
+    if (!this.session.isLoggedIn()) {
+      this.cart.queuePending(item);
+      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      return;
+    }
+    this.cart.add(item);
+  }
 }
