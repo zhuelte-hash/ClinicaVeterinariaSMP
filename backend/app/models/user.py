@@ -74,6 +74,8 @@ class Cliente(Base):
     direccion: Mapped[str | None] = mapped_column(String(255))
 
     usuario: Mapped[Usuario] = relationship(back_populates="cliente")
+    mascotas: Mapped[list["Mascota"]] = relationship(back_populates="cliente")
+    ordenes_cobro: Mapped[list["OrdenCobro"]] = relationship(back_populates="cliente")
 
 
 class Veterinario(Base):
@@ -89,6 +91,9 @@ class Veterinario(Base):
     especialidad: Mapped[str | None] = mapped_column(String(100))
 
     usuario: Mapped[Usuario] = relationship(back_populates="veterinario")
+    procesos_medicos: Mapped[list["ProcesoAtencionMedica"]] = relationship(
+        back_populates="veterinario"
+    )
 
 
 class Cajero(Base):
@@ -102,6 +107,8 @@ class Cajero(Base):
     )
 
     usuario: Mapped[Usuario] = relationship(back_populates="cajero")
+    cajas: Mapped[list["Caja"]] = relationship(back_populates="cajero")
+    ordenes_cobro: Mapped[list["OrdenCobro"]] = relationship(back_populates="cajero")
 
 
 class Administrador(Base):
