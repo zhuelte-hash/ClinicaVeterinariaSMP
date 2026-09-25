@@ -3,12 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import Usuario
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import ClientRegisterRequest, LoginRequest, TokenResponse
 from app.schemas.user import UsuarioRead
 from app.security import create_access_token, get_current_active_user
-from app.services.user_service import UserService
+from app.services.user_service import CorreoDuplicadoError, UserService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(data: ClientRegisterRequest, db: Session = Depends(get_db)):
+    service = UserService(db)
+    try:
+        user = service.create_client(data)
+    except CorreoDuplicadoError as exc:
+        raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
+    return TokenResponse(access_token=create_access_token(user.id), user=user)
 
 
 @router.post("/login", response_model=TokenResponse)

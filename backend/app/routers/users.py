@@ -44,7 +44,12 @@ def get_user(user_id: int, db: DbSession):
     return user
 
 
-@router.post("", response_model=UsuarioRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=UsuarioRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_admin_user)],
+)
 def create_user(user_data: UsuarioCreate, db: DbSession):
     service = UserService(db)
     try:

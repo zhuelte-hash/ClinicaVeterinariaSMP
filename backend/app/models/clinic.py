@@ -118,6 +118,9 @@ class Servicio(Base):
         back_populates="servicio", cascade="all, delete-orphan", uselist=False
     )
     citas: Mapped[list["Cita"]] = relationship(back_populates="servicio")
+    detalles_venta: Mapped[list["DetalleOrdenCobro"]] = relationship(
+        back_populates="servicio"
+    )
 
 
 class ServicioMedico(Base):
@@ -168,6 +171,12 @@ class Cita(Base):
         Index("idx_citas_mascota", "mascota_id"),
         Index("idx_citas_servicio", "servicio_id"),
         Index("idx_citas_fecha", "fecha_hora_programada"),
+        Index(
+            "uq_citas_horario_activo",
+            "fecha_hora_programada",
+            unique=True,
+            postgresql_where=text("estado NOT IN ('cancelada', 'no_asistio')"),
+        ),
         {"schema": SCHEMA},
     )
 
@@ -190,6 +199,10 @@ class Cita(Base):
     )
     es_urgente: Mapped[bool] = mapped_column(
         Boolean, server_default=text("false"), nullable=False
+    )
+    motivo: Mapped[str | None] = mapped_column(String(500))
+    fecha_creacion: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     mascota: Mapped[Mascota] = relationship(back_populates="citas")
@@ -384,6 +397,9 @@ class Producto(Base):
 
     categoria: Mapped[CategoriaProducto] = relationship(back_populates="productos")
     proveedor: Mapped[Proveedor] = relationship(back_populates="productos")
+    detalles_venta: Mapped[list["DetalleOrdenCobro"]] = relationship(
+        back_populates="producto"
+    )
 
 
 class Caja(Base):
@@ -393,6 +409,12 @@ class Caja(Base):
         CheckConstraint("total_ingresos_validados >= 0", name="ingresos"),
         CheckConstraint("estado_caja IN ('abierta', 'cerrada')", name="estado"),
         Index("idx_cajas_cajero", "cajero_id"),
+        Index(
+            "uq_cajas_cajero_abierta",
+            "cajero_id",
+            unique=True,
+            postgresql_where=text("estado_caja = 'abierta'"),
+        ),
         {"schema": SCHEMA},
     )
 
@@ -416,6 +438,10 @@ class OrdenCobro(Base):
     __tablename__ = "ordenes_cobro"
     __table_args__ = (
         CheckConstraint("monto_total >= 0", name="monto"),
+        CheckConstraint(
+            "medio_pago IS NULL OR medio_pago IN ('efectivo', 'yape', 'plin', 'tarjeta')",
+            name="medio_pago",
+        ),
         Index("idx_ordenes_cajero", "cajero_id"),
         Index("idx_ordenes_cliente", "cliente_id"),
         Index("idx_ordenes_caja", "caja_id"),
@@ -447,6 +473,7 @@ class OrdenCobro(Base):
     estado_pago: Mapped[EstadoPago] = mapped_column(
         estado_pago_db, server_default=text("'pendiente'"), nullable=False
     )
+    medio_pago: Mapped[str | None] = mapped_column(String(30))
 
     cajero: Mapped["Cajero"] = relationship(back_populates="ordenes_cobro")
     cliente: Mapped["Cliente"] = relationship(back_populates="ordenes_cobro")
@@ -460,6 +487,44 @@ class OrdenCobro(Base):
     comprobante_venta: Mapped["ComprobanteVenta | None"] = relationship(
         back_populates="orden_cobro", uselist=False
     )
+    detalles: Mapped[list["DetalleOrdenCobro"]] = relationship(
+        back_populates="orden_cobro", cascade="all, delete-orphan"
+    )
+
+
+class DetalleOrdenCobro(Base):
+    __tablename__ = "detalles_orden_cobro"
+    __table_args__ = (
+        CheckConstraint("cantidad > 0", name="cantidad"),
+        CheckConstraint("precio_unitario >= 0", name="precio"),
+        CheckConstraint("subtotal >= 0", name="subtotal"),
+        CheckConstraint(
+            "(producto_id IS NOT NULL) <> (servicio_id IS NOT NULL)", name="item"
+        ),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    orden_cobro_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(f"{SCHEMA}.ordenes_cobro.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    producto_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(f"{SCHEMA}.productos.id", ondelete="RESTRICT"),
+    )
+    servicio_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(f"{SCHEMA}.servicios.id", ondelete="RESTRICT"),
+    )
+    cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    precio_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+
+    orden_cobro: Mapped[OrdenCobro] = relationship(back_populates="detalles")
+    producto: Mapped[Producto | None] = relationship(back_populates="detalles_venta")
+    servicio: Mapped[Servicio | None] = relationship(back_populates="detalles_venta")
 
 
 class ComprobantePagoWhatsApp(Base):
@@ -498,5 +563,8 @@ class ComprobanteVenta(Base):
     )
     serie_correlativo: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     total_pagar: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    fecha_emision: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     orden_cobro: Mapped[OrdenCobro] = relationship(back_populates="comprobante_venta")

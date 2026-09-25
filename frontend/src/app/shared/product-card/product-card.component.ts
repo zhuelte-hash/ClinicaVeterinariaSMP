@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { PharmacyProduct, Product } from '../../core/models/producto.model';
 import { NoticeService } from '../../core/services/notice.service';
-import { VisualSessionService } from '../../core/services/visual-session.service';
 import { CartService } from '../../services/cart.service';
 
 @Component({
@@ -46,7 +46,7 @@ export class ProductCardComponent {
   readonly favorite = signal(false);
   private readonly cart = inject(CartService);
   private readonly notice = inject(NoticeService);
-  private readonly session = inject(VisualSessionService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   badge(): string | undefined {
@@ -68,9 +68,9 @@ export class ProductCardComponent {
     const product = this.item();
     if (product.stock <= 0) return;
     const cartItem = this.toCartItem(product);
-    if (!this.session.isLoggedIn()) {
+    if (!this.auth.isAuthenticated()) {
       this.cart.queuePending(cartItem);
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      void this.router.navigate(['/carrito']);
       return;
     }
     this.cart.add(cartItem);
@@ -81,9 +81,9 @@ export class ProductCardComponent {
     const product = this.item();
     if (product.stock <= 0) return;
     const cartItem = this.toCartItem(product);
-    if (!this.session.isLoggedIn()) {
+    if (!this.auth.isAuthenticated()) {
       this.cart.queuePending(cartItem);
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      void this.router.navigate(['/carrito']);
       return;
     }
     this.cart.add(cartItem);

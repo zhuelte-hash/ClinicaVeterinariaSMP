@@ -25,7 +25,7 @@ import { VeterinaryService } from './service.model';
         <p class="mt-4 leading-7 text-[#1A1E27]/75">{{ service.description }}</p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <a href="tel:965939522" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-6 py-3 font-bold text-white transition hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">Llamar ahora</a>
-          <a routerLink="/contacto" (click)="dialogRef.close()" class="inline-flex items-center justify-center rounded-full border-2 border-[#1A1E27] px-6 py-3 font-bold text-[#1A1E27] transition hover:bg-[#1A1E27] hover:text-white">Reservar cita</a>
+          <a routerLink="/reservar-cita" [queryParams]="{ servicio: service.slug }" (click)="dialogRef.close()" class="inline-flex items-center justify-center rounded-full border-2 border-[#1A1E27] px-6 py-3 font-bold text-[#1A1E27] transition hover:bg-[#1A1E27] hover:text-white">Reservar cita</a>
         </div>
       </div>
     </section>

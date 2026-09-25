@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
+import { cashierGuard } from './core/guards/cashier.guard';
+import { clientGuard } from './core/guards/client.guard';
 import { purchaseGuard } from './core/guards/purchase.guard';
 
 export const routes: Routes = [
@@ -40,6 +42,7 @@ export const routes: Routes = [
   },
   {
     path: 'carrito',
+    canActivate: [purchaseGuard],
     loadComponent: () =>
       import('./components/carrito/carrito.component').then((m) => m.CarritoComponent),
   },
@@ -75,6 +78,23 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     loadChildren: () =>
       import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  {
+    path: 'reservar-cita',
+    canActivate: [clientGuard],
+    loadComponent: () =>
+      import('./features/appointments/appointments-page.component').then((m) => m.AppointmentsPageComponent),
+  },
+  {
+    path: 'registro',
+    loadComponent: () =>
+      import('./pages/register/register.component').then((m) => m.RegisterComponent),
+  },
+  {
+    path: 'caja',
+    canActivate: [cashierGuard],
+    loadChildren: () =>
+      import('./features/cashier/cashier.routes').then((m) => m.CASHIER_ROUTES),
   },
   {
     path: 'users',

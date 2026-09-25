@@ -12,7 +12,7 @@
         <h1 class="text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">Servicios veterinarios</h1>
         <p class="mt-5 max-w-2xl text-lg leading-8 text-white/85 sm:text-xl">Cuidado, prevención y atención especializada para el bienestar de tu mascota.</p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a routerLink="/contacto" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-7 py-3.5 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Reservar cita</a>
+          <a routerLink="/reservar-cita" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-7 py-3.5 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Reservar cita</a>
           <a href="tel:965939522" class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white px-7 py-3 font-bold text-white transition hover:bg-white hover:text-[#1A1E27] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.4 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z"/></svg>
             Llamar ahora
@@ -57,7 +57,7 @@
         <p class="mt-4 max-w-xl leading-7 text-white/80">{{ featuredService.description }}</p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <button type="button" class="rounded-full bg-[#1A98A2] px-6 py-3 font-bold transition hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" (click)="openDetails(featuredService)">Ver más</button>
-          <a routerLink="/contacto" class="rounded-full border-2 border-white px-6 py-2.5 text-center font-bold transition hover:bg-white hover:text-[#1A1E27]">Reservar cita</a>
+          <a routerLink="/reservar-cita" class="rounded-full border-2 border-white px-6 py-2.5 text-center font-bold transition hover:bg-white hover:text-[#1A1E27]">Reservar cita</a>
         </div>
       </div>
     </article>
@@ -91,7 +91,7 @@
           <h2 id="esthetic-title" class="mt-3 text-3xl font-black text-[#0B1B6D] sm:text-4xl">Estética Canina y Felina</h2>
           <p class="mt-4 text-lg leading-8 text-slate-600">Cuidado, higiene y bienestar para perros y gatos.</p>
         </div>
-        <a routerLink="/contacto" class="inline-flex w-fit items-center justify-center rounded-full bg-[#0B1B6D] px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#0799AE]">Reservar atención estética</a>
+        <a routerLink="/reservar-cita" class="inline-flex w-fit items-center justify-center rounded-full bg-[#0B1B6D] px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#0799AE]">Reservar atención estética</a>
       </div>
 
       <div class="mt-12 space-y-12">

@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
-import { CartService } from '../../services/cart.service';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
+import { AuthDialogService } from '../../core/auth/auth-dialog.service';
 import { VisualSessionService } from '../../core/services/visual-session.service';
+import { CartService } from '../../services/cart.service';
 import { PetCarrierIconComponent } from '../../shared/icons/pet-carrier-icon.component';
 import { ServiceMenuIconComponent } from '../../features/services/service-menu-icon.component';
 import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId } from '../../features/services/services-menu.data';
@@ -122,7 +124,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
 
           <!-- Acciones -->
           <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
-            <a routerLink="/contacto" class="hidden rounded-full bg-[#0B1B6D] px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0799AE] md:inline-flex">Agenda tu cita</a>
+            <a routerLink="/reservar-cita" class="hidden rounded-full bg-[#0B1B6D] px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#0799AE] md:inline-flex">Agenda tu cita</a>
             <a routerLink="/productos" title="Buscar" aria-label="Buscar productos" class="hidden h-10 w-10 items-center justify-center rounded-full text-[#0B1B6D] transition hover:bg-[#0799AE]/10 hover:text-[#0799AE] lg:flex">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 17a7 7 0 110-14 7 7 0 010 14z"/></svg>
             </a>
@@ -139,9 +141,12 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                 </div>
               }
             </div>
-            <a [routerLink]="session.isLoggedIn() ? '/inicio' : '/login'" class="hidden items-center gap-2 rounded-full border border-[#0B1B6D]/25 bg-white px-3 py-2 text-xs font-bold text-[#0B1B6D] transition hover:border-[#0799AE] hover:bg-[#0799AE]/10 md:inline-flex" [attr.aria-label]="session.isLoggedIn() ? 'Mi cuenta' : 'Iniciar sesión'">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>{{ session.isLoggedIn() ? 'Mi cuenta' : 'Iniciar sesión' }}
-            </a>
+            @if (auth.isAuthenticated()) {
+              <a [routerLink]="accountRoute()" class="hidden items-center gap-2 rounded-full border border-[#0B1B6D]/25 bg-white px-3 py-2 text-xs font-bold text-[#0B1B6D] transition hover:border-[#0799AE] hover:bg-[#0799AE]/10 md:inline-flex" aria-label="Mi cuenta"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Mi cuenta</a>
+              <button type="button" (click)="logout()" class="hidden rounded-full px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50 md:inline-flex">Cerrar sesión</button>
+            } @else {
+              <button type="button" (click)="openLogin()" class="hidden items-center gap-2 rounded-full border border-[#0B1B6D]/25 bg-white px-3 py-2 text-xs font-bold text-[#0B1B6D] transition hover:border-[#0799AE] hover:bg-[#0799AE]/10 md:inline-flex" aria-label="Iniciar sesión"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Iniciar sesión</button>
+            }
             <span class="hidden h-9 w-9 place-items-center rounded-full bg-[#F4C430]/20 text-[#F4C430] xl:grid" title="Cuidamos a tu mascota" aria-hidden="true"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="8" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M12 10c-3.5 0-6 2.5-6 5.4C6 18.3 8.6 20 12 20s6-1.7 6-4.6c0-2.9-2.5-5.4-6-5.4Z"/></svg></span>
             <button type="button" (click)="mobileMenuOpen.update(open => !open)" class="grid h-10 w-10 place-items-center rounded-full text-[#0B1B6D] hover:bg-sky-50 xl:hidden" aria-label="Abrir menú de navegación" [attr.aria-expanded]="mobileMenuOpen()" aria-controls="mobile-navigation">
               @if (mobileMenuOpen()) { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg> }
@@ -186,8 +191,13 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </div>
          }
          <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
-           <a routerLink="/contacto" (click)="closeMobileMenu()" class="rounded-full bg-[#0B1B6D] px-4 py-3 text-center text-white hover:bg-[#0799AE]">Agenda tu cita</a>
-           <a [routerLink]="session.isLoggedIn() ? '/inicio' : '/login'" (click)="closeMobileMenu()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>{{ session.isLoggedIn() ? 'Mi cuenta' : 'Iniciar sesión' }}</a>
+           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="rounded-full bg-[#0B1B6D] px-4 py-3 text-center text-white hover:bg-[#0799AE]">Agenda tu cita</a>
+           @if (auth.isAuthenticated()) {
+             <a [routerLink]="accountRoute()" (click)="closeMobileMenu()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Mi cuenta</a>
+             <button type="button" (click)="logout()" class="rounded-full border border-rose-200 px-4 py-3 text-center font-bold text-rose-600 hover:bg-rose-50">Cerrar sesión</button>
+           } @else {
+             <button type="button" (click)="openLogin()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Iniciar sesión</button>
+           }
          </div>
       </nav> }
     </header>
@@ -195,7 +205,15 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
 })
 export class NavbarComponent {
   readonly cart = inject(CartService);
-  readonly session = inject(VisualSessionService);
+  readonly auth = inject(AuthService);
+  private readonly authDialog = inject(AuthDialogService);
+  private readonly visualSession = inject(VisualSessionService);
+  private readonly router = inject(Router);
+  readonly accountRoute = computed(() => {
+    if (this.auth.isAdmin()) return '/admin/dashboard';
+    if (this.auth.isCashier()) return '/caja/dashboard';
+    return this.auth.isAuthenticated() ? '/reservar-cita' : '/login';
+  });
   readonly desktopServicesOpen = signal(false);
   readonly mobileServicesOpen = signal(false);
   readonly mobileMenuOpen = signal(false);
@@ -225,5 +243,20 @@ export class NavbarComponent {
 
   toggleMobileCategory(category: ServicesMenuCategoryId): void {
     this.mobileServiceCategory.update((current) => current === category ? null : category);
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.visualSession.logout();
+    this.cart.clear();
+    this.closeMobileMenu();
+    void this.router.navigateByUrl('/inicio');
+  }
+
+  openLogin(): void {
+    this.closeMobileMenu();
+    this.authDialog.open().subscribe((authenticated) => {
+      if (authenticated) void this.router.navigateByUrl(this.accountRoute());
+    });
   }
 }

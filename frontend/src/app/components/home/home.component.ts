@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { VisualSessionService } from '../../core/services/visual-session.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { CartService } from '../../services/cart.service';
 import { PRODUCTS } from '../../core/data/productos.mock';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
@@ -19,7 +19,7 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
         <p class="text-lg text-sky-100 mb-2">Jr. Quinua N° 178 – Cercado, Ayacucho | 965 939 522</p>
         <p class="text-sky-100 mb-8">Cuidado, amor y salud para tus mejores amigos 🐶🐱</p>
         <div class="flex justify-center gap-3 flex-wrap">
-          <a routerLink="/contacto" class="px-6 py-3 bg-brand-500 rounded-full font-bold hover:bg-brand-600 shadow-lg">Reservar Cita</a>
+          <a routerLink="/reservar-cita" class="px-6 py-3 bg-brand-500 rounded-full font-bold hover:bg-brand-600 shadow-lg">Reservar Cita</a>
           <a routerLink="/contacto" class="px-6 py-3 bg-white text-pet-900 rounded-full font-bold hover:bg-sky-100">Contáctanos</a>
         </div>
       </div>
@@ -125,7 +125,7 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
 })
 export class HomeComponent {
   private readonly cart = inject(CartService);
-  private readonly session = inject(VisualSessionService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly featuredProducts = PRODUCTS.filter((product) => product.featured).slice(0, 3);
   readonly favoriteCategories = [
@@ -143,9 +143,9 @@ export class HomeComponent {
       imageAlt: nombre,
       stock: 99,
     };
-    if (!this.session.isLoggedIn()) {
+    if (!this.auth.isAuthenticated()) {
       this.cart.queuePending(item);
-      void this.router.navigate(['/login'], { queryParams: { returnUrl: '/carrito' } });
+      void this.router.navigate(['/carrito']);
       return;
     }
     this.cart.add(item);

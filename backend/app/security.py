@@ -73,3 +73,25 @@ def get_current_admin_user(
             detail="Administrator access required",
         )
     return user
+
+
+def get_current_cashier_user(
+    user: Usuario = Depends(get_current_active_user),
+) -> Usuario:
+    if user.tipo != TipoUsuario.CAJERO:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cashier access required",
+        )
+    return user
+
+
+def get_current_client_user(
+    user: Usuario = Depends(get_current_active_user),
+) -> Usuario:
+    if user.tipo != TipoUsuario.CLIENTE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Client access required",
+        )
+    return user

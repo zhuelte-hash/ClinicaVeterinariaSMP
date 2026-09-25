@@ -29,7 +29,7 @@ export class AppComponent {
   private readonly currentUrl = signal('');
   readonly showPublicChrome = computed(() => {
     const url = this.currentUrl();
-    return !url.startsWith('/admin') && !url.startsWith('/login') && !url.startsWith('/no-autorizado');
+    return !url.startsWith('/admin') && !url.startsWith('/caja') && !url.startsWith('/login') && !url.startsWith('/registro') && !url.startsWith('/no-autorizado');
   });
 
   constructor(router: Router) {

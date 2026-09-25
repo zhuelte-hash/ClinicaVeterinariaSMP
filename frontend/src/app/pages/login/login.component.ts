@@ -28,8 +28,9 @@ export class LoginComponent {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
   readonly showPassword = signal(false);
+  readonly returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
   readonly isPurchaseLogin = this.isSafePurchaseUrl(
-    this.route.snapshot.queryParamMap.get('returnUrl'),
+    this.returnUrl,
   );
   readonly loginForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -48,29 +49,26 @@ export class LoginComponent {
     this.isSubmitting.set(true);
     const { email, password } = this.loginForm.getRawValue();
 
-    if (this.isPurchaseLogin) {
-      this.visualSession.login(email);
-      if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
-      void this.router.navigateByUrl(
-        this.route.snapshot.queryParamMap.get('returnUrl')!,
-      );
-      this.isSubmitting.set(false);
-      return;
-    }
-
     this.auth
       .login({ identifier: email, password })
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: () => {
           this.visualSession.login(email, this.auth.currentUser()?.nombre ?? 'Cliente');
+          if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
           const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
           const destination =
-            this.auth.isAdmin() && requestedUrl?.startsWith('/admin')
-              ? requestedUrl
-              : this.auth.isAdmin()
-                ? '/admin/dashboard'
-                : '/inicio';
+            this.isSafePurchaseUrl(requestedUrl)
+              ? requestedUrl!
+              : this.auth.isCashier() && requestedUrl?.startsWith('/caja')
+                ? requestedUrl
+              : this.auth.isAdmin() && requestedUrl?.startsWith('/admin')
+                ? requestedUrl
+                : this.auth.isAdmin()
+                  ? '/admin/dashboard'
+                  : this.auth.isCashier()
+                    ? '/caja/dashboard'
+                    : '/inicio';
           void this.router.navigateByUrl(destination);
         },
         error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
@@ -78,10 +76,11 @@ export class LoginComponent {
   }
 
   private isSafePurchaseUrl(url: string | null): boolean {
+    const path = url?.split('?')[0];
     return Boolean(
       url
       && !url.startsWith('//')
-      && ['/carrito', '/checkout', '/compra/confirmacion'].includes(url),
+      && ['/carrito', '/checkout', '/compra/confirmacion', '/reservar-cita'].includes(path!),
     );
   }
 

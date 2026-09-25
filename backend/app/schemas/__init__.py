@@ -1,4 +1,4 @@
-from app.schemas.auth import LoginRequest, TokenPayload, TokenResponse
+from app.schemas.auth import ClientRegisterRequest, LoginRequest, TokenPayload, TokenResponse
 from app.schemas.user import (
     UsuarioCreate,
     UsuarioLogin,
@@ -7,6 +7,7 @@ from app.schemas.user import (
 )
 
 __all__ = [
+    "ClientRegisterRequest",
     "LoginRequest",
     "TokenPayload",
     "TokenResponse",

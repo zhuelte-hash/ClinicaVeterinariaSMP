@@ -19,7 +19,7 @@
       </p>
       @if (isPurchaseLogin) {
         <p class="mt-4 rounded-xl border border-[#1A98A2]/20 bg-[#1A98A2]/10 px-4 py-3 text-xs font-semibold leading-5 text-[#1A1E27]">
-          Compra demostrativa: usa un correo válido y una contraseña de al menos 6 caracteres. No se enviarán datos al servidor.
+          Por seguridad, debes autenticarte con una cuenta registrada antes de agregar productos o continuar con el pago.
         </p>
       }
     </div>
@@ -59,7 +59,10 @@
       </button>
     </form>
 
-    <p class="mt-7 text-center text-sm text-slate-500">¿Aún no tienes cuenta? <a href="#" (click)="showUpcomingFeature($event)" class="font-extrabold text-[#0B1B6D] hover:text-[#0799AE]">Regístrate</a></p>
+    <div class="mt-7 border-t border-slate-200 pt-6 text-center">
+      <p class="mb-3 text-sm text-slate-500">¿Aún no tienes cuenta?</p>
+      <a routerLink="/registro" [queryParams]="returnUrl ? { returnUrl: returnUrl } : {}" class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-[#0B1B6D] px-4 font-extrabold text-[#0B1B6D] transition hover:border-[#0799AE] hover:bg-[#0799AE]/10 hover:text-[#0799AE]">Crear nueva cuenta</a>
+    </div>
     <a routerLink="/inicio" class="mt-5 block text-center text-xs font-bold text-slate-400 hover:text-[#0799AE]">Volver al sitio web</a>
   </section>
 </main>

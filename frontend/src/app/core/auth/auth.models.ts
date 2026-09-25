@@ -12,6 +12,13 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface ClientRegistration {
+  nombre: string;
+  correo: string;
+  password: string;
+  telefono?: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;

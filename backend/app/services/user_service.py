@@ -3,7 +3,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.user import Usuario
+from app.models.user import Cliente, TipoUsuario, Usuario
+from app.schemas.auth import ClientRegisterRequest
 from app.schemas.user import UsuarioCreate, UsuarioUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -53,6 +54,17 @@ class UserService:
             contrasena=self._hash_password(data.contrasena),
             tipo=data.tipo,
         )
+        self.db.add(user)
+        return self._commit(user)
+
+    def create_client(self, data: ClientRegisterRequest) -> Usuario:
+        user = Usuario(
+            nombre=data.nombre,
+            correo=str(data.correo),
+            contrasena=self._hash_password(data.password),
+            tipo=TipoUsuario.CLIENTE,
+        )
+        user.cliente = Cliente(telefono=data.telefono)
         self.db.add(user)
         return self._commit(user)
 

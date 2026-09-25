@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   AUTH_TOKEN_KEY,
   AuthUser,
+  ClientRegistration,
   LoginCredentials,
   LoginResponse,
 } from './auth.models';
@@ -26,6 +27,7 @@ export class AuthService {
     const user = this.userState();
     return user?.tipo === 'administrador';
   });
+  readonly isCashier = computed(() => this.userState()?.tipo === 'cajero');
   readonly isLoading = computed(() => this.loadingState());
 
   constructor() {
@@ -39,6 +41,21 @@ export class AuthService {
 
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, credentials)
+      .pipe(
+        tap(({ access_token, user }) => {
+          localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+          this.tokenState.set(access_token);
+          this.userState.set(user);
+        }),
+        finalize(() => this.loadingState.set(false)),
+      );
+  }
+
+  register(data: ClientRegistration): Observable<LoginResponse> {
+    this.loadingState.set(true);
+
+    return this.http
+      .post<LoginResponse>(`${environment.apiUrl}/auth/register`, data)
       .pipe(
         tap(({ access_token, user }) => {
           localStorage.setItem(AUTH_TOKEN_KEY, access_token);

@@ -52,6 +52,13 @@ body {
   justify-content: center;
 }
 
+@media print {
+  body * { visibility: hidden !important; }
+  .print-receipt, .print-receipt * { visibility: visible !important; }
+  .print-receipt { position: absolute; inset: 0 auto auto 0; width: 80mm; min-height: 100%; padding: 8mm !important; background: white; color: black; }
+  .no-print { display: none !important; }
+}
+
 .purchase-checkout .checkout-card { border: 1px solid #e2e8f0; border-radius: 1.75rem; background: #fff; padding: clamp(1.25rem, 3vw, 2rem); box-shadow: 0 16px 45px rgb(26 30 39 / 6%); }
 .purchase-checkout .section-heading { display: flex; align-items: flex-start; gap: .9rem; }
 .purchase-checkout .section-heading > span { display: grid; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; place-items: center; border-radius: 999px; background: #1a98a2; color: #fff; font-weight: 900; }
