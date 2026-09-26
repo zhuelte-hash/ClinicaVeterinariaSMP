@@ -31,9 +31,10 @@ export class VeterinarianDashboardComponent {
   readonly historyPetId = signal<number | null>(null);
   readonly editingScheduleId = signal<number | null>(null);
   readonly attentionId = signal<number | null>(null);
+  readonly consultationId = signal<number | null>(null);
   readonly scheduleForm = { dia_semana: 0, hora_inicio: '08:00', hora_fin: '19:00', activo: true };
   readonly blockForm = { fecha_hora_inicio: '', fecha_hora_fin: '', motivo: '' };
-  readonly attentionForm = { observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '' };
+  readonly attentionForm = { motivo_consulta: '', anamnesis: '', observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '', proxima_fecha_control: '' };
   readonly filterForm = this.formBuilder.nonNullable.group({ fecha: [''], estado: ['' as AppointmentStatus | ''], busqueda: [''] });
   readonly coordinationNotes: Record<number, string> = {};
   readonly coordinationDates: Record<number, string> = {};
@@ -93,6 +94,8 @@ export class VeterinarianDashboardComponent {
   registerAttention(request: VeterinarianAppointment): void {
     this.attentionId.set(request.id);
     this.api.registerAttention(request.id, {
+      motivo_consulta: this.attentionForm.motivo_consulta || null,
+      anamnesis: this.attentionForm.anamnesis || null,
       observaciones: this.attentionForm.observaciones || null,
       diagnostico: this.attentionForm.diagnostico || null,
       tratamiento: this.attentionForm.tratamiento || null,
@@ -104,8 +107,9 @@ export class VeterinarianDashboardComponent {
       medicamentos: this.attentionForm.medicamentos || null,
       procedimientos: this.attentionForm.procedimientos || null,
       examenes_resultados: this.attentionForm.examenes_resultados || null,
+      proxima_fecha_control: this.attentionForm.proxima_fecha_control || null,
     }).pipe(finalize(() => this.attentionId.set(null))).subscribe({
-      next: () => { this.resetAttention(); this.notice.show('Atención registrada'); this.load(); },
+      next: () => { this.resetAttention(); this.consultationId.set(null); this.notice.show('Atención registrada'); this.load(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
@@ -140,8 +144,14 @@ export class VeterinarianDashboardComponent {
 
   setProposal(id: number, value: string): void { this.coordinationDates[id] = value; }
   setNote(id: number, value: string): void { this.coordinationNotes[id] = value; }
+  startConsultation(request: VeterinarianAppointment): void {
+    this.resetAttention();
+    this.attentionForm.motivo_consulta = request.motivo || '';
+    this.consultationId.set(request.id);
+  }
+  cancelConsultation(): void { this.resetAttention(); this.consultationId.set(null); }
 
-  resetAttention(): void { Object.assign(this.attentionForm, { observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '' }); }
+  resetAttention(): void { Object.assign(this.attentionForm, { motivo_consulta: '', anamnesis: '', observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '', proxima_fecha_control: '' }); }
 
   private attentionPayload(): Record<string, string | null> {
     return Object.fromEntries(Object.entries(this.attentionForm).map(([key, value]) => [key, value || null]));
