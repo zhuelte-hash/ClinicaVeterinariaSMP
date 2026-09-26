@@ -3,11 +3,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.user import TipoUsuario, Usuario
+from app.models.user import PermisoRol, TipoUsuario, Usuario
 from app.schemas.auth import TokenPayload
 from app.services.user_service import UserService
 
@@ -106,3 +107,29 @@ def get_current_veterinarian_user(
             detail="Veterinarian access required",
         )
     return user
+
+
+def require_permission(module: str, action: str = "ver"):
+    field = f"puede_{action}"
+
+    def dependency(
+        user: Usuario = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ) -> Usuario:
+        permission = db.scalar(
+            select(PermisoRol).where(
+                PermisoRol.rol == user.tipo,
+                PermisoRol.modulo == module,
+            )
+        )
+        # Existing installations have no matrix rows until an administrator configures it.
+        # Preserve the established role access during that transition.
+        allowed = user.tipo == TipoUsuario.ADMINISTRADOR if permission is None else getattr(permission, field)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permiso para realizar esta acción",
+            )
+        return user
+
+    return dependency

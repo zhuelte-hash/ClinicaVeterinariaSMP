@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import Usuario
 from app.schemas.user import UsuarioCreate, UsuarioRead, UsuarioUpdate
-from app.security import get_current_admin_user
+from app.security import require_permission
 from app.services.user_service import (
     CorreoDuplicadoError,
     UserService,
@@ -16,13 +16,13 @@ from app.services.user_service import (
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-CurrentAdmin = Annotated[Usuario, Depends(get_current_admin_user)]
+CurrentAdmin = Annotated[Usuario, Depends(require_permission("usuarios", "eliminar"))]
 
 
 @router.get(
     "",
     response_model=list[UsuarioRead],
-    dependencies=[Depends(get_current_admin_user)],
+    dependencies=[Depends(require_permission("usuarios"))],
 )
 def get_users(
     db: DbSession,
@@ -36,7 +36,7 @@ def get_users(
 @router.get(
     "/{user_id}",
     response_model=UsuarioRead,
-    dependencies=[Depends(get_current_admin_user)],
+    dependencies=[Depends(require_permission("usuarios"))],
 )
 def get_user(user_id: int, db: DbSession):
     service = UserService(db)
@@ -50,7 +50,7 @@ def get_user(user_id: int, db: DbSession):
     "",
     response_model=UsuarioRead,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_admin_user)],
+    dependencies=[Depends(require_permission("usuarios", "crear"))],
 )
 def create_user(user_data: UsuarioCreate, db: DbSession):
     service = UserService(db)
@@ -65,7 +65,7 @@ def create_user(user_data: UsuarioCreate, db: DbSession):
 @router.patch(
     "/{user_id}",
     response_model=UsuarioRead,
-    dependencies=[Depends(get_current_admin_user)],
+    dependencies=[Depends(require_permission("usuarios", "editar"))],
 )
 def update_user(user_id: int, user_data: UsuarioUpdate, db: DbSession):
     service = UserService(db)

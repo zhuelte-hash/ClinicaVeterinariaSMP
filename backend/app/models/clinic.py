@@ -531,6 +531,12 @@ class Producto(Base):
     stock_minimo: Mapped[int] = mapped_column(
         Integer, server_default=text("0"), nullable=False
     )
+    activo: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("true"), nullable=False
+    )
+    imagen_url: Mapped[str] = mapped_column(
+        String(500), server_default=text("'/logo.png'"), nullable=False
+    )
 
     categoria: Mapped[CategoriaProducto] = relationship(back_populates="productos")
     proveedor: Mapped[Proveedor] = relationship(back_populates="productos")

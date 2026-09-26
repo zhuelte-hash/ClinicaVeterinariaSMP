@@ -21,10 +21,10 @@
   </div>
 
   <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-    <admin-stat-card label="Productos" [value]="data.products().length.toString()" icon="products" change="Catálogo activo" />
+    <admin-stat-card label="Productos" [value]="catalogProducts().length.toString()" icon="products" change="Catálogo activo" />
     <admin-stat-card label="Categorías" [value]="data.categories().length.toString()" icon="categories" change="Catálogo organizado" />
     <admin-stat-card label="Ventas de hoy" [value]="'S/ ' + todaySales().toLocaleString('es-PE', { minimumFractionDigits: 2 })" icon="sales" [change]="'+' + data.summary().salesChange + '% de variación'" />
-    <admin-stat-card label="Citas de hoy" [value]="todayAppointments().length.toString()" icon="appointments" [change]="'+' + data.summary().appointmentsChange + '% de variación'" />
+    <admin-stat-card label="Citas de hoy" [value]="todayAppointments().length.toString()" icon="appointments" change="Agenda clínica" />
     <admin-stat-card label="Stock bajo" [value]="lowStock().length.toString()" icon="alert" change="Requiere atención" [positive]="false" />
   </div>
 
@@ -45,11 +45,11 @@
     <article class="admin-panel p-5 sm:p-6">
       <div class="flex items-start justify-between"><div><p class="panel-kicker">Agenda</p><h2>Próximas citas</h2><p>Atenciones programadas para hoy.</p></div><a routerLink="../citas" class="panel-link">Ver todas</a></div>
       <div class="mt-5 space-y-3">
-        @for (appointment of todayAppointments().slice(0, 3); track appointment.id) {
+        @if (operationalError()) { <p class="rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">{{ operationalError() }}</p> } @else if (operationalLoading()) { <p class="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">Cargando citas...</p> } @for (appointment of todayAppointments().slice(0, 3); track appointment.id) {
           <div class="appointment-row">
-            <div class="time-box"><b>{{ appointment.time }}</b></div>
-            <div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ appointment.patient }}</p><p class="truncate text-xs text-slate-500">{{ appointment.service }} · {{ appointment.owner }}</p></div>
-            <admin-status-badge [status]="appointment.status" />
+            <div class="time-box"><b>{{ formatTime(appointment.fecha_hora_programada) }}</b></div>
+            <div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ appointment.mascota_nombre }}</p><p class="truncate text-xs text-slate-500">{{ appointment.servicio_nombre }} · {{ appointment.cliente_nombre }}</p></div>
+            <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ appointment.estado }}</span>
           </div>
         } @empty { <p class="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">No hay citas para hoy.</p> }
       </div>
@@ -61,7 +61,7 @@
       <div class="flex items-start justify-between"><div><p class="panel-kicker !text-rose-600">Atención</p><h2>Alertas de inventario</h2><p>Productos que requieren reposición.</p></div><a routerLink="../inventario" class="panel-link">Gestionar</a></div>
       <div class="mt-4 divide-y divide-slate-100">
         @for (product of lowStock(); track product.id) {
-          <div class="flex items-center gap-3 py-3.5"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-rose-50 text-rose-600"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.sku }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock }} und.</b></div>
+           <div class="flex items-center gap-3 py-3.5"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-10 w-10 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.sku }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock_actual }} und.</b></div>
         } @empty { <p class="py-6 text-center text-sm text-slate-500">Inventario sin alertas.</p> }
       </div>
     </article>
@@ -70,7 +70,7 @@
       <div><p class="panel-kicker">Rendimiento</p><h2>Productos destacados</h2><p>Productos con mayor movimiento.</p></div>
       <div class="mt-4 space-y-3">
         @for (product of bestSellers(); track product.id) {
-          <div class="product-row"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-teal-50 to-lime-100 font-extrabold text-teal-800">{{ product.name.charAt(0) }}</span><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.category }}</p></div><b class="text-sm text-teal-700">{{ product.stock }} und.</b></div>
+           <div class="product-row"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-11 w-11 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.categoria_nombre }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="text-sm text-teal-700">{{ product.stock_actual }} und.</b></div>
         }
       </div>
     </article>
@@ -79,7 +79,7 @@
   <div class="mt-6 grid gap-6 xl:grid-cols-2">
     <article class="admin-panel overflow-hidden p-5 sm:p-6">
       <div><p class="panel-kicker">Movimientos</p><h2>Ventas recientes</h2><p>Últimas operaciones registradas.</p></div>
-      <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="text-[10px] uppercase tracking-wider text-slate-500"><tr><th class="py-2">Código</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody class="divide-y divide-slate-100">@for (sale of data.sales().slice(0, 4); track sale.id) {<tr><td class="py-3.5 font-bold text-slate-800">{{ sale.code }}</td><td>{{ sale.client }}</td><td class="font-semibold">S/ {{ sale.total.toLocaleString('es-PE', { minimumFractionDigits: 2 }) }}</td><td><admin-status-badge [status]="sale.status" /></td></tr>}</tbody></table></div>
+       <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="text-[10px] uppercase tracking-wider text-slate-500"><tr><th class="py-2">Código</th><th>Cliente</th><th>Total</th><th>Método</th></tr></thead><tbody class="divide-y divide-slate-100">@for (sale of salesReport()?.ventas?.slice(0, 4) ?? []; track sale.id) {<tr><td class="py-3.5 font-bold text-slate-800">{{ sale.codigo_orden }}</td><td>{{ sale.cliente_nombre || 'Sin cliente' }}</td><td class="font-semibold">S/ {{ sale.total.toLocaleString('es-PE', { minimumFractionDigits: 2 }) }}</td><td>{{ sale.medio_pago || 'No especificado' }}</td></tr>} @empty {<tr><td colspan="4" class="py-4 text-center text-slate-500">Sin ventas de caja hoy.</td></tr>}</tbody></table></div>
     </article>
     <article class="admin-panel p-5 sm:p-6">
       <div><p class="panel-kicker">Equipo</p><h2>Actividad del sistema</h2><p>Últimos movimientos registrados.</p></div>

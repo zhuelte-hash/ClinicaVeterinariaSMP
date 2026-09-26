@@ -177,6 +177,23 @@ class Permiso(Base):
     administrador: Mapped[Administrador] = relationship(back_populates="permisos")
 
 
+class PermisoRol(Base):
+    __tablename__ = "permisos_rol"
+    __table_args__ = (
+        UniqueConstraint("rol", "modulo", name="uq_permisos_rol_modulo"),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    rol: Mapped[TipoUsuario] = mapped_column(tipo_usuario_db, nullable=False)
+    modulo: Mapped[str] = mapped_column(String(100), nullable=False)
+    puede_ver: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    puede_crear: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    puede_editar: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    puede_eliminar: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    puede_aprobar: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
 class AuditoriaAccion(Base):
     __tablename__ = "auditoria_acciones"
     __table_args__ = {"schema": SCHEMA}

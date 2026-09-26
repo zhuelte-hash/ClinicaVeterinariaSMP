@@ -12,6 +12,7 @@ import {
   CreateAdminUser,
   UpdateAdminUser,
 } from '../../services/admin-users-api.service';
+import { AdminApiService, Role, RolePermission } from '../../services/admin-api.service';
 
 @Component({
   selector: 'app-admin-usuarios',
@@ -24,6 +25,7 @@ import {
 export class UsuariosComponent {
   private readonly api = inject(AdminUsersApiService);
   private readonly auth = inject(AuthService);
+  private readonly permissionsApi = inject(AdminApiService);
   readonly open = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -32,13 +34,26 @@ export class UsuariosComponent {
   readonly query = signal('');
   readonly users = signal<AdminUser[]>([]);
   readonly editingUser = signal<AdminUser | null>(null);
+  readonly permissions = signal<RolePermission[]>([]);
+  readonly permissionsLoading = signal(true);
+  readonly permissionSaving = signal('');
+  readonly selectedPermissionRole = signal<Role>('administrador');
+  readonly permissionModules = [
+    { key: 'productos', label: 'Productos e inventario' }, { key: 'ventas', label: 'Ventas' },
+    { key: 'usuarios', label: 'Usuarios' }, { key: 'citas', label: 'Citas' },
+    { key: 'mascotas', label: 'Mascotas' }, { key: 'historias_clinicas', label: 'Historias clínicas' },
+  ];
+  readonly permissionRoles: { key: Role; label: string }[] = [
+    { key: 'administrador', label: 'Administrador' }, { key: 'cajero', label: 'Cajero' },
+    { key: 'veterinario', label: 'Veterinario' }, { key: 'cliente', label: 'Cliente' },
+  ];
   readonly filteredUsers = computed(() => {
     const query = this.query().trim().toLowerCase();
     return this.users().filter((user) => !query || `${user.nombre} ${user.correo} ${user.tipo}`.toLowerCase().includes(query));
   });
   form: CreateAdminUser = { nombre: '', correo: '', contrasena: '', tipo: 'veterinario' };
 
-  constructor() { this.load(); }
+  constructor() { this.load(); this.loadPermissions(); }
 
   load(): void {
     this.loading.set(true);
@@ -112,6 +127,30 @@ export class UsuariosComponent {
 
   isCurrentUser(user: AdminUser): boolean {
     return this.auth.currentUser()?.id === user.id;
+  }
+
+  loadPermissions(): void {
+    this.permissionsLoading.set(true);
+    this.permissionsApi.getPermissions().pipe(finalize(() => this.permissionsLoading.set(false))).subscribe({
+      next: (permissions) => this.permissions.set(permissions),
+      error: (error: unknown) => this.error.set(this.errorText(error)),
+    });
+  }
+
+  permission(role: Role, module: string): RolePermission | undefined { return this.permissions().find((item) => item.rol === role && item.modulo === module); }
+
+  updatePermission(role: Role, module: string, field: keyof Pick<RolePermission, 'puede_ver' | 'puede_crear' | 'puede_editar' | 'puede_eliminar' | 'puede_aprobar'>, checked: boolean): void {
+    const current = this.permission(role, module);
+    if (!current || this.permissionSaving()) return;
+    const next = { puede_ver: current.puede_ver, puede_crear: current.puede_crear, puede_editar: current.puede_editar, puede_eliminar: current.puede_eliminar, puede_aprobar: current.puede_aprobar, [field]: checked };
+    if (checked && field !== 'puede_ver') next.puede_ver = true;
+    if (!next.puede_ver) { next.puede_crear = false; next.puede_editar = false; next.puede_eliminar = false; next.puede_aprobar = false; }
+    const key = `${role}:${module}`;
+    this.permissionSaving.set(key);
+    this.permissionsApi.updatePermission(role, module, next).pipe(finalize(() => this.permissionSaving.set(''))).subscribe({
+      next: (updated) => this.permissions.update((items) => items.map((item) => item.rol === role && item.modulo === module ? updated : item)),
+      error: (error: unknown) => this.error.set(this.errorText(error)),
+    });
   }
 
   roleLabel(role: BackendRole): string {

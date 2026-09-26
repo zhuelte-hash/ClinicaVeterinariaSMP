@@ -128,7 +128,7 @@ class CashierService:
     def get_products(
         self, query: str | None = None, category_id: int | None = None
     ) -> list[Producto]:
-        statement = select(Producto).options(selectinload(Producto.categoria))
+        statement = select(Producto).options(selectinload(Producto.categoria)).where(Producto.activo)
         if query:
             pattern = f"%{query.strip()}%"
             statement = statement.where(
@@ -185,7 +185,7 @@ class CashierService:
         products = list(
             self.db.scalars(
                 select(Producto)
-                .where(Producto.id.in_(quantities))
+                .where(Producto.id.in_(quantities), Producto.activo)
                 .with_for_update()
             ).all()
         )

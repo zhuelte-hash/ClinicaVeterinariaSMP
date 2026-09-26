@@ -68,6 +68,15 @@
   }
 </div>
 
+<section class="admin-card mt-6 overflow-x-auto p-5">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 class="text-lg font-bold text-slate-900">Permisos por rol</h2><p class="mt-1 text-sm text-slate-500">Selecciona un rol y activa solo las acciones que debe realizar. Cualquier acción activa habilita automáticamente Ver.</p></div><label class="text-sm font-bold">Rol a configurar<select class="admin-input mt-1" [ngModel]="selectedPermissionRole()" (ngModelChange)="selectedPermissionRole.set($event)">@for (role of permissionRoles; track role.key) {<option [value]="role.key">{{ role.label }}</option>}</select></label></div>
+  @if (permissionsLoading()) { <p class="py-8 text-center text-slate-500">Cargando permisos...</p> } @else {
+    <table class="admin-table mt-5 min-w-[680px]"><thead><tr><th>Módulo</th><th>Ver</th><th>Crear</th><th>Editar</th><th>Eliminar</th><th>Aprobar</th></tr></thead><tbody>
+      @for (module of permissionModules; track module.key) { @if (permission(selectedPermissionRole(), module.key); as item) {<tr><td><b class="text-slate-800">{{ module.label }}</b><small class="mt-1 block text-slate-500">{{ item.puede_ver ? 'Acceso habilitado' : 'Sin acceso' }}</small></td>@for (field of ['puede_ver', 'puede_crear', 'puede_editar', 'puede_eliminar', 'puede_aprobar']; track field) {<td><label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4 accent-teal-600" [checked]="$any(item)[field]" [disabled]="permissionSaving() === selectedPermissionRole() + ':' + module.key" (change)="updatePermission(selectedPermissionRole(), module.key, $any(field), $any($event.target).checked)"><span class="text-xs text-slate-500">{{ $any(item)[field] ? 'Sí' : 'No' }}</span></label></td>}</tr>} }
+    </tbody></table>
+  }
+</section>
+
 @if (open()) {
   <div class="admin-modal" (click)="closeForm()">
     <form class="admin-modal-panel" (ngSubmit)="save()" (click)="$event.stopPropagation()">
