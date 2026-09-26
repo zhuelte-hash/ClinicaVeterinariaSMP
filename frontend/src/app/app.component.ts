@@ -15,9 +15,9 @@ import { WhatsappButtonComponent } from './shared/whatsapp-button/whatsapp-butto
     @if (showPublicChrome()) {
       <app-navbar />
     }
-    <main class="min-h-screen" [class.bg-[#fffdf8]]="showPublicChrome()">
+    <div class="min-h-screen" [class.bg-[#fffdf8]]="showPublicChrome()">
       <router-outlet />
-    </main>
+    </div>
     <app-notice />
     @if (showPublicChrome()) {
       <app-footer />

@@ -1,6 +1,10 @@
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.user import TipoUsuario, Usuario
+from app.routers.users import delete_user
 
 
 client = TestClient(app)
@@ -20,6 +24,21 @@ def test_usuarios_routes_are_documented() -> None:
     paths = response.json()["paths"]
     assert "/usuarios" in paths
     assert "/usuarios/{user_id}" in paths
+
+
+def test_administrador_no_puede_eliminar_su_cuenta() -> None:
+    admin = Usuario(
+        id=7,
+        nombre="Admin",
+        correo="admin@example.com",
+        contrasena="hash",
+        tipo=TipoUsuario.ADMINISTRADOR,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        delete_user(user_id=7, db=None, current_admin=admin)  # type: ignore[arg-type]
+
+    assert exc_info.value.status_code == 409
 
 
 def test_caja_routes_are_documented() -> None:

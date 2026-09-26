@@ -1,8 +1,129 @@
-<admin-page-header title="Usuarios" description="Accesos y perfiles del equipo de la clínica." action="Nuevo usuario" (actionClick)="open.set(true)" />
-<div class="admin-card mb-4 p-4"><input class="admin-input max-w-sm" placeholder="Buscar nombre, correo o rol" [ngModel]="query()" (ngModelChange)="query.set($event)"></div>
-@if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700">{{ error() }}</p> }
-<div class="admin-card overflow-x-auto">
-  @if (loading()) { <p class="p-10 text-center text-slate-500">Cargando usuarios...</p> }
-  @else { <table class="admin-table"><thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Perfil profesional</th></tr></thead><tbody>@for (user of filteredUsers(); track user.id) {<tr><td><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-xl bg-teal-50 font-bold text-teal-700">{{ user.nombre.charAt(0) }}</span><b class="text-slate-800">{{ user.nombre }}</b></div></td><td>{{ user.correo }}</td><td><admin-status-badge [status]="roleLabel(user.tipo) === 'Veterinario' ? 'Activo' : 'Activo'" /> <span class="ml-1">{{ roleLabel(user.tipo) }}</span></td><td>@if (user.tipo === 'veterinario') {<span>{{ user.colegiatura || 'Sin colegiatura' }} · {{ user.especialidad || 'Sin especialidad' }}</span>} @else {<span class="text-slate-400">No aplica</span>}</td></tr>} @empty {<tr><td colspan="4" class="p-8 text-center text-slate-500">No hay usuarios que coincidan.</td></tr>}</tbody></table> }
+<admin-page-header
+  title="Usuarios"
+  description="Administra accesos y perfiles de clientes y personal."
+  action="Nuevo usuario"
+  (actionClick)="openCreate()"
+/>
+
+<div class="admin-card mb-4 p-4">
+  <input
+    class="admin-input max-w-sm"
+    placeholder="Buscar nombre, correo o rol"
+    aria-label="Buscar usuarios"
+    [ngModel]="query()"
+    (ngModelChange)="query.set($event)"
+  >
 </div>
-@if (open()) {<div class="admin-modal" (click)="open.set(false)"><form class="admin-modal-panel" (ngSubmit)="save()" (click)="$event.stopPropagation()"><h2 class="text-xl font-bold">Nuevo usuario</h2><label class="mt-5 block"><span class="admin-label">Nombre completo</span><input required class="admin-input" name="nombre" [(ngModel)]="form.nombre"></label><label class="mt-4 block"><span class="admin-label">Correo</span><input required type="email" class="admin-input" name="correo" [(ngModel)]="form.correo"></label><label class="mt-4 block"><span class="admin-label">Rol</span><select class="admin-input" name="tipo" [(ngModel)]="form.tipo"><option value="administrador">Administrador</option><option value="veterinario">Veterinario</option><option value="cajero">Cajero</option></select></label>@if (form.tipo === 'veterinario') {<label class="mt-4 block"><span class="admin-label">Colegiatura</span><input required class="admin-input" name="colegiatura" [(ngModel)]="form.colegiatura"></label><label class="mt-4 block"><span class="admin-label">Especialidad</span><input class="admin-input" name="especialidad" [(ngModel)]="form.especialidad"></label>}<label class="mt-4 block"><span class="admin-label">Contraseña temporal</span><input required minlength="8" type="password" class="admin-input" name="contrasena" [(ngModel)]="form.contrasena"></label><p class="mt-2 text-xs text-slate-500">Entrégala de forma segura al usuario. Podrá cambiarla desde el flujo de actualización de contraseña.</p><div class="mt-5 flex justify-end gap-2"><button type="button" class="admin-secondary" (click)="open.set(false)">Cancelar</button><button class="admin-primary" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Crear usuario' }}</button></div></form></div>}
+
+@if (error()) {
+  <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700">{{ error() }}</p>
+}
+
+<div class="admin-card overflow-x-auto">
+  @if (loading()) {
+    <p class="p-10 text-center text-slate-500">Cargando usuarios...</p>
+  } @else {
+    <table class="admin-table">
+      <thead>
+        <tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Perfil</th><th class="text-right">Acciones</th></tr>
+      </thead>
+      <tbody>
+        @for (user of filteredUsers(); track user.id) {
+          <tr>
+            <td>
+              <div class="flex items-center gap-3">
+                <span class="grid h-9 w-9 place-items-center rounded-xl bg-teal-50 font-bold text-teal-700">{{ user.nombre.charAt(0) }}</span>
+                <div><b class="text-slate-800">{{ user.nombre }}</b>@if (isCurrentUser(user)) { <small class="block text-teal-700">Tu cuenta</small> }</div>
+              </div>
+            </td>
+            <td>{{ user.correo }}</td>
+            <td><admin-status-badge status="Activo" /> <span class="ml-1">{{ roleLabel(user.tipo) }}</span></td>
+            <td>
+              @if (user.tipo === 'veterinario') {
+                <span>{{ user.colegiatura || 'Sin colegiatura' }} · {{ user.especialidad || 'Sin especialidad' }}</span>
+              } @else if (user.tipo === 'cliente') {
+                <span>{{ user.telefono || 'Sin teléfono' }}</span>
+              } @else {
+                <span class="text-slate-400">No aplica</span>
+              }
+            </td>
+            <td>
+              <div class="flex justify-end gap-2">
+                <button type="button" class="admin-secondary" (click)="openEdit(user)">Editar</button>
+                <button
+                  type="button"
+                  class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  [disabled]="isCurrentUser(user) || deletingId() === user.id"
+                  [title]="isCurrentUser(user) ? 'No puedes eliminar tu propia cuenta' : 'Eliminar usuario'"
+                  (click)="deleteUser(user)"
+                >{{ deletingId() === user.id ? 'Eliminando...' : 'Eliminar' }}</button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="p-8 text-center text-slate-500">No hay usuarios que coincidan.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@if (open()) {
+  <div class="admin-modal" (click)="closeForm()">
+    <form class="admin-modal-panel" (ngSubmit)="save()" (click)="$event.stopPropagation()">
+      <h2 class="text-xl font-bold">{{ editingUser() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+      <p class="mt-1 text-sm text-slate-500">{{ editingUser() ? 'Actualiza los datos de acceso y del perfil.' : 'Crea una cuenta y asigna su rol en la clínica.' }}</p>
+
+      <label class="mt-5 block">
+        <span class="admin-label">Nombre completo</span>
+        <input required minlength="2" class="admin-input" name="nombre" [(ngModel)]="form.nombre">
+      </label>
+      <label class="mt-4 block">
+        <span class="admin-label">Correo</span>
+        <input required type="email" class="admin-input" name="correo" [(ngModel)]="form.correo">
+      </label>
+      <label class="mt-4 block">
+        <span class="admin-label">Rol</span>
+        <select class="admin-input" name="tipo" [(ngModel)]="form.tipo" [disabled]="!!editingUser()">
+          <option value="administrador">Administrador</option>
+          <option value="veterinario">Veterinario</option>
+          <option value="cajero">Cajero</option>
+          <option value="cliente">Cliente</option>
+        </select>
+      </label>
+      @if (editingUser()) {
+        <p class="mt-1 text-xs text-slate-500">El rol no puede cambiarse porque define el perfil y los registros asociados.</p>
+      }
+
+      @if (form.tipo === 'veterinario') {
+        <label class="mt-4 block">
+          <span class="admin-label">Colegiatura</span>
+          <input required class="admin-input" name="colegiatura" [(ngModel)]="form.colegiatura">
+        </label>
+        <label class="mt-4 block">
+          <span class="admin-label">Especialidad</span>
+          <input class="admin-input" name="especialidad" [(ngModel)]="form.especialidad">
+        </label>
+      }
+      @if (form.tipo === 'cliente') {
+        <label class="mt-4 block">
+          <span class="admin-label">Teléfono</span>
+          <input class="admin-input" name="telefono" [(ngModel)]="form.telefono">
+        </label>
+      }
+
+      <label class="mt-4 block">
+        <span class="admin-label">{{ editingUser() ? 'Nueva contraseña (opcional)' : 'Contraseña temporal' }}</span>
+        <input [required]="!editingUser()" minlength="8" type="password" class="admin-input" name="contrasena" [(ngModel)]="form.contrasena">
+      </label>
+      <p class="mt-2 text-xs text-slate-500">{{ editingUser() ? 'Déjala vacía para conservar la contraseña actual.' : 'Debe tener al menos 8 caracteres.' }}</p>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" class="admin-secondary" (click)="closeForm()">Cancelar</button>
+        <button class="admin-primary disabled:cursor-wait disabled:opacity-60" [disabled]="saving()">
+          {{ saving() ? 'Guardando...' : (editingUser() ? 'Guardar cambios' : 'Crear usuario') }}
+        </button>
+      </div>
+    </form>
+  </div>
+}

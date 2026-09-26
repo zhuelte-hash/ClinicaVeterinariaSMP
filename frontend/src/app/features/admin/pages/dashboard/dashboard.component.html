@@ -1,6 +1,93 @@
-<section><div class="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-semibold capitalize text-teal-600">{{ today }}</p><h1 class="mt-1 text-3xl font-bold tracking-tight text-slate-900">Actividades recientes</h1><p class="mt-1 text-slate-500">Buen dia, {{ administratorName() }}. Este es el pulso de la clinica.</p></div><div class="flex rounded-xl border border-slate-200 bg-white p-1" aria-label="Periodo del dashboard">@for (option of periodOptions; track option) {<button type="button" class="rounded-lg px-3 py-2 text-xs font-semibold capitalize" [class.bg-slate-900]="period() === option" [class.text-white]="period() === option" (click)="setPeriod(option)">{{ option }}</button>}</div></div>
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"><admin-stat-card label="Total de productos" [value]="data.products().length.toString()" icon="P" change="Catalogo activo"/><admin-stat-card label="Total de categorias" [value]="data.categories().length.toString()" icon="C" change="Organizadas"/><admin-stat-card label="Ventas del dia" [value]="'S/ ' + todaySales().toLocaleString('es-PE', { minimumFractionDigits: 2 })" icon="S/" [change]="'+' + data.summary().salesChange + '%'"/><admin-stat-card label="Citas de hoy" [value]="todayAppointments().length.toString()" icon="+" [change]="'+' + data.summary().appointmentsChange + '%'"/><admin-stat-card label="Stock bajo" [value]="lowStock().length.toString()" icon="!" change="Requiere atencion"/></div>
-<div class="mt-6 grid gap-6 xl:grid-cols-3"><article class="admin-panel xl:col-span-2"><div class="flex items-center justify-between"><div><h2>Inventario por categoria</h2><p>Distribucion del catalogo activo</p></div><span class="rounded-lg bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-700">{{ period() }}</span></div><div class="mt-8 flex h-52 items-end gap-3 border-b border-slate-200">@for (point of categoryChart(); track point.label) {<div class="flex h-full flex-1 flex-col justify-end text-center"><div class="bar mx-auto w-full max-w-12 rounded-t-lg bg-teal-500" [style.height.%]="point.value / maxChart() * 90" [title]="point.value.toString()"></div><span class="mt-2 truncate text-xs text-slate-400">{{ point.label }}</span></div>}</div></article>
-<article class="admin-panel"><div class="flex items-center justify-between"><div><h2>Proximas citas</h2><p>Agenda para hoy</p></div><a routerLink="../citas" class="text-xs font-bold text-teal-600">Ver todas</a></div><div class="mt-5 space-y-3">@for (appointment of todayAppointments().slice(0, 3); track appointment.id) {<div class="flex gap-3 rounded-xl bg-slate-50 p-3"><div class="text-center"><b class="text-sm text-slate-900">{{ appointment.time }}</b></div><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ appointment.patient }} <span class="font-normal text-slate-400">· {{ appointment.service }}</span></p><p class="text-xs text-slate-500">{{ appointment.owner }}</p></div><admin-status-badge [status]="appointment.status"/></div>}</div></article></div>
-<div class="mt-6 grid gap-6 lg:grid-cols-2"><article class="admin-panel"><div class="flex items-center justify-between"><div><h2>Alertas de inventario</h2><p>Productos que requieren reposicion</p></div><a routerLink="../inventario" class="text-xs font-bold text-teal-600">Gestionar</a></div><div class="mt-4 divide-y divide-slate-100">@for (product of lowStock(); track product.id) {<div class="flex items-center gap-3 py-3"><span class="grid h-9 w-9 place-items-center rounded-lg bg-rose-50 text-rose-600">!</span><div class="flex-1"><p class="text-sm font-semibold">{{ product.name }}</p><p class="text-xs text-slate-400">{{ product.sku }}</p></div><b class="text-sm text-rose-600">{{ product.stock }} und.</b></div>}</div></article>
-<article class="admin-panel"><div><h2>Productos mas vendidos</h2><p>Productos con mayor rotacion</p></div><div class="mt-4 space-y-3">@for (product of bestSellers(); track product.id) {<div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-teal-100 font-bold text-teal-700">{{ product.name.charAt(0) }}</span><div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.category }}</p></div><b class="text-sm text-teal-700">{{ product.stock }} und.</b></div>}</div></article></div><div class="mt-6 grid gap-6 xl:grid-cols-2"><article class="admin-panel overflow-x-auto"><div><h2>Ventas recientes</h2><p>Ultimas operaciones registradas</p></div><table class="mt-4 min-w-full text-left text-sm"><thead class="text-xs uppercase text-slate-400"><tr><th class="py-2">Codigo</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody class="divide-y divide-slate-100">@for (sale of data.sales().slice(0, 4); track sale.id) {<tr><td class="py-3 font-semibold">{{ sale.code }}</td><td>{{ sale.client }}</td><td>S/ {{ sale.total.toLocaleString('es-PE', { minimumFractionDigits: 2 }) }}</td><td><admin-status-badge [status]="sale.status"/></td></tr>}</tbody></table></article><article class="admin-panel"><div><h2>Actividad reciente del sistema</h2><p>Ultimos movimientos del equipo</p></div><div class="mt-4 space-y-4">@for (activity of data.activities(); track activity.id) {<div class="flex gap-3"><span class="mt-1 h-2.5 w-2.5 rounded-full bg-teal-400 ring-4 ring-teal-50"></span><div class="flex-1"><p class="text-sm font-semibold">{{ activity.action }}</p><p class="text-xs text-slate-500">{{ activity.detail }}</p></div><time class="text-xs text-slate-400">{{ activity.time }}</time></div>}</div></article></div></section>
+<section>
+  <div class="dashboard-hero">
+    <div class="relative z-10 max-w-2xl">
+      <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[.18em] text-[#8bd7e5]"><span class="h-2 w-2 rounded-full bg-[#56c4d8]"></span>{{ today }}</p>
+      <h1 class="mt-3 text-3xl font-extrabold tracking-[-.04em] text-white sm:text-4xl">Hola, {{ administratorName() }}</h1>
+      <p class="mt-2 max-w-xl text-sm leading-6 text-slate-300">Tu clínica está en movimiento. Aquí tienes el resumen operativo y las prioridades que necesitan atención hoy.</p>
+    </div>
+    <div class="hero-pulse relative z-10 hidden sm:flex">
+      <span class="pulse-icon"><svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg></span>
+      <div><b class="block text-sm text-white">Operación estable</b><small class="text-[#8bd7e5]">Monitoreo en tiempo real</small></div>
+    </div>
+  </div>
+
+  <div class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div><h2 class="text-lg font-extrabold text-[#111827]">Resumen general</h2><p class="text-sm text-slate-500">Indicadores esenciales de la clínica.</p></div>
+    <div class="inline-flex self-start rounded-2xl border border-[#dce8e5] bg-white p-1 shadow-sm" aria-label="Periodo del dashboard">
+      @for (option of periodOptions; track option) {
+        <button type="button" class="rounded-xl px-4 py-2 text-xs font-bold capitalize text-slate-500 transition" [class.!bg-[#111827]]="period() === option" [class.!text-white]="period() === option" [attr.aria-pressed]="period() === option" (click)="setPeriod(option)">{{ option }}</button>
+      }
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <admin-stat-card label="Productos" [value]="data.products().length.toString()" icon="products" change="Catálogo activo" />
+    <admin-stat-card label="Categorías" [value]="data.categories().length.toString()" icon="categories" change="Catálogo organizado" />
+    <admin-stat-card label="Ventas de hoy" [value]="'S/ ' + todaySales().toLocaleString('es-PE', { minimumFractionDigits: 2 })" icon="sales" [change]="'+' + data.summary().salesChange + '% de variación'" />
+    <admin-stat-card label="Citas de hoy" [value]="todayAppointments().length.toString()" icon="appointments" [change]="'+' + data.summary().appointmentsChange + '% de variación'" />
+    <admin-stat-card label="Stock bajo" [value]="lowStock().length.toString()" icon="alert" change="Requiere atención" [positive]="false" />
+  </div>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-3">
+    <article class="admin-panel p-5 sm:p-6 xl:col-span-2">
+      <div class="flex items-start justify-between gap-4"><div><p class="panel-kicker">Inventario</p><h2>Distribución por categoría</h2><p>Vista rápida del catálogo activo.</p></div><span class="rounded-xl bg-teal-50 px-3 py-1.5 text-xs font-bold capitalize text-teal-700">{{ period() }}</span></div>
+      <div class="chart mt-8 flex h-56 items-end gap-3" role="img" aria-label="Gráfico de productos por categoría">
+        @for (point of categoryChart(); track point.label) {
+          <div class="flex h-full min-w-0 flex-1 flex-col justify-end text-center">
+            <span class="mb-2 text-xs font-bold text-teal-800">{{ point.value }}</span>
+            <div class="bar mx-auto w-full max-w-14 rounded-t-xl" [style.height.%]="point.value / maxChart() * 82"></div>
+            <span class="mt-2 truncate text-[11px] font-medium text-slate-500" [title]="point.label">{{ point.label }}</span>
+          </div>
+        }
+      </div>
+    </article>
+
+    <article class="admin-panel p-5 sm:p-6">
+      <div class="flex items-start justify-between"><div><p class="panel-kicker">Agenda</p><h2>Próximas citas</h2><p>Atenciones programadas para hoy.</p></div><a routerLink="../citas" class="panel-link">Ver todas</a></div>
+      <div class="mt-5 space-y-3">
+        @for (appointment of todayAppointments().slice(0, 3); track appointment.id) {
+          <div class="appointment-row">
+            <div class="time-box"><b>{{ appointment.time }}</b></div>
+            <div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ appointment.patient }}</p><p class="truncate text-xs text-slate-500">{{ appointment.service }} · {{ appointment.owner }}</p></div>
+            <admin-status-badge [status]="appointment.status" />
+          </div>
+        } @empty { <p class="rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">No hay citas para hoy.</p> }
+      </div>
+    </article>
+  </div>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-2">
+    <article class="admin-panel p-5 sm:p-6">
+      <div class="flex items-start justify-between"><div><p class="panel-kicker !text-rose-600">Atención</p><h2>Alertas de inventario</h2><p>Productos que requieren reposición.</p></div><a routerLink="../inventario" class="panel-link">Gestionar</a></div>
+      <div class="mt-4 divide-y divide-slate-100">
+        @for (product of lowStock(); track product.id) {
+          <div class="flex items-center gap-3 py-3.5"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-rose-50 text-rose-600"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></span><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.sku }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock }} und.</b></div>
+        } @empty { <p class="py-6 text-center text-sm text-slate-500">Inventario sin alertas.</p> }
+      </div>
+    </article>
+
+    <article class="admin-panel p-5 sm:p-6">
+      <div><p class="panel-kicker">Rendimiento</p><h2>Productos destacados</h2><p>Productos con mayor movimiento.</p></div>
+      <div class="mt-4 space-y-3">
+        @for (product of bestSellers(); track product.id) {
+          <div class="product-row"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-teal-50 to-lime-100 font-extrabold text-teal-800">{{ product.name.charAt(0) }}</span><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.category }}</p></div><b class="text-sm text-teal-700">{{ product.stock }} und.</b></div>
+        }
+      </div>
+    </article>
+  </div>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-2">
+    <article class="admin-panel overflow-hidden p-5 sm:p-6">
+      <div><p class="panel-kicker">Movimientos</p><h2>Ventas recientes</h2><p>Últimas operaciones registradas.</p></div>
+      <div class="mt-4 overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="text-[10px] uppercase tracking-wider text-slate-500"><tr><th class="py-2">Código</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody class="divide-y divide-slate-100">@for (sale of data.sales().slice(0, 4); track sale.id) {<tr><td class="py-3.5 font-bold text-slate-800">{{ sale.code }}</td><td>{{ sale.client }}</td><td class="font-semibold">S/ {{ sale.total.toLocaleString('es-PE', { minimumFractionDigits: 2 }) }}</td><td><admin-status-badge [status]="sale.status" /></td></tr>}</tbody></table></div>
+    </article>
+    <article class="admin-panel p-5 sm:p-6">
+      <div><p class="panel-kicker">Equipo</p><h2>Actividad del sistema</h2><p>Últimos movimientos registrados.</p></div>
+      <div class="mt-5 space-y-5">
+        @for (activity of data.activities(); track activity.id) {
+          <div class="relative flex gap-3 pl-1"><span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-teal-500 ring-4 ring-teal-50"></span><div class="min-w-0 flex-1"><p class="text-sm font-bold text-slate-800">{{ activity.action }}</p><p class="mt-0.5 text-xs leading-5 text-slate-500">{{ activity.detail }}</p></div><time class="shrink-0 text-[10px] font-semibold text-slate-400">{{ activity.time }}</time></div>
+        }
+      </div>
+    </article>
+  </div>
+</section>

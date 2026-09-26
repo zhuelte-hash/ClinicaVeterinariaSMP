@@ -1,45 +1,117 @@
-<div class="min-h-screen bg-slate-50 text-slate-800">
-  @if (drawerOpen()) { <button class="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" aria-label="Cerrar menu" (click)="closeDrawer()"></button> }
-  <aside class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col bg-[#087f7b] text-white transition-all duration-300" [class.sidebar-collapsed]="collapsed()" [class.drawer-open]="drawerOpen()">
-    <div class="flex h-20 items-center gap-3 border-b border-white/10 px-4">
-      <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-lg font-black text-teal-700 shadow-lg">SMP</div>
-      @if (!collapsed()) { <div class="min-w-0"><p class="truncate font-bold">Clinica Veterinaria</p><p class="text-xs text-teal-100">Panel administrativo</p></div> }
-      <button class="ml-auto rounded-lg p-2 text-teal-100 hover:bg-white/10 lg:hidden" aria-label="Cerrar menu" (click)="closeDrawer()">✕</button>
+<div class="admin-app text-slate-800">
+  <a href="#admin-content" class="skip-link">Saltar al contenido</a>
+
+  @if (drawerOpen()) {
+    <button class="fixed inset-0 z-40 bg-[#071f1e]/60 backdrop-blur-sm lg:hidden" aria-label="Cerrar menú" (click)="closeDrawer()"></button>
+  }
+
+  <aside
+    class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white transition-all duration-300"
+    [class.sidebar-collapsed]="collapsed()"
+    [class.drawer-open]="drawerOpen()"
+  >
+    <div class="brand-row flex h-20 items-center gap-3 px-4">
+      <div class="brand-mark grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-black">SMP</div>
+      @if (!collapsed()) {
+        <div class="min-w-0">
+          <p class="truncate text-sm font-extrabold tracking-tight">Clínica Veterinaria</p>
+          <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-[.18em] text-[#8bd7e5]">San Martín de Porres</p>
+        </div>
+      }
+      <button class="ml-auto rounded-xl p-2 text-teal-100 hover:bg-white/10 lg:hidden" aria-label="Cerrar menú" (click)="closeDrawer()">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
     </div>
-    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Navegacion administrativa">
+
+    @if (!collapsed()) {
+      <div class="mx-3 mt-4 rounded-2xl border border-white/10 bg-white/[.07] p-3">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-100"><span class="h-2 w-2 rounded-full bg-[#56c4d8] shadow-[0_0_0_4px_rgb(86_196_216/.14)]"></span>Sistema operativo</div>
+        <p class="mt-1.5 text-[10px] leading-4 text-slate-400">Todos los servicios funcionan correctamente.</p>
+      </div>
+    }
+
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Navegación administrativa">
+      @if (!collapsed()) { <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#8bd7e5]">Administración</p> }
       @for (item of navItems; track item.path) {
-        <a [routerLink]="item.path" routerLinkActive="active-link" (click)="closeDrawer()" class="nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-teal-50 transition" [title]="collapsed() ? item.label : ''">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            @switch (item.icon) {
-              @case ('grid') { <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/> }
-              @case ('box') { <path d="m4 7 8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/> }
-              @case ('stock') { <path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/> }
-              @case ('tag') { <path d="M20 13 13 20l-9-9V4h7l9 9Z"/><circle cx="8" cy="8" r="1"/> }
-              @case ('calendar') { <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/> }
-              @case ('sale') { <path d="M4 4h16v16H4zM8 15h8M9 9h6M12 7v4"/> }
-              @case ('record') { <path d="M7 3h10v4H7zM5 5H3v16h18V5h-2M8 12h8M8 16h5"/> }
-              @case ('bell') { <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/> }
-              @case ('users') { <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/> }
-              @case ('settings') { <circle cx="12" cy="12" r="3"/><path d="M19.4 15a2 2 0 0 0 .4 2.2l.1.1-2.6 2.6-.1-.1a2 2 0 0 0-2.2-.4 2 2 0 0 0-1.2 1.8V21h-3.6v-.2A2 2 0 0 0 9 19a2 2 0 0 0-2.2.4l-.1.1-2.6-2.6.1-.1A2 2 0 0 0 4.6 15a2 2 0 0 0-1.8-1.2H3v-3.6h.2A2 2 0 0 0 5 9a2 2 0 0 0-.4-2.2l-.1-.1 2.6-2.6.1.1A2 2 0 0 0 9 4.6a2 2 0 0 0 1.2-1.8V3h3.6v.2A2 2 0 0 0 15 5a2 2 0 0 0 2.2-.4l.1-.1 2.6 2.6-.1.1A2 2 0 0 0 19.4 9a2 2 0 0 0 1.8 1.2h.2v3.6h-.2A2 2 0 0 0 19.4 15Z"/> }
-            }
-          </svg>
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active-link"
+          ariaCurrentWhenActive="page"
+          (click)="closeDrawer()"
+          class="nav-link group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-teal-50 transition"
+          [title]="collapsed() ? item.label : ''"
+        >
+          <span class="nav-icon grid h-8 w-8 shrink-0 place-items-center rounded-xl">
+            <svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              @switch (item.icon) {
+                @case ('grid') { <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/> }
+                @case ('box') { <path d="m4 7 8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/> }
+                @case ('stock') { <path d="M4 19V9m5 10V5m6 14v-7m5 7V3"/> }
+                @case ('tag') { <path d="M20 13 13 20l-9-9V4h7l9 9Z"/><circle cx="8" cy="8" r="1"/> }
+                @case ('calendar') { <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/> }
+                @case ('sale') { <path d="M4 4h16v16H4zM8 15h8M9 9h6M12 7v4"/> }
+                @case ('bell') { <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/> }
+                @case ('users') { <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/> }
+                @case ('settings') { <circle cx="12" cy="12" r="3"/><path d="M19.4 15a2 2 0 0 0 .4 2.2l.1.1-2.6 2.6-.1-.1a2 2 0 0 0-2.2-.4 2 2 0 0 0-1.2 1.8V21h-3.6v-.2A2 2 0 0 0 9 19a2 2 0 0 0-2.2.4l-.1.1-2.6-2.6.1-.1A2 2 0 0 0 4.6 15a2 2 0 0 0-1.8-1.2H3v-3.6h.2A2 2 0 0 0 5 9a2 2 0 0 0-.4-2.2l-.1-.1 2.6-2.6.1.1A2 2 0 0 0 9 4.6a2 2 0 0 0 1.2-1.8V3h3.6v.2A2 2 0 0 0 15 5a2 2 0 0 0 2.2-.4l.1-.1 2.6 2.6-.1.1A2 2 0 0 0 19.4 9a2 2 0 0 0 1.8 1.2h.2v3.6h-.2A2 2 0 0 0 19.4 15Z"/> }
+              }
+            </svg>
+          </span>
           @if (!collapsed()) { <span>{{ item.label }}</span> }
         </a>
       }
     </nav>
-    <button (click)="collapsed.update(v => !v)" class="m-3 hidden items-center justify-center rounded-xl border border-white/15 py-2 text-sm text-teal-50 hover:bg-white/10 lg:flex" [attr.aria-label]="collapsed() ? 'Expandir menu' : 'Contraer menu'">{{ collapsed() ? '›' : '‹ Contraer' }}</button>
+
+    <button (click)="logout()" class="m-3 flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 text-xs font-bold text-[#8bd7e5] transition hover:border-[#56c4d8] hover:bg-[#56c4d8]/10 hover:text-white" aria-label="Cerrar sesión">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg>
+      @if (!collapsed()) { <span>Cerrar sesión</span> }
+    </button>
   </aside>
+
   <div class="page-shell transition-all duration-300" [class.page-collapsed]="collapsed()">
-    <header class="sticky top-0 z-30 flex h-20 items-center gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6">
-      <button class="rounded-xl border border-slate-200 p-2.5 text-slate-600 lg:hidden" aria-label="Abrir menu" (click)="drawerOpen.set(true)"><span class="block h-0.5 w-5 bg-current"></span><span class="my-1 block h-0.5 w-5 bg-current"></span><span class="block h-0.5 w-5 bg-current"></span></button>
-      <label class="relative hidden max-w-md flex-1 md:block"><span class="sr-only">Buscar</span><svg viewBox="0 0 24 24" class="absolute left-3 top-3 h-4 w-4 text-slate-400" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100" placeholder="Buscar pacientes, productos, ventas..."></label>
+    <header class="topbar sticky top-0 z-30 flex h-20 items-center gap-3 px-4 sm:px-6 lg:px-8">
+      <button class="header-button lg:hidden" aria-label="Abrir menú" (click)="drawerOpen.set(true)">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="min-w-0">
+        <p class="text-[10px] font-bold uppercase tracking-[.18em] text-[#168ba1]">Panel administrativo</p>
+        <p class="truncate text-sm font-semibold capitalize text-slate-500">{{ today }}</p>
+      </div>
+
       <div class="ml-auto flex items-center gap-2">
-        <button class="rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 md:hidden" aria-label="Buscar" (click)="searchOpen.set(true)">⌕</button>
-        <div class="relative"><button class="relative rounded-xl p-2.5 text-slate-500 hover:bg-slate-100" aria-label="Notificaciones" (click)="toggleNotifications()">♢@if (unread()) {<span class="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{{ unread() }}</span>}</button>@if (notificationOpen()) {<div class="dropdown right-0 w-80"><p class="border-b border-slate-100 px-4 py-3 text-sm font-bold">Notificaciones recientes</p>@for (note of data.notifications().slice(0, 3); track note.id) {<a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block border-b border-slate-50 px-4 py-3 hover:bg-slate-50"><p class="text-sm font-semibold">{{ note.title }}</p><p class="mt-0.5 text-xs text-slate-500">{{ note.message }}</p></a>}</div>}</div>
-        <div class="relative"><button (click)="toggleProfile()" class="flex items-center gap-2 rounded-xl p-1.5 hover:bg-slate-100" aria-label="Menu de usuario"><span class="grid h-9 w-9 place-items-center rounded-xl bg-teal-100 text-sm font-bold text-teal-700">{{ administratorInitials() }}</span><span class="hidden text-left sm:block"><b class="block max-w-40 truncate text-xs">{{ administratorName() }}</b><small class="text-slate-500">Administrador</small></span></button>@if (profileOpen()) {<div class="dropdown right-0 w-52 p-2"><a routerLink="configuracion" class="block rounded-lg px-3 py-2 text-sm hover:bg-slate-50">Mi perfil</a><button (click)="logout()" class="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-600 hover:bg-rose-50">Cerrar sesion</button></div>}</div>
+        <div class="relative">
+          <button class="header-button relative" aria-label="Notificaciones" aria-controls="admin-notifications" [attr.aria-expanded]="notificationOpen()" (click)="toggleNotifications()">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+            @if (unread()) { <span class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-white bg-rose-500 px-1 text-[9px] font-bold text-white">{{ unread() }}</span> }
+          </button>
+          @if (notificationOpen()) {
+            <div id="admin-notifications" class="dropdown right-0 w-80" role="region" aria-label="Notificaciones recientes">
+              <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3"><p class="text-sm font-extrabold text-slate-800">Notificaciones</p><span class="rounded-full bg-[#56c4d8]/15 px-2 py-1 text-[10px] font-bold text-[#168ba1]">{{ unread() }} nuevas</span></div>
+              @for (note of data.notifications().slice(0, 3); track note.id) {
+                <a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-[#f5faf8]"><p class="text-sm font-semibold text-slate-800">{{ note.title }}</p><p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ note.message }}</p></a>
+              }
+              <a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block px-4 py-3 text-center text-xs font-bold text-[#168ba1] hover:bg-[#56c4d8]/10">Ver todas</a>
+            </div>
+          }
+        </div>
+
+        <span class="mx-1 hidden h-8 w-px bg-slate-200 sm:block"></span>
+        <div class="relative">
+          <button (click)="toggleProfile()" class="profile-button flex items-center gap-2 rounded-2xl p-1.5 pr-2" aria-label="Menú de usuario" aria-controls="admin-profile" [attr.aria-expanded]="profileOpen()">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#56c4d8] to-[#168ba1] text-sm font-extrabold text-[#111827] shadow-md">{{ administratorInitials() }}</span>
+            <span class="hidden text-left sm:block"><b class="block max-w-40 truncate text-xs text-slate-800">{{ administratorName() }}</b><small class="text-[10px] font-medium text-slate-500">Administrador</small></span>
+            <svg viewBox="0 0 24 24" class="hidden h-4 w-4 text-slate-400 sm:block" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 10 5 5 5-5"/></svg>
+          </button>
+          @if (profileOpen()) {
+            <div id="admin-profile" class="dropdown right-0 w-56 p-2">
+              <div class="mb-1 border-b border-slate-100 px-3 py-2"><p class="truncate text-xs font-bold text-slate-800">{{ administratorName() }}</p><p class="mt-0.5 text-[10px] text-slate-500">Sesión administrativa</p></div>
+              <a routerLink="configuracion" (click)="profileOpen.set(false)" class="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-slate-50">Configuración</a>
+              <button (click)="logout()" class="w-full rounded-xl px-3 py-2.5 text-left text-sm font-bold text-rose-600 hover:bg-rose-50">Cerrar sesión</button>
+            </div>
+          }
+        </div>
       </div>
     </header>
-    @if (searchOpen()) {<div class="fixed inset-x-0 top-0 z-50 bg-white p-4 shadow-xl md:hidden"><div class="flex gap-2"><input autofocus class="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-2" placeholder="Buscar..."><button (click)="searchOpen.set(false)" class="px-2">Cerrar</button></div></div>}
-    <main class="p-4 sm:p-6 lg:p-8"><router-outlet /></main>
+
+    <main id="admin-content" class="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8" tabindex="-1"><router-outlet /></main>
   </div>
 </div>

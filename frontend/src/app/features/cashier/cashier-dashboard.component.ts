@@ -12,46 +12,46 @@ import { CashierOrder, CashierSummary } from './cashier.models';
   template: `
     <section class="mx-auto max-w-7xl">
       <div class="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div><p class="text-sm font-bold uppercase tracking-[.18em] text-teal-600">Hoy</p><h2 class="text-3xl font-black tracking-tight text-[#102a43]">Control de caja</h2><p class="mt-2 text-sm text-slate-500">Abre tu turno y supervisa los pagos asignados.</p></div>
-        <button (click)="loadSummary()" [disabled]="loading()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-teal-500 disabled:opacity-50">Actualizar</button>
+        <div><p class="text-sm font-bold uppercase tracking-[.18em] text-[#168ba1]">Hoy</p><h2 class="text-3xl font-black tracking-tight text-[#111827]">Control de caja</h2><p class="mt-2 text-sm text-slate-500">Abre tu turno y supervisa los pagos asignados.</p></div>
+        <button (click)="loadSummary()" [disabled]="loading()" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-[#56c4d8] disabled:opacity-50">Actualizar</button>
       </div>
 
       @if (errorMessage()) { <p class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
 
       <div class="grid gap-5 md:grid-cols-3">
         <article class="metric-card"><p class="metric-label">Estado del turno</p><p class="mt-3 text-2xl font-black" [class.text-emerald-600]="register()" [class.text-slate-500]="!register()">{{ register() ? 'Caja abierta' : 'Caja cerrada' }}</p><span class="mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold" [class.bg-emerald-100]="register()" [class.text-emerald-700]="register()" [class.bg-slate-100]="!register()">{{ register() ? 'Operando' : 'Sin turno activo' }}</span></article>
-        <article class="metric-card"><p class="metric-label">Ingresos validados</p><p class="mt-3 text-3xl font-black text-[#102a43]">S/ {{ money(register()?.total_ingresos_validados) }}</p><p class="mt-3 text-xs text-slate-500">{{ summary()?.ordenes_validadas ?? 0 }} ordenes confirmadas</p></article>
+        <article class="metric-card"><p class="metric-label">Ingresos validados</p><p class="mt-3 text-3xl font-black text-[#111827]">S/ {{ money(register()?.total_ingresos_validados) }}</p><p class="mt-3 text-xs text-slate-500">{{ summary()?.ordenes_validadas ?? 0 }} órdenes confirmadas</p></article>
         <article class="metric-card"><p class="metric-label">Pagos por revisar</p><p class="mt-3 text-3xl font-black text-amber-600">{{ summary()?.ordenes_pendientes ?? 0 }}</p><p class="mt-3 text-xs text-slate-500">Comprobantes pendientes</p></article>
       </div>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
         <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           @if (register(); as current) {
-            <p class="text-xs font-bold uppercase tracking-[.18em] text-teal-600">Turno #{{ current.id }}</p>
-            <h3 class="mt-2 text-xl font-black text-[#102a43]">Caja en operacion</h3>
+            <p class="text-xs font-bold uppercase tracking-[.18em] text-[#168ba1]">Turno #{{ current.id }}</p>
+            <h3 class="mt-2 text-xl font-black text-[#111827]">Caja en operación</h3>
             <div class="mt-6 space-y-3 rounded-2xl bg-slate-50 p-5 text-sm">
               <div class="flex justify-between"><span class="text-slate-500">Fondo inicial</span><b>S/ {{ money(current.fondo_inicial) }}</b></div>
               <div class="flex justify-between"><span class="text-slate-500">Ingresos validados</span><b>S/ {{ money(current.total_ingresos_validados) }}</b></div>
-              <div class="border-t border-slate-200 pt-3 flex justify-between text-base"><span>Total esperado</span><b class="text-teal-700">S/ {{ expectedTotal() }}</b></div>
+              <div class="border-t border-slate-200 pt-3 flex justify-between text-base"><span>Total esperado</span><b class="text-[#168ba1]">S/ {{ expectedTotal() }}</b></div>
             </div>
             <button (click)="closeRegister()" [disabled]="actionLoading()" class="mt-6 w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Cerrar caja</button>
           } @else {
             <p class="text-xs font-bold uppercase tracking-[.18em] text-amber-600">Inicio de turno</p>
-            <h3 class="mt-2 text-xl font-black text-[#102a43]">Abrir una caja</h3>
+            <h3 class="mt-2 text-xl font-black text-[#111827]">Abrir una caja</h3>
             <p class="mt-2 text-sm leading-6 text-slate-500">Registra el efectivo disponible antes de comenzar a validar cobros.</p>
             <form class="mt-6" [formGroup]="openForm" (ngSubmit)="openRegister()">
               <label for="opening-balance" class="mb-2 block text-sm font-bold">Fondo inicial</label>
-              <div class="flex rounded-xl border border-slate-300 bg-white focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100"><span class="px-4 py-3 text-slate-500">S/</span><input id="opening-balance" type="number" min="0" step="0.01" formControlName="fondoInicial" class="min-w-0 flex-1 rounded-r-xl px-3 py-3 outline-none" /></div>
+              <div class="flex rounded-xl border border-slate-300 bg-white focus-within:border-[#56c4d8] focus-within:ring-2 focus-within:ring-[#56c4d8]/20"><span class="px-4 py-3 text-slate-500">S/</span><input id="opening-balance" type="number" min="0" step="0.01" formControlName="fondoInicial" class="min-w-0 flex-1 rounded-r-xl px-3 py-3 outline-none" /></div>
               @if (openForm.controls.fondoInicial.invalid && openForm.controls.fondoInicial.touched) { <p class="mt-2 text-xs font-semibold text-rose-600">Ingresa un fondo inicial valido.</p> }
-              <button type="submit" [disabled]="openForm.invalid || actionLoading()" class="mt-5 w-full rounded-xl bg-[#f4c430] px-4 py-3 font-black text-[#102a43] hover:bg-amber-300 disabled:opacity-50">Abrir caja</button>
+              <button type="submit" [disabled]="openForm.invalid || actionLoading()" class="mt-5 w-full rounded-xl bg-[#111827] px-4 py-3 font-black text-white transition hover:bg-[#56c4d8] hover:text-[#111827] disabled:opacity-50">Abrir caja</button>
             </form>
           }
         </article>
 
         <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div class="border-b border-slate-100 p-6"><h3 class="text-xl font-black text-[#102a43]">Ordenes recientes</h3><p class="mt-1 text-sm text-slate-500">Actividad asociada a tu usuario.</p></div>
+          <div class="border-b border-slate-100 p-6"><h3 class="text-xl font-black text-[#111827]">Órdenes recientes</h3><p class="mt-1 text-sm text-slate-500">Actividad asociada a tu usuario.</p></div>
           @if (summary()?.ordenes_recientes?.length) {
-            <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Orden</th><th class="px-6 py-3">Estado</th><th class="px-6 py-3 text-right">Monto</th></tr></thead><tbody>@for (order of summary()!.ordenes_recientes; track order.id) {<tr class="border-t border-slate-100"><td class="px-6 py-4 font-bold text-[#102a43]">{{ order.codigo_orden }}</td><td class="px-6 py-4"><span class="rounded-full px-3 py-1 text-xs font-bold" [class]="statusClass(order)">{{ statusLabel(order) }}</span></td><td class="px-6 py-4 text-right font-black">S/ {{ money(order.monto_total) }}</td></tr>}</tbody></table></div>
+            <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Orden</th><th class="px-6 py-3">Estado</th><th class="px-6 py-3 text-right">Monto</th></tr></thead><tbody>@for (order of summary()!.ordenes_recientes; track order.id) {<tr class="border-t border-slate-100"><td class="px-6 py-4 font-bold text-[#111827]">{{ order.codigo_orden }}</td><td class="px-6 py-4"><span class="rounded-full px-3 py-1 text-xs font-bold" [class]="statusClass(order)">{{ statusLabel(order) }}</span></td><td class="px-6 py-4 text-right font-black">S/ {{ money(order.monto_total) }}</td></tr>}</tbody></table></div>
           } @else {
             <div class="grid min-h-64 place-items-center p-8 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-2xl">▤</span><p class="mt-4 font-bold text-slate-700">Aun no hay ordenes</p><p class="mt-1 text-sm text-slate-500">Las operaciones asignadas apareceran aqui.</p></div></div>
           }
@@ -60,7 +60,8 @@ import { CashierOrder, CashierSummary } from './cashier.models';
     </section>
   `,
   styles: [`
-    .metric-card { border: 1px solid rgb(226 232 240); border-radius: 1.5rem; background: white; padding: 1.5rem; box-shadow: 0 8px 24px rgb(15 23 42 / .04); }
+    .metric-card { border: 1px solid #d8e6e9; border-radius: 1.5rem; background: white; padding: 1.5rem; box-shadow: 0 8px 24px rgb(17 24 39 / .05); transition: .2s; }
+    .metric-card:hover { border-color: #56c4d8; transform: translateY(-2px); box-shadow: 0 14px 30px rgb(17 24 39 / .09); }
     .metric-label { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgb(100 116 139); }
   `],
 })

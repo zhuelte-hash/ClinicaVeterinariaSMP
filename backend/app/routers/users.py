@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.user import Usuario
 from app.schemas.user import UsuarioCreate, UsuarioRead, UsuarioUpdate
 from app.security import get_current_admin_user
 from app.services.user_service import (
@@ -15,6 +16,7 @@ from app.services.user_service import (
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 DbSession = Annotated[Session, Depends(get_db)]
+CurrentAdmin = Annotated[Usuario, Depends(get_current_admin_user)]
 
 
 @router.get(
@@ -81,9 +83,13 @@ def update_user(user_id: int, user_data: UsuarioUpdate, db: DbSession):
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_admin_user)],
 )
-def delete_user(user_id: int, db: DbSession) -> Response:
+def delete_user(user_id: int, db: DbSession, current_admin: CurrentAdmin) -> Response:
+    if user_id == current_admin.id:
+        raise HTTPException(
+            status_code=409,
+            detail="No puedes eliminar tu propia cuenta administradora",
+        )
     service = UserService(db)
     user = service.get_by_id(user_id)
     if not user:

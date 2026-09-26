@@ -1,5 +1,15 @@
-@import '../../shared/admin-ui.css';
-.admin-panel { border: 1px solid rgb(226 232 240); border-radius: 1rem; background: white; padding: 1.25rem; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
-.admin-panel h2 { font-size: .95rem; font-weight: 800; color: rgb(15 23 42); }
-.admin-panel h2 + p, .admin-panel div > p { font-size: .75rem; color: rgb(148 163 184); }
-.bar { min-height: 12px; transition: height .4s ease; background: linear-gradient(180deg, #14b8a6, #0f766e); }
+.dashboard-hero { position: relative; display: flex; min-height: 13rem; align-items: center; justify-content: space-between; gap: 2rem; overflow: hidden; border-radius: 1.6rem; padding: clamp(1.5rem, 4vw, 2.5rem); background: linear-gradient(125deg, #030712 0%, #111827 58%, #263244 100%); box-shadow: 0 22px 55px rgb(3 7 18 / 24%); }
+.hero-pulse { align-items: center; gap: .8rem; min-width: 15rem; border: 1px solid rgb(255 255 255 / 14%); border-radius: 1.1rem; padding: 1rem; background: rgb(3 48 45 / 30%); backdrop-filter: blur(10px); }
+.pulse-icon { display: grid; width: 2.8rem; height: 2.8rem; flex: 0 0 auto; place-items: center; border-radius: .9rem; color: #56c4d8; background: rgb(86 196 216 / 14%); }
+.admin-panel h2 { margin-top: .15rem; color: #111827; font-size: 1rem; font-weight: 800; letter-spacing: -.015em; }
+.admin-panel h2 + p { margin-top: .2rem; color: #718582; font-size: .75rem; }
+.panel-kicker { color: #168ba1; font-size: .65rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.panel-link { border-radius: .65rem; padding: .4rem .6rem; color: #168ba1; font-size: .7rem; font-weight: 800; transition: background .2s; }
+.panel-link:hover { background: #eaf8fb; }
+.chart { border-bottom: 1px solid #dce8e5; background-image: linear-gradient(to top, #edf4f2 1px, transparent 1px); background-size: 100% 25%; }
+.bar { min-height: 12px; background: linear-gradient(180deg, #8bd7e5 0%, #56c4d8 55%, #111827 100%); box-shadow: 0 5px 12px rgb(86 196 216 / 22%); transition: height .45s ease, filter .2s; }
+.bar:hover { filter: brightness(1.08); }
+.appointment-row, .product-row { display: flex; align-items: center; gap: .75rem; border: 1px solid #e6efed; border-radius: 1rem; padding: .75rem; background: #f9fcfb; transition: border-color .2s, transform .2s; }
+.appointment-row:hover, .product-row:hover { border-color: #9ed6e0; transform: translateX(2px); }
+.time-box { display: grid; min-width: 3.4rem; min-height: 2.7rem; place-items: center; border-radius: .8rem; color: #111827; background: #dff6fa; font-size: .75rem; }
+@media (max-width: 639px) { .dashboard-hero { min-height: 15rem; align-items: flex-end; } .chart { gap: .4rem; } }

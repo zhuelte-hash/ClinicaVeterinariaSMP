@@ -3,16 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --admin-primary: #32A8B5;
-  --admin-primary-dark: #238B98;
-  --admin-background: #F5F7FA;
-  --admin-surface: #FFFFFF;
-  --admin-active: #111827;
-  --admin-selection: #2939D8;
-  --admin-text: #1F2937;
-  --admin-muted: #6B7280;
-  --admin-error: #EF4444;
-  --admin-success: #22C55E;
+  --admin-primary: #56c4d8;
+  --admin-primary-dark: #111827;
+  --admin-accent: #56c4d8;
+  --admin-background: #f3f7f8;
+  --admin-surface: #ffffff;
+  --admin-text: #111827;
+  --admin-muted: #64748b;
+  --admin-border: #d8e6e9;
+  --admin-error: #e11d48;
+  --admin-success: #059669;
+  --admin-shadow: 0 16px 45px rgb(17 24 39 / 9%);
   --color-primary: var(--admin-primary);
   --color-primary-dark: var(--admin-primary-dark);
 }
@@ -50,6 +51,96 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid rgb(86 196 216 / 45%); outline-offset: 3px; }
+
+.admin-app {
+  min-height: 100dvh;
+  color: var(--admin-text);
+  background:
+    radial-gradient(circle at 82% 4%, rgb(86 196 216 / 14%), transparent 21rem),
+    radial-gradient(circle at 22% 88%, rgb(17 24 39 / 5%), transparent 24rem),
+    var(--admin-background);
+}
+
+.admin-app .admin-card,
+.admin-app .admin-panel {
+  border: 1px solid rgb(216 230 233 / 92%);
+  border-radius: 1.25rem;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 1px 2px rgb(17 24 39 / 3%), 0 14px 38px rgb(17 24 39 / 5%);
+}
+
+.admin-app .admin-card { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.admin-app .admin-card:hover { border-color: #b9dce3; box-shadow: var(--admin-shadow); }
+.admin-app .admin-input {
+  width: 100%;
+  border-color: #c9dce0;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: .9rem;
+  background: #fbfdfc;
+  padding: .72rem .9rem;
+  color: #111827;
+  font-size: .875rem;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.admin-app .admin-input:hover { border-color: #8fcbd6; background: white; }
+.admin-app .admin-input:focus { border-color: #56c4d8; background: white; box-shadow: 0 0 0 4px rgb(86 196 216 / 18%); }
+.admin-app .admin-input:disabled { cursor: not-allowed; background: #f1f5f4; color: #64748b; }
+.admin-app .admin-label { display: block; margin-bottom: .45rem; color: #374151; font-size: .75rem; font-weight: 700; letter-spacing: .025em; }
+
+.admin-app .admin-primary,
+.admin-app .admin-secondary {
+  min-height: 2.65rem;
+  border-radius: .9rem;
+  padding: .625rem 1rem;
+  font-size: .875rem;
+  font-weight: 700;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.admin-app .admin-primary { background: linear-gradient(135deg, #111827, #030712); box-shadow: 0 8px 20px rgb(17 24 39 / 20%); color: white; }
+.admin-app .admin-primary:hover { transform: translateY(-1px); background: #56c4d8; box-shadow: 0 12px 24px rgb(86 196 216 / 30%); color: #111827; }
+.admin-app .admin-secondary { border-color: #cedde0; background: white; color: #374151; }
+.admin-app .admin-secondary:hover { border-color: #56c4d8; background: #f2fbfd; }
+.admin-app button:disabled { transform: none; box-shadow: none; }
+
+.admin-app .admin-table { width: 100%; min-width: 760px; border-collapse: collapse; }
+.admin-app .admin-table thead { position: sticky; top: 0; z-index: 1; }
+.admin-app .admin-table th { border-bottom: 1px solid #d8e6e9; background: #f3f8f9; padding: .8rem 1rem; color: #4b5563; font-size: .7rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.admin-app .admin-table td { border-top: 1px solid #edf3f4; padding: .9rem 1rem; color: #475569; font-size: .875rem; }
+.admin-app .admin-table tbody tr { transition: background .16s ease; }
+.admin-app .admin-table tbody tr:hover { background: #f3fafb; }
+.admin-app .admin-table button { min-height: 2.25rem; }
+
+/* Keep legacy admin utility classes aligned with the cyan and charcoal palette. */
+.admin-app .text-teal-600,
+.admin-app .text-teal-700,
+.admin-app .text-teal-800 { color: #168ba1 !important; }
+.admin-app .bg-teal-50 { background-color: rgb(86 196 216 / 12%) !important; }
+.admin-app .bg-teal-100 { background-color: rgb(86 196 216 / 20%) !important; }
+.admin-app .bg-teal-500 { background-color: #56c4d8 !important; }
+.admin-app .ring-teal-50 { --tw-ring-color: rgb(86 196 216 / 15%) !important; }
+.admin-app .accent-teal-600 { accent-color: #56c4d8; }
+
+.admin-app .admin-modal { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: clamp(1rem, 4vw, 2rem); background: rgb(3 7 18 / 72%); backdrop-filter: blur(8px); }
+.admin-app .admin-modal-panel { width: 100%; max-width: 32rem; max-height: 90dvh; overflow: auto; border: 1px solid rgb(255 255 255 / 65%); border-radius: 1.4rem; background: white; padding: 1.5rem; box-shadow: 0 30px 80px rgb(2 20 19 / 32%); animation: admin-modal-in .2s ease-out; }
+
+@keyframes admin-modal-in { from { opacity: 0; transform: translateY(12px) scale(.985); } }
+
+@media (max-width: 639px) {
+  .admin-app .admin-modal { align-items: end; padding: .5rem; }
+  .admin-app .admin-modal-panel { max-height: calc(100dvh - 1rem); border-radius: 1.35rem 1.35rem .8rem .8rem; padding: 1.25rem; }
+  .admin-app .admin-modal-panel form > div:last-child { flex-wrap: wrap; }
+  .admin-app .admin-primary, .admin-app .admin-secondary { padding-inline: .9rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 @media print {

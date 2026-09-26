@@ -1,11 +1,1 @@
-.admin-card { border: 1px solid rgb(226 232 240); border-radius: 1rem; background: white; box-shadow: 0 1px 2px rgb(15 23 42 / .04); }
-.admin-input { width: 100%; border: 1px solid rgb(203 213 225); border-radius: .75rem; background: white; padding: .625rem .8rem; font-size: .875rem; color: rgb(15 23 42); outline: none; }
-.admin-input:focus { border-color: rgb(13 148 136); box-shadow: 0 0 0 3px rgb(20 184 166 / .14); }
-.admin-label { display: block; margin-bottom: .35rem; font-size: .75rem; font-weight: 700; color: rgb(71 85 105); }
-.admin-table { width: 100%; min-width: 720px; border-collapse: collapse; }
-.admin-table th { padding: .8rem 1rem; background: rgb(248 250 252); text-align: left; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: rgb(100 116 139); }
-.admin-table td { padding: .9rem 1rem; border-top: 1px solid rgb(241 245 249); font-size: .875rem; color: rgb(71 85 105); }
-.admin-modal { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 1rem; background: rgb(15 23 42 / .55); backdrop-filter: blur(3px); }
-.admin-modal-panel { width: 100%; max-width: 32rem; max-height: 90vh; overflow: auto; border-radius: 1rem; background: white; padding: 1.5rem; box-shadow: 0 24px 60px rgb(15 23 42 / .2); }
-.admin-primary { border-radius: .75rem; background: rgb(13 148 136); padding: .625rem 1rem; font-size: .875rem; font-weight: 700; color: white; }
-.admin-secondary { border: 1px solid rgb(203 213 225); border-radius: .75rem; padding: .625rem 1rem; font-size: .875rem; font-weight: 600; color: rgb(71 85 105); }
+/* Admin primitives live in the global stylesheet to avoid duplicating them in every lazy page. */
