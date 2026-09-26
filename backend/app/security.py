@@ -95,3 +95,14 @@ def get_current_client_user(
             detail="Client access required",
         )
     return user
+
+
+def get_current_veterinarian_user(
+    user: Usuario = Depends(get_current_active_user),
+) -> Usuario:
+    if user.tipo != TipoUsuario.VETERINARIO:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Veterinarian access required",
+        )
+    return user

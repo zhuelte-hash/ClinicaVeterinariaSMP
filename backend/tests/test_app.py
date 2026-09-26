@@ -42,6 +42,21 @@ def test_portal_citas_routes_are_documented() -> None:
     assert "/portal/servicios" in paths
     assert "/portal/citas" in paths
     assert "/portal/citas/{appointment_id}/cancelar" in paths
+    assert "/portal/citas/{appointment_id}/aceptar-horario" in paths
+    assert "/portal/mascotas/{pet_id}/historial" in paths
+    assert "/portal/notificaciones" in paths
+
+
+def test_veterinarian_routes_are_documented() -> None:
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    paths = response.json()["paths"]
+    assert "/portal/veterinario/resumen" in paths
+    assert "/portal/veterinario/horarios" in paths
+    assert "/portal/veterinario/bloqueos" in paths
+    assert "/portal/veterinario/solicitudes/{appointment_id}/atencion" in paths
+    assert "/portal/veterinario/mascotas/{pet_id}/historial" in paths
 
 
 def test_punto_venta_routes_are_documented() -> None:

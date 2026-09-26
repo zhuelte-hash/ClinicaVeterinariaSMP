@@ -54,6 +54,8 @@ def create_user(user_data: UsuarioCreate, db: DbSession):
     service = UserService(db)
     try:
         return service.create(user_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except CorreoDuplicadoError as exc:
         raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
 
@@ -70,6 +72,8 @@ def update_user(user_id: int, user_data: UsuarioUpdate, db: DbSession):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     try:
         return service.update(user, user_data)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except CorreoDuplicadoError as exc:
         raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
 

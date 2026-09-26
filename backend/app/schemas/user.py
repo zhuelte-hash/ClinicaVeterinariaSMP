@@ -14,7 +14,7 @@ from app.models.user import TipoUsuario
 
 class UsuarioBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
-    correo: EmailStr
+    correo: str = Field(min_length=3, max_length=254)
     tipo: TipoUsuario
 
     @field_validator("nombre")
@@ -24,12 +24,24 @@ class UsuarioBase(BaseModel):
 
     @field_validator("correo")
     @classmethod
-    def normalizar_correo(cls, value: EmailStr) -> str:
-        return str(value).lower()
+    def normalizar_correo(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized.count("@") != 1 or normalized.startswith("@") or normalized.endswith("@"):
+            raise ValueError("Debe ser un correo válido")
+        return normalized
 
 
 class UsuarioCreate(UsuarioBase):
     contrasena: str = Field(min_length=8, max_length=72)
+    telefono: str | None = Field(default=None, max_length=30)
+    colegiatura: str | None = Field(default=None, max_length=50)
+    especialidad: str | None = Field(default=None, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_veterinarian_profile(self) -> Self:
+        if self.tipo == TipoUsuario.VETERINARIO and not self.colegiatura:
+            raise ValueError("La colegiatura es obligatoria para un veterinario")
+        return self
 
 
 class UsuarioUpdate(BaseModel):
@@ -37,6 +49,9 @@ class UsuarioUpdate(BaseModel):
     correo: EmailStr | None = None
     contrasena: str | None = Field(default=None, min_length=8, max_length=72)
     tipo: TipoUsuario | None = None
+    telefono: str | None = Field(default=None, max_length=30)
+    colegiatura: str | None = Field(default=None, max_length=50)
+    especialidad: str | None = Field(default=None, max_length=100)
 
     @field_validator("nombre")
     @classmethod
@@ -60,6 +75,9 @@ class UsuarioRead(UsuarioBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    telefono: str | None = None
+    colegiatura: str | None = None
+    especialidad: str | None = None
 
 
 class UsuarioLogin(BaseModel):

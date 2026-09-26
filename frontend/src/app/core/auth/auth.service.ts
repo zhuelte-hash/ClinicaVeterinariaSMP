@@ -28,6 +28,7 @@ export class AuthService {
     return user?.tipo === 'administrador';
   });
   readonly isCashier = computed(() => this.userState()?.tipo === 'cajero');
+  readonly isVeterinarian = computed(() => this.userState()?.tipo === 'veterinario');
   readonly isLoading = computed(() => this.loadingState());
 
   constructor() {

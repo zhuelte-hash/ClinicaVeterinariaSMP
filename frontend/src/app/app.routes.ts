@@ -3,6 +3,7 @@ import { adminGuard } from './core/guards/admin.guard';
 import { cashierGuard } from './core/guards/cashier.guard';
 import { clientGuard } from './core/guards/client.guard';
 import { purchaseGuard } from './core/guards/purchase.guard';
+import { veterinarianGuard } from './core/guards/veterinarian.guard';
 
 export const routes: Routes = [
   {
@@ -95,6 +96,11 @@ export const routes: Routes = [
     canActivate: [cashierGuard],
     loadChildren: () =>
       import('./features/cashier/cashier.routes').then((m) => m.CASHIER_ROUTES),
+  },
+  {
+    path: 'veterinario',
+    canActivate: [veterinarianGuard],
+    loadChildren: () => import('./features/veterinarian/veterinarian.routes').then((m) => m.VETERINARIAN_ROUTES),
   },
   {
     path: 'users',

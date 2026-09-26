@@ -10,6 +10,11 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=72)
+
+
 class ClientRegisterRequest(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     correo: EmailStr

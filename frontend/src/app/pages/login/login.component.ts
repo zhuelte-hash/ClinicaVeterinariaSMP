@@ -64,10 +64,12 @@ export class LoginComponent {
                 ? requestedUrl
               : this.auth.isAdmin() && requestedUrl?.startsWith('/admin')
                 ? requestedUrl
-                : this.auth.isAdmin()
+              : this.auth.isAdmin()
                   ? '/admin/dashboard'
                   : this.auth.isCashier()
                     ? '/caja/dashboard'
+                    : this.auth.isVeterinarian()
+                      ? '/veterinario'
                     : '/inicio';
           void this.router.navigateByUrl(destination);
         },

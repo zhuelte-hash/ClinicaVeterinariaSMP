@@ -5,6 +5,7 @@ export interface AuthUser {
   nombre: string;
   correo: string;
   tipo: 'cliente' | 'veterinario' | 'cajero' | 'administrador';
+  telefono?: string | null;
 }
 
 export interface LoginCredentials {

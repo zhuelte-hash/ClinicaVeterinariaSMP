@@ -4,8 +4,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { AppointmentsApiService } from './appointments-api.service';
-import { Appointment, AppointmentStatus, ClinicService, Pet } from './appointments.models';
+import { Appointment, AppointmentStatus, AvailabilitySlot, ClinicalRecord, ClinicService, Pet } from './appointments.models';
 
 @Component({
   selector: 'app-appointments-page',
@@ -18,6 +19,7 @@ export class AppointmentsPageComponent {
   private readonly api = inject(AppointmentsApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly notice = inject(NoticeService);
+  private readonly auth = inject(AuthService);
   private readonly requestedService = inject(ActivatedRoute).snapshot.queryParamMap.get('servicio');
 
   readonly pets = signal<Pet[]>([]);
@@ -29,18 +31,30 @@ export class AppointmentsPageComponent {
   readonly showPetForm = signal(false);
   readonly errorMessage = signal('');
   readonly minDateTime = this.toDateTimeLocal(new Date(Date.now() + 60 * 60 * 1000));
+  readonly minDate = this.minDateTime.slice(0, 10);
+  readonly availability = signal<AvailabilitySlot[]>([]);
+  readonly availabilityLoading = signal(false);
+  readonly historyPetId = signal<number | null>(null);
+  readonly petHistory = signal<ClinicalRecord[]>([]);
 
   readonly petForm = this.formBuilder.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(100)]],
     especie: ['Perro', [Validators.required, Validators.maxLength(80)]],
     raza: ['', Validators.maxLength(100)],
+    sexo: [''],
+    fecha_nacimiento: [''],
+    peso_actual: [''],
+    caracteristicas: ['', Validators.maxLength(2000)],
   });
   readonly appointmentForm = this.formBuilder.nonNullable.group({
     mascotaId: [0, Validators.min(1)],
     servicioId: [0, Validators.min(1)],
-    fechaHora: ['', Validators.required],
+    fecha: [this.minDate, Validators.required],
+    slot: ['', Validators.required],
     motivo: ['', Validators.maxLength(500)],
     esUrgente: [false],
+    telefono: [this.auth.currentUser()?.telefono ?? '', Validators.maxLength(30)],
+    preferenciaContacto: ['llamada'],
   });
 
   constructor() {
@@ -64,6 +78,7 @@ export class AppointmentsPageComponent {
         }
         const requested = services.find((service) => service.codigo === this.requestedService);
         if (requested) this.appointmentForm.controls.servicioId.setValue(requested.id);
+        if (this.appointmentForm.controls.servicioId.value) this.loadAvailability();
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
@@ -76,13 +91,20 @@ export class AppointmentsPageComponent {
     }
     this.petSubmitting.set(true);
     const value = this.petForm.getRawValue();
-    this.api.createPet({ ...value, raza: value.raza || undefined })
+     this.api.createPet({
+       ...value,
+       raza: value.raza || undefined,
+       sexo: value.sexo || undefined,
+       fecha_nacimiento: value.fecha_nacimiento || undefined,
+       peso_actual: value.peso_actual || undefined,
+       caracteristicas: value.caracteristicas || undefined,
+     })
       .pipe(finalize(() => this.petSubmitting.set(false)))
       .subscribe({
         next: (pet) => {
           this.pets.update((pets) => [...pets, pet]);
           this.appointmentForm.controls.mascotaId.setValue(pet.id);
-          this.petForm.reset({ nombre: '', especie: 'Perro', raza: '' });
+           this.petForm.reset({ nombre: '', especie: 'Perro', raza: '', sexo: '', fecha_nacimiento: '', peso_actual: '', caracteristicas: '' });
           this.showPetForm.set(false);
           this.notice.show('Mascota registrada');
         },
@@ -96,22 +118,49 @@ export class AppointmentsPageComponent {
       return;
     }
     const value = this.appointmentForm.getRawValue();
+    const selectedSlot = this.availability().find((slot) => slot.fecha_hora === value.slot);
+    if (!selectedSlot) {
+      this.errorMessage.set('Selecciona un horario disponible actualizado.');
+      return;
+    }
     this.submitting.set(true);
     this.errorMessage.set('');
     this.api.createAppointment({
       mascota_id: value.mascotaId,
       servicio_id: value.servicioId,
-      fecha_hora_programada: new Date(value.fechaHora).toISOString(),
+      veterinario_id: selectedSlot.veterinario_id,
+      fecha_hora_programada: value.slot,
       motivo: value.motivo || undefined,
-      es_urgente: value.esUrgente,
+        es_urgente: value.esUrgente,
+        telefono_contacto: value.telefono || undefined,
+        preferencia_contacto: value.preferenciaContacto || undefined,
     }).pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: (appointment) => {
         this.appointments.update((items) => [appointment, ...items]);
-        this.appointmentForm.patchValue({ fechaHora: '', motivo: '', esUrgente: false });
-        this.notice.show('Cita registrada y pendiente de confirmacion');
+          this.appointmentForm.patchValue({ slot: '', motivo: '', esUrgente: false });
+          this.loadAvailability();
+         this.notice.show('Recibimos tu solicitud. El veterinario se comunicará contigo para coordinar y confirmar la cita.');
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
+  }
+
+  loadAvailability(): void {
+    const { servicioId, fecha } = this.appointmentForm.getRawValue();
+    if (!servicioId || !fecha) {
+      this.availability.set([]);
+      return;
+    }
+    this.availabilityLoading.set(true);
+    this.api.getAvailability(servicioId, fecha)
+      .pipe(finalize(() => this.availabilityLoading.set(false)))
+      .subscribe({
+        next: (slots) => this.availability.set(slots),
+        error: (error: unknown) => {
+          this.availability.set([]);
+          this.errorMessage.set(this.errorText(error));
+        },
+      });
   }
 
   cancel(appointment: Appointment): void {
@@ -125,14 +174,38 @@ export class AppointmentsPageComponent {
     });
   }
 
+  acceptProposedTime(appointment: Appointment): void {
+    this.api.acceptProposedTime(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.notice.show('Horario confirmado');
+      },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  showHistory(pet: Pet): void {
+    if (this.historyPetId() === pet.id) {
+      this.historyPetId.set(null);
+      return;
+    }
+    this.api.getPetHistory(pet.id).subscribe({
+      next: (history) => { this.petHistory.set(history); this.historyPetId.set(pet.id); },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
   canCancel(appointment: Appointment): boolean {
-    return ['pendiente', 'confirmada', 'reprogramada'].includes(appointment.estado);
+    return !['cancelada', 'atendida', 'no_asistio'].includes(appointment.estado);
   }
 
   statusLabel(status: AppointmentStatus): string {
     const labels: Record<AppointmentStatus, string> = {
-      pendiente: 'Pendiente', confirmada: 'Confirmada', reprogramada: 'Reprogramada',
-      atendida: 'Atendida', cancelada: 'Cancelada', no_asistio: 'No asistio',
+       pendiente: 'Pendiente', pendiente_contacto: 'Pendiente de confirmación',
+      contactando_cliente: 'Contactando al cliente', esperando_respuesta: 'Esperando respuesta',
+      requiere_otro_horario: 'Requiere otro horario', confirmada: 'Confirmada',
+      reprogramada: 'Reprogramada', atendida: 'Atendida', cancelada: 'Cancelada',
+      cliente_no_respondio: 'Cliente no respondió', no_asistio: 'No asistió',
     };
     return labels[status];
   }
@@ -141,6 +214,20 @@ export class AppointmentsPageComponent {
     if (status === 'confirmada' || status === 'atendida') return 'bg-emerald-100 text-emerald-700';
     if (status === 'cancelada' || status === 'no_asistio') return 'bg-rose-100 text-rose-700';
     return 'bg-amber-100 text-amber-800';
+  }
+
+  statusDescription(status: AppointmentStatus): string {
+    const descriptions: Partial<Record<AppointmentStatus, string>> = {
+      pendiente_contacto: 'Solicitud recibida. El veterinario revisará y confirmará contigo.',
+      contactando_cliente: 'El veterinario está intentando contactarte.',
+      esperando_respuesta: 'El veterinario espera tu respuesta para continuar.',
+      requiere_otro_horario: 'El veterinario propuso otro horario. Revísalo y acéptalo.',
+      confirmada: 'Tu cita está confirmada.',
+      reprogramada: 'Aceptaste el nuevo horario y la cita está confirmada.',
+      atendida: 'La atención fue registrada en el historial de tu mascota.',
+      cancelada: 'Esta solicitud fue cancelada.',
+    };
+    return descriptions[status] ?? 'Solicitud en revisión.';
   }
 
   formatDate(value: string): string {

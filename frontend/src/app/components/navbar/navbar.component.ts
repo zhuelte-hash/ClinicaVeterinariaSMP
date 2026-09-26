@@ -212,6 +212,7 @@ export class NavbarComponent {
   readonly accountRoute = computed(() => {
     if (this.auth.isAdmin()) return '/admin/dashboard';
     if (this.auth.isCashier()) return '/caja/dashboard';
+    if (this.auth.isVeterinarian()) return '/veterinario';
     return this.auth.isAuthenticated() ? '/reservar-cita' : '/login';
   });
   readonly desktopServicesOpen = signal(false);

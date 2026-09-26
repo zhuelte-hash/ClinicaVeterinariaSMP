@@ -16,6 +16,11 @@ CREATE TYPE tipo_usuario AS ENUM (
 
 CREATE TYPE estado_cita AS ENUM (
   'pendiente',
+  'pendiente_contacto',
+  'contactando_cliente',
+  'esperando_respuesta',
+  'requiere_otro_horario',
+  'cliente_no_respondio',
   'confirmada',
   'reprogramada',
   'atendida',
@@ -104,7 +109,12 @@ CREATE TABLE mascotas (
   cliente_id BIGINT NOT NULL REFERENCES clientes(usuario_id) ON DELETE RESTRICT,
   nombre VARCHAR(100) NOT NULL,
   especie VARCHAR(80) NOT NULL,
-  raza VARCHAR(100)
+  raza VARCHAR(100),
+  sexo VARCHAR(20),
+  fecha_nacimiento DATE,
+  peso_actual NUMERIC(7,2),
+  caracteristicas TEXT,
+  CONSTRAINT ck_mascotas_peso CHECK (peso_actual IS NULL OR peso_actual >= 0)
 );
 
 CREATE TABLE servicios (
@@ -132,28 +142,152 @@ CREATE TABLE servicios_estetica (
   tipo_estetica tipo_estetica NOT NULL
 );
 
+-- Catalogo inicial utilizado por el flujo de reservas.
+INSERT INTO servicios
+  (codigo, nombre, descripcion, precio_referencial, duracion_estimada_min)
+VALUES
+  ('consultas-veterinarias', 'Consulta veterinaria', 'Evaluacion clinica integral.', 50.00, 30),
+  ('vacunacion', 'Vacunacion', 'Aplicacion y control del calendario de vacunas.', 45.00, 30),
+  ('desparasitacion', 'Desparasitacion', 'Prevencion de parasitos internos y externos.', 35.00, 30),
+  ('cirugia-general', 'Cirugia general', 'Evaluacion y procedimiento quirurgico programado.', 200.00, 90),
+  ('laboratorio-clinico', 'Laboratorio clinico', 'Analisis para apoyo diagnostico.', 80.00, 45),
+  ('bano-simple', 'Bano estetico', 'Higiene general para la mascota.', 40.00, 60),
+  ('bano-medicado', 'Bano medicado', 'Bano con productos dermatologicos indicados.', 55.00, 60),
+  ('corte-y-estilizado', 'Corte y estilizado', 'Corte de pelo y arreglo estetico.', 60.00, 90)
+ON CONFLICT (codigo) DO NOTHING;
+
+INSERT INTO servicios_medicos
+  (servicio_id, requiere_receta, incluye_laboratorio, tipo_atencion_medica)
+SELECT id, FALSE, codigo = 'laboratorio-clinico',
+  CASE codigo
+    WHEN 'vacunacion' THEN 'vacunacion'::tipo_atencion_medica
+    WHEN 'desparasitacion' THEN 'desparasitacion'::tipo_atencion_medica
+    WHEN 'cirugia-general' THEN 'cirugia'::tipo_atencion_medica
+    WHEN 'laboratorio-clinico' THEN 'laboratorio_e_imagen'::tipo_atencion_medica
+    ELSE 'consulta_general'::tipo_atencion_medica
+  END
+FROM servicios
+WHERE codigo IN ('consultas-veterinarias', 'vacunacion', 'desparasitacion',
+                 'cirugia-general', 'laboratorio-clinico')
+ON CONFLICT (servicio_id) DO NOTHING;
+
+INSERT INTO servicios_estetica
+  (servicio_id, incluye_corte_pelo, incluye_bano_especial, tipo_estetica)
+SELECT id, codigo = 'corte-y-estilizado', codigo = 'bano-medicado',
+  CASE codigo
+    WHEN 'bano-medicado' THEN 'bano_medicado'::tipo_estetica
+    WHEN 'corte-y-estilizado' THEN 'corte_y_estilizado'::tipo_estetica
+    ELSE 'bano_simple'::tipo_estetica
+  END
+FROM servicios
+WHERE codigo IN ('bano-simple', 'bano-medicado', 'corte-y-estilizado')
+ON CONFLICT (servicio_id) DO NOTHING;
+
 -- Citas y procesos de atencion
 CREATE TABLE citas (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   mascota_id BIGINT NOT NULL REFERENCES mascotas(id) ON DELETE RESTRICT,
   servicio_id BIGINT NOT NULL REFERENCES servicios(id) ON DELETE RESTRICT,
   fecha_hora_programada TIMESTAMPTZ NOT NULL,
+  fecha_hora_fin_programada TIMESTAMPTZ NOT NULL,
   estado estado_cita NOT NULL DEFAULT 'pendiente',
-  es_urgente BOOLEAN NOT NULL DEFAULT FALSE
+  es_urgente BOOLEAN NOT NULL DEFAULT FALSE,
+  motivo VARCHAR(500),
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  veterinario_id BIGINT REFERENCES veterinarios(usuario_id) ON DELETE RESTRICT,
+  fecha_hora_propuesta TIMESTAMPTZ,
+  telefono_contacto VARCHAR(30),
+  preferencia_contacto VARCHAR(20),
+  nota_coordinacion VARCHAR(500),
+  estado_actualizado_por BIGINT REFERENCES usuarios(id) ON DELETE SET NULL,
+  fecha_actualizacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_citas_id_mascota UNIQUE (id, mascota_id),
+  CONSTRAINT ck_citas_rango CHECK (fecha_hora_fin_programada > fecha_hora_programada)
 );
 
 CREATE INDEX idx_citas_mascota ON citas (mascota_id);
 CREATE INDEX idx_citas_servicio ON citas (servicio_id);
 CREATE INDEX idx_citas_fecha ON citas (fecha_hora_programada);
+CREATE INDEX idx_citas_veterinario_estado ON citas (veterinario_id, estado);
+
+-- Una solicitud ocupa el slot desde que el cliente la reserva.
+CREATE UNIQUE INDEX uq_citas_horario_activo
+  ON citas (veterinario_id, fecha_hora_programada)
+  WHERE veterinario_id IS NOT NULL
+    AND estado NOT IN ('cancelada', 'no_asistio');
+
+-- Protección de base de datos contra cruces considerando la duración real.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+ALTER TABLE citas
+  ADD CONSTRAINT ex_citas_veterinario_solapamiento
+  EXCLUDE USING gist (
+    veterinario_id WITH =,
+    tstzrange(fecha_hora_programada, fecha_hora_fin_programada, '[)') WITH &&
+  )
+  WHERE (
+    veterinario_id IS NOT NULL
+    AND estado NOT IN ('cancelada', 'no_asistio')
+  );
+
+-- Agenda recurrente y bloqueos excepcionales del veterinario.
+CREATE TABLE horarios_veterinarios (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  veterinario_id BIGINT NOT NULL
+    REFERENCES veterinarios(usuario_id) ON DELETE CASCADE,
+  dia_semana INTEGER NOT NULL,
+  hora_inicio TIME NOT NULL,
+  hora_fin TIME NOT NULL,
+  activo BOOLEAN NOT NULL DEFAULT TRUE,
+  CONSTRAINT ck_horarios_dia CHECK (dia_semana BETWEEN 0 AND 6),
+  CONSTRAINT ck_horarios_horas CHECK (hora_fin > hora_inicio),
+  CONSTRAINT uq_horario_veterinario_rango
+    UNIQUE (veterinario_id, dia_semana, hora_inicio, hora_fin)
+);
+
+CREATE INDEX idx_horarios_veterinario
+  ON horarios_veterinarios (veterinario_id, dia_semana);
+
+CREATE TABLE bloqueos_horario (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  veterinario_id BIGINT NOT NULL
+    REFERENCES veterinarios(usuario_id) ON DELETE CASCADE,
+  fecha_hora_inicio TIMESTAMPTZ NOT NULL,
+  fecha_hora_fin TIMESTAMPTZ NOT NULL,
+  motivo VARCHAR(255) NOT NULL,
+  CONSTRAINT ck_bloqueos_horas CHECK (fecha_hora_fin > fecha_hora_inicio)
+);
+
+CREATE INDEX idx_bloqueos_veterinario_fecha
+  ON bloqueos_horario (veterinario_id, fecha_hora_inicio);
+
+CREATE TABLE notificaciones (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  usuario_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  cita_id BIGINT REFERENCES citas(id) ON DELETE SET NULL,
+  tipo VARCHAR(50) NOT NULL,
+  titulo VARCHAR(150) NOT NULL,
+  mensaje VARCHAR(500) NOT NULL,
+  leida BOOLEAN NOT NULL DEFAULT FALSE,
+  fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_notificaciones_usuario_leida
+  ON notificaciones (usuario_id, leida);
 
 CREATE TABLE procesos_atencion (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  cita_id BIGINT NOT NULL UNIQUE REFERENCES citas(id) ON DELETE RESTRICT,
+  cita_id BIGINT UNIQUE,
   mascota_id BIGINT NOT NULL REFERENCES mascotas(id) ON DELETE RESTRICT,
   tipo tipo_proceso_atencion NOT NULL,
   fecha_inicio TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fecha_fin TIMESTAMPTZ,
   observaciones TEXT,
+  motivo_consulta TEXT,
+  anamnesis TEXT,
+  proxima_fecha_control DATE,
+  CONSTRAINT fk_procesos_cita_mascota
+    FOREIGN KEY (cita_id, mascota_id)
+    REFERENCES citas(id, mascota_id) ON DELETE RESTRICT,
   CONSTRAINT ck_procesos_fechas
     CHECK (fecha_fin IS NULL OR fecha_fin >= fecha_inicio)
 );
@@ -181,6 +315,11 @@ CREATE TABLE fichas_clinicas (
   peso NUMERIC(7,2),
   temperatura NUMERIC(5,2),
   historial_alergias TEXT,
+  vacunas TEXT,
+  desparasitaciones TEXT,
+  medicamentos TEXT,
+  procedimientos TEXT,
+  examenes_resultados TEXT,
   CONSTRAINT ck_fichas_peso CHECK (peso IS NULL OR peso >= 0),
   CONSTRAINT ck_fichas_temperatura CHECK (
     temperatura IS NULL OR temperatura > 0

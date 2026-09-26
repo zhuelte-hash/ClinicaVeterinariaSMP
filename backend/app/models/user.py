@@ -59,6 +59,21 @@ class Usuario(Base):
     administrador: Mapped["Administrador | None"] = relationship(
         back_populates="usuario", cascade="all, delete-orphan", uselist=False
     )
+    notificaciones: Mapped[list["Notificacion"]] = relationship(
+        back_populates="usuario", cascade="all, delete-orphan"
+    )
+
+    @property
+    def telefono(self) -> str | None:
+        return self.cliente.telefono if self.cliente is not None else None
+
+    @property
+    def colegiatura(self) -> str | None:
+        return self.veterinario.colegiatura if self.veterinario is not None else None
+
+    @property
+    def especialidad(self) -> str | None:
+        return self.veterinario.especialidad if self.veterinario is not None else None
 
 
 class Cliente(Base):
@@ -93,6 +108,14 @@ class Veterinario(Base):
     usuario: Mapped[Usuario] = relationship(back_populates="veterinario")
     procesos_medicos: Mapped[list["ProcesoAtencionMedica"]] = relationship(
         back_populates="veterinario"
+    )
+
+    citas: Mapped[list["Cita"]] = relationship(back_populates="veterinario")
+    horarios: Mapped[list["HorarioVeterinario"]] = relationship(
+        back_populates="veterinario", cascade="all, delete-orphan"
+    )
+    bloqueos: Mapped[list["BloqueoHorario"]] = relationship(
+        back_populates="veterinario", cascade="all, delete-orphan"
     )
 
 
