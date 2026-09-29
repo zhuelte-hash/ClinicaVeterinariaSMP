@@ -66,12 +66,14 @@ export interface Receipt {
   codigo_orden: string;
   serie_correlativo: string;
   fecha_emision: string;
-  cliente_nombre: string;
-  cliente_correo: string;
+  cliente_nombre: string | null;
+  cliente_correo: string | null;
   cajero_nombre: string;
   medio_pago: string;
   subtotal: string;
   igv: string;
   total: string;
+  descuento: string;
+  estado: 'PAGADA' | 'ANULADA';
   detalles: ReceiptDetail[];
 }

@@ -48,11 +48,12 @@ export class CashierApiService {
   }
 
   createSale(data: {
-    cliente_id: number;
+    cliente_id: number | null;
     medio_pago: 'efectivo' | 'yape' | 'plin' | 'tarjeta';
     items: { producto_id?: number; servicio_id?: number; cantidad: number }[];
+    clave_idempotencia: string;
   }): Observable<Receipt> {
-    return this.http.post<Receipt>(`${this.baseUrl}/ventas`, data);
+    return this.http.post<Receipt>(`${environment.apiUrl}/api/ventas`, data);
   }
 
   getReceipt(orderId: number): Observable<Receipt> {

@@ -25,6 +25,7 @@ from app.services.cashier_service import (
     ProductoNoDisponibleError,
     StockInsuficienteError,
     VentaNoEncontradaError,
+    VentaDuplicadaError,
 )
 
 router = APIRouter(prefix="/caja", tags=["Caja"])
@@ -99,6 +100,8 @@ def create_sale(data: VentaCreate, db: DbSession, cashier: CurrentCashier):
         raise HTTPException(status_code=404, detail="Uno de los productos no existe") from exc
     except StockInsuficienteError as exc:
         raise HTTPException(status_code=409, detail="Stock insuficiente") from exc
+    except VentaDuplicadaError as exc:
+        raise HTTPException(status_code=409, detail="Clave de venta ya utilizada o venta duplicada") from exc
 
 
 @router.get("/ventas/{order_id}/boleta", response_model=BoletaRead)

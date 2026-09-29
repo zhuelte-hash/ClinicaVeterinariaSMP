@@ -87,6 +87,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
     </section>
 
     @if (receipt(); as currentReceipt) {
+      <p class="fixed left-1/2 top-2 z-[110] -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-center text-sm font-bold shadow-lg">Venta {{ currentReceipt.codigo_orden }} registrada correctamente</p>
       <div class="fixed inset-0 z-[100] grid place-items-center bg-slate-950/70 p-4 backdrop-blur-sm"><section class="max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"><div class="no-print flex items-center justify-between border-b p-4"><h2 class="font-black text-[#102a43]">Venta completada</h2><button (click)="receipt.set(null)" class="rounded-lg p-2 hover:bg-slate-100">✕</button></div><div class="print-receipt p-7 font-mono text-sm text-slate-900"><div class="text-center"><img src="/logo.png" alt="Logo" class="mx-auto h-16 w-16 rounded-full"><h2 class="mt-3 text-lg font-black">CLINICA VETERINARIA SMP</h2><p>Jr. Quinua N° 178 · Ayacucho</p><p>BOLETA {{ currentReceipt.serie_correlativo }}</p></div><div class="my-5 border-y border-dashed border-slate-400 py-3"><p>Fecha: {{ formatDate(currentReceipt.fecha_emision) }}</p><p>Cliente: {{ currentReceipt.cliente_nombre }}</p><p>Cajero: {{ currentReceipt.cajero_nombre }}</p><p>Pago: {{ paymentLabel(currentReceipt.medio_pago) }}</p></div><table class="w-full"><thead><tr class="border-b"><th class="py-2 text-left">Detalle</th><th>Cant.</th><th class="text-right">Importe</th></tr></thead><tbody>@for (detail of currentReceipt.detalles; track detail.tipo + '-' + (detail.producto_id || detail.servicio_id)) {<tr><td class="py-2">{{ detail.nombre }}<small class="block text-[10px] uppercase">{{ detail.tipo }}</small></td><td class="text-center">{{ detail.cantidad }}</td><td class="text-right">S/ {{ money(detail.subtotal) }}</td></tr>}</tbody></table><div class="mt-4 border-t border-dashed border-slate-400 pt-3 text-right"><p>Subtotal: S/ {{ money(currentReceipt.subtotal) }}</p><p>IGV: S/ {{ money(currentReceipt.igv) }}</p><p class="mt-1 text-lg font-black">TOTAL: S/ {{ money(currentReceipt.total) }}</p></div><p class="mt-6 text-center">¡Gracias por su compra!</p></div><div class="no-print grid grid-cols-2 gap-3 border-t p-4"><button (click)="receipt.set(null)" class="rounded-xl border border-slate-300 px-4 py-3 font-bold">Cerrar</button><button (click)="printReceipt()" class="rounded-xl bg-[#102a43] px-4 py-3 font-black text-white">Imprimir boleta</button></div></section></div>
     }
   `,
@@ -127,6 +128,7 @@ export class CashierSalesComponent {
   readonly charging = signal(false);
   readonly errorMessage = signal('');
   readonly receipt = signal<Receipt | null>(null);
+  private pendingSale: { payload: string; key: string } | null = null;
   readonly paymentMethods: { value: PaymentMethod; label: string }[] = [
     { value: 'efectivo', label: 'Efectivo' }, { value: 'yape', label: 'Yape' },
     { value: 'plin', label: 'Plin' }, { value: 'tarjeta', label: 'Tarjeta' },
@@ -149,7 +151,7 @@ export class CashierSalesComponent {
   readonly total = computed(() => this.totalValue().toFixed(2));
   readonly subtotalWithoutTax = computed(() => (this.totalValue() / 1.18).toFixed(2));
   readonly tax = computed(() => (this.totalValue() - this.totalValue() / 1.18).toFixed(2));
-  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0 && this.selectedClientId() > 0);
+  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0);
 
   constructor() { this.loadData(); }
 
@@ -203,14 +205,17 @@ export class CashierSalesComponent {
     if (!this.canCharge()) return;
     this.charging.set(true);
     this.errorMessage.set('');
-    this.api.createSale({
-      cliente_id: this.selectedClientId(),
+    const sale = {
+      cliente_id: this.selectedClientId() || null,
       medio_pago: this.paymentMethod(),
       items: this.cart().map((item) => item.type === 'product'
         ? { producto_id: item.id, cantidad: item.quantity }
         : { servicio_id: item.id, cantidad: item.quantity }),
-    }).pipe(finalize(() => this.charging.set(false))).subscribe({
-      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.loadData(); },
+    };
+    const payload = JSON.stringify(sale);
+    if (this.pendingSale?.payload !== payload) this.pendingSale = { payload, key: crypto.randomUUID() };
+    this.api.createSale({ ...sale, clave_idempotencia: this.pendingSale.key }).pipe(finalize(() => this.charging.set(false))).subscribe({
+      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.loadData(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }

@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.config import get_settings
-from app.routers import admin, appointments, auth, cashier, users
+from app.routers import admin, appointments, auth, cashier, sales, users
 
 settings = get_settings()
 UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads"
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(cashier.router)
+app.include_router(sales.router)
 app.include_router(appointments.router)
 
 

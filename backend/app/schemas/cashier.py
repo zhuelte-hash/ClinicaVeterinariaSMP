@@ -88,9 +88,10 @@ class VentaItemCreate(BaseModel):
 
 
 class VentaCreate(BaseModel):
-    cliente_id: int
+    cliente_id: int | None = None
     medio_pago: Literal["efectivo", "yape", "plin", "tarjeta"]
     items: list[VentaItemCreate] = Field(min_length=1, max_length=50)
+    clave_idempotencia: str | None = Field(default=None, min_length=8, max_length=80)
 
 
 class BoletaDetalleRead(BaseModel):
@@ -109,11 +110,13 @@ class BoletaRead(BaseModel):
     codigo_orden: str
     serie_correlativo: str
     fecha_emision: datetime.datetime
-    cliente_nombre: str
-    cliente_correo: str
+    cliente_nombre: str | None
+    cliente_correo: str | None
     cajero_nombre: str
     medio_pago: str
     subtotal: Decimal
     igv: Decimal
     total: Decimal
     detalles: list[BoletaDetalleRead]
+    descuento: Decimal = Decimal("0.00")
+    estado: str = "PAGADA"

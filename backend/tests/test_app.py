@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.security import get_current_active_user
 from app.models.user import TipoUsuario, Usuario
 from app.routers.users import delete_user
 
@@ -91,3 +92,21 @@ def test_punto_venta_routes_are_documented() -> None:
     assert "/caja/servicios" in paths
     assert "/caja/ventas" in paths
     assert "/caja/ventas/{order_id}/boleta" in paths
+
+
+def test_sales_api_routes_and_admin_role() -> None:
+    paths = client.get("/openapi.json").json()["paths"]
+    for path in ("/api/ventas", "/api/admin/ventas", "/api/admin/ventas/resumen",
+                 "/api/admin/ventas/{order_id}", "/api/admin/ventas/{order_id}/anular"):
+        assert path in paths
+
+    cashier = Usuario(id=7, nombre="Caja", correo="caja@example.com",
+                      contrasena="hash", tipo=TipoUsuario.CAJERO)
+    app.dependency_overrides[get_current_active_user] = lambda: cashier
+    try:
+        assert client.get("/api/admin/ventas").status_code == 403
+        assert client.get("/api/admin/ventas/resumen").status_code == 403
+        assert client.get("/api/admin/ventas/1").status_code == 403
+        assert client.post("/api/admin/ventas/1/anular").status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_current_active_user, None)

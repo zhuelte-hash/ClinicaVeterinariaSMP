@@ -16,7 +16,7 @@ from app.models.clinic import (
     Producto,
     Servicio,
 )
-from app.models.user import Cliente, Usuario
+from app.models.user import Cajero, Cliente, TipoUsuario, Usuario
 from app.schemas.cashier import (
     BoletaDetalleRead,
     BoletaRead,
@@ -48,6 +48,10 @@ class StockInsuficienteError(Exception):
 
 
 class VentaNoEncontradaError(Exception):
+    pass
+
+
+class VentaDuplicadaError(Exception):
     pass
 
 
@@ -166,11 +170,33 @@ class CashierService:
         return list(self.db.scalars(statement.order_by(Servicio.nombre)).all())
 
     def create_sale(self, cashier: Usuario, data: VentaCreate) -> BoletaRead:
+        try:
+            return self._create_sale(cashier, data)
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def _create_sale(self, cashier: Usuario, data: VentaCreate) -> BoletaRead:
+        if data.clave_idempotencia:
+            previous = self.db.scalar(select(OrdenCobro).where(OrdenCobro.clave_idempotencia == data.clave_idempotencia))
+            if previous is not None:
+                return self._existing_sale(previous, cashier, data)
         register = self.get_open_register(cashier.id)
+        if register is None and cashier.tipo == TipoUsuario.ADMINISTRADOR:
+            if self.db.get(Cajero, cashier.id) is None:
+                self.db.add(Cajero(usuario_id=cashier.id))
+                self.db.flush()
+            register = Caja(cajero_id=cashier.id, fondo_inicial=Decimal("0.00"),
+                            total_ingresos_validados=Decimal("0.00"), estado_caja="abierta")
+            self.db.add(register)
+            self.db.flush()
         if register is None:
             raise CajaNoAbiertaError
-        client = self.db.get(Cliente, data.cliente_id)
-        if client is None:
+        register = self.db.scalar(select(Caja).where(Caja.id == register.id, Caja.estado_caja == "abierta").with_for_update())
+        if register is None:
+            raise CajaNoAbiertaError
+        client = self.db.get(Cliente, data.cliente_id) if data.cliente_id is not None else None
+        if data.cliente_id is not None and client is None:
             raise ClienteNoEncontradoError
 
         quantities: dict[int, int] = {}
@@ -186,6 +212,7 @@ class CashierService:
             self.db.scalars(
                 select(Producto)
                 .where(Producto.id.in_(quantities), Producto.activo)
+                .order_by(Producto.id)
                 .with_for_update()
             ).all()
         )
@@ -242,9 +269,13 @@ class CashierService:
         order = OrdenCobro(
             codigo_orden=code,
             cajero_id=cashier.id,
-            cliente_id=client.usuario_id,
+            cliente_id=client.usuario_id if client else None,
             caja_id=register.id,
             monto_total=total,
+            subtotal=(total / Decimal("1.18")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            impuesto=total - (total / Decimal("1.18")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            descuento=Decimal("0.00"),
+            clave_idempotencia=data.clave_idempotencia,
             estado_pago=EstadoPago.VALIDADO_CONFIRMADO,
             medio_pago=data.medio_pago,
             detalles=details,
@@ -258,7 +289,27 @@ class CashierService:
         )
         self.db.add(receipt)
         register.total_ingresos_validados += total
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            if data.clave_idempotencia:
+                previous = self.db.scalar(select(OrdenCobro).where(OrdenCobro.clave_idempotencia == data.clave_idempotencia))
+                if previous is not None:
+                    return self._existing_sale(previous, cashier, data)
+            raise VentaDuplicadaError from exc
+        return self.get_receipt(cashier.id, order.id)
+
+    def _existing_sale(self, order: OrdenCobro, cashier: Usuario, data: VentaCreate) -> BoletaRead:
+        requested = {}
+        for item in data.items:
+            key = (item.producto_id, item.servicio_id)
+            requested[key] = requested.get(key, 0) + item.cantidad
+        existing = {(item.producto_id, item.servicio_id): item.cantidad for item in order.detalles}
+        if (order.cajero_id != cashier.id or order.cliente_id != data.cliente_id
+                or order.medio_pago != data.medio_pago or existing != requested
+                or order.estado_pago != EstadoPago.VALIDADO_CONFIRMADO):
+            raise VentaDuplicadaError
         return self.get_receipt(cashier.id, order.id)
 
     def get_receipt(self, cashier_id: int, order_id: int) -> BoletaRead:
@@ -280,20 +331,19 @@ class CashierService:
         order = self.db.scalar(statement)
         if order is None or order.comprobante_venta is None:
             raise VentaNoEncontradaError
-        subtotal = (order.monto_total / Decimal("1.18")).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
         return BoletaRead(
             orden_id=order.id,
             codigo_orden=order.codigo_orden,
             serie_correlativo=order.comprobante_venta.serie_correlativo,
             fecha_emision=order.comprobante_venta.fecha_emision,
-            cliente_nombre=order.cliente.usuario.nombre,
-            cliente_correo=order.cliente.usuario.correo,
+            cliente_nombre=order.cliente.usuario.nombre if order.cliente else None,
+            cliente_correo=order.cliente.usuario.correo if order.cliente else None,
             cajero_nombre=order.cajero.usuario.nombre,
             medio_pago=order.medio_pago or "no_especificado",
-            subtotal=subtotal,
-            igv=order.monto_total - subtotal,
+            subtotal=order.subtotal,
+            igv=order.impuesto,
+            descuento=order.descuento,
+            estado="ANULADA" if order.estado_pago == EstadoPago.ANULADO else "PAGADA",
             total=order.monto_total,
             detalles=[
                 BoletaDetalleRead(

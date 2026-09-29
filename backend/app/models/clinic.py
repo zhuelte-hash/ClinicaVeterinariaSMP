@@ -598,10 +598,10 @@ class OrdenCobro(Base):
         ForeignKey(f"{SCHEMA}.cajeros.usuario_id", ondelete="RESTRICT"),
         nullable=False,
     )
-    cliente_id: Mapped[int] = mapped_column(
+    cliente_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(f"{SCHEMA}.clientes.usuario_id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     caja_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -613,6 +613,10 @@ class OrdenCobro(Base):
         ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="SET NULL"),
     )
     monto_total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
+    descuento: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
+    impuesto: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
+    clave_idempotencia: Mapped[str | None] = mapped_column(String(80), unique=True)
     estado_pago: Mapped[EstadoPago] = mapped_column(
         estado_pago_db, server_default=text("'pendiente'"), nullable=False
     )
