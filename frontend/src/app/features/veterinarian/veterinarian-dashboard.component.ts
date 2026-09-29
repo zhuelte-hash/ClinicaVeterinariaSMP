@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { AppointmentStatus } from '../appointments/appointments.models';
@@ -10,13 +11,14 @@ import { AppointmentSummary, ClinicalRecord, Notification, ScheduleBlock, Veteri
 @Component({
   selector: 'app-veterinarian-dashboard',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './veterinarian-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VeterinarianDashboardComponent {
   private readonly api = inject(VeterinarianApiService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly notice = inject(NoticeService);
 
   readonly requests = signal<VeterinarianAppointment[]>([]);
@@ -29,6 +31,8 @@ export class VeterinarianDashboardComponent {
   readonly notifications = signal<Notification[]>([]);
   readonly history = signal<ClinicalRecord[]>([]);
   readonly historyPetId = signal<number | null>(null);
+  readonly focusPetId = signal<number | null>(null);
+  readonly autoOpenAttention = signal(false);
   readonly editingScheduleId = signal<number | null>(null);
   readonly attentionId = signal<number | null>(null);
   readonly consultationId = signal<number | null>(null);
@@ -39,7 +43,31 @@ export class VeterinarianDashboardComponent {
   readonly coordinationNotes: Record<number, string> = {};
   readonly coordinationDates: Record<number, string> = {};
 
-  constructor() { this.load(); }
+  constructor() {
+    const module = this.route.snapshot.queryParamMap.get('modulo');
+    const patient = Number(this.route.snapshot.queryParamMap.get('paciente'));
+    const openAttention = this.route.snapshot.queryParamMap.get('accion') === 'atencion';
+    const requestedStatus = this.route.snapshot.queryParamMap.get('estado') as AppointmentStatus | null;
+    const moduleSearch: Record<string, string> = {
+      consultas: 'consulta',
+      hospitalizacion: 'hospital',
+      hospedaje: 'hospedaje',
+      vacunacion: 'vacuna',
+      desparasitacion: 'desparasit',
+      estetica: 'estética',
+      domicilio: 'domicilio',
+      imagenes: 'imagen',
+      laboratorio: 'laboratorio',
+      farmacia: 'farmacia',
+    };
+    if (Number.isInteger(patient) && patient > 0) this.focusPetId.set(patient);
+    this.autoOpenAttention.set(openAttention);
+    if (module && moduleSearch[module]) this.filterForm.controls.busqueda.setValue(moduleSearch[module]);
+    if (requestedStatus && ['confirmada', 'reprogramada'].includes(requestedStatus)) {
+      this.filterForm.controls.estado.setValue(requestedStatus);
+    }
+    this.load();
+  }
 
   load(): void {
     const { fecha, estado, busqueda } = this.filterForm.getRawValue();
@@ -53,8 +81,16 @@ export class VeterinarianDashboardComponent {
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ requests, summary, schedules, blocks, notifications }) => {
-          this.requests.set(requests); this.summary.set(summary); this.schedules.set(schedules); this.blocks.set(blocks); this.notifications.set(notifications); this.errorMessage.set('');
+          next: ({ requests, summary, schedules, blocks, notifications }) => {
+          const focusPetId = this.focusPetId();
+          const visibleRequests = focusPetId ? requests.filter((request) => request.mascota.id === focusPetId) : requests;
+          this.requests.set(visibleRequests);
+          if (this.autoOpenAttention()) {
+            const request = visibleRequests.find((item) => item.estado === 'confirmada' || item.estado === 'reprogramada');
+            if (request) this.startConsultation(request);
+            this.autoOpenAttention.set(false);
+          }
+          this.summary.set(summary); this.schedules.set(schedules); this.blocks.set(blocks); this.notifications.set(notifications); this.errorMessage.set('');
         },
         error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
       });

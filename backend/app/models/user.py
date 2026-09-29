@@ -68,6 +68,10 @@ class Usuario(Base):
         return self.cliente.telefono if self.cliente is not None else None
 
     @property
+    def direccion(self) -> str | None:
+        return self.cliente.direccion if self.cliente is not None else None
+
+    @property
     def colegiatura(self) -> str | None:
         return self.veterinario.colegiatura if self.veterinario is not None else None
 

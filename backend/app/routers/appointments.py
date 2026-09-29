@@ -1,11 +1,12 @@
 import datetime
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.user import Usuario
+from app.models.user import TipoUsuario, Usuario
 from app.schemas.appointments import (
     AppointmentCreate,
     AppointmentCoordinationUpdate,
@@ -17,12 +18,20 @@ from app.schemas.appointments import (
     VeterinarianAppointmentRead,
     PetCreate,
     PetRead,
+    VeterinarianWalkInCreate,
     NotificationRead,
     ScheduleBlockCreate,
     ScheduleBlockRead,
     ScheduleRead,
     ScheduleUpdate,
     ServiceRead,
+)
+from app.schemas.user import (
+    UsuarioCreate,
+    UsuarioRead,
+    UsuarioUpdate,
+    VeterinarianClientCreate,
+    VeterinarianClientUpdate,
 )
 from app.security import get_current_active_user, get_current_client_user, get_current_veterinarian_user
 from app.services.appointment_service import (
@@ -37,6 +46,7 @@ from app.services.appointment_service import (
     ServiceNotFoundError,
     ScheduleBlockNotFoundError,
 )
+from app.services.user_service import CorreoDuplicadoError, UserService
 
 router = APIRouter(prefix="/portal", tags=["Portal de clientes"])
 
@@ -158,6 +168,93 @@ def get_veterinarian_appointments(
         veterinarian.id, fecha, parsed_state, busqueda
     )
     return [_veterinarian_read(appointment) for appointment in appointments]
+
+
+@router.get(
+    "/veterinario/clientes",
+    response_model=list[UsuarioRead],
+    tags=["Portal veterinario"],
+)
+def get_veterinarian_clients(
+    db: DbSession,
+    _veterinarian: CurrentVeterinarian,
+    q: str | None = Query(default=None, max_length=100),
+):
+    return UserService(db).get_clients(q)
+
+
+@router.post(
+    "/veterinario/clientes",
+    response_model=UsuarioRead,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Portal veterinario"],
+)
+def create_veterinarian_client(
+    data: VeterinarianClientCreate,
+    db: DbSession,
+    _veterinarian: CurrentVeterinarian,
+):
+    try:
+        payload = data.model_dump()
+        payload["contrasena"] = payload["contrasena"] or secrets.token_urlsafe(16)
+        return UserService(db).create(
+            UsuarioCreate(tipo=TipoUsuario.CLIENTE, **payload)
+        )
+    except CorreoDuplicadoError as exc:
+        raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
+
+
+@router.get("/veterinario/servicios", response_model=list[ServiceRead], tags=["Portal veterinario"])
+def get_veterinarian_services(db: DbSession, _veterinarian: CurrentVeterinarian):
+    return AppointmentService(db).get_services()
+
+
+@router.post("/veterinario/clientes/{client_id}/mascotas", response_model=PetRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def create_veterinarian_pet(client_id: int, data: PetCreate, db: DbSession, _veterinarian: CurrentVeterinarian):
+    client = db.get(Usuario, client_id)
+    if client is None or client.tipo != TipoUsuario.CLIENTE:
+        raise HTTPException(status_code=404, detail="Propietario no encontrado")
+    return AppointmentService(db).create_pet_for_client(client_id, data)
+
+
+@router.get("/veterinario/clientes/{client_id}/mascotas", response_model=list[PetRead], tags=["Portal veterinario"])
+def get_veterinarian_pets(client_id: int, db: DbSession, _veterinarian: CurrentVeterinarian):
+    client = db.get(Usuario, client_id)
+    if client is None or client.tipo != TipoUsuario.CLIENTE:
+        raise HTTPException(status_code=404, detail="Propietario no encontrado")
+    return AppointmentService(db).get_pets(client_id)
+
+
+@router.post("/veterinario/atenciones/iniciar", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def start_veterinarian_walk_in(data: VeterinarianWalkInCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).create_walk_in_appointment(veterinarian, data)
+    except PetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada") from exc
+    except ServiceNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Servicio no encontrado") from exc
+
+
+@router.patch(
+    "/veterinario/clientes/{client_id}",
+    response_model=UsuarioRead,
+    tags=["Portal veterinario"],
+)
+def update_veterinarian_client(
+    client_id: int,
+    data: VeterinarianClientUpdate,
+    db: DbSession,
+    _veterinarian: CurrentVeterinarian,
+):
+    service = UserService(db)
+    client = service.get_by_id(client_id)
+    if client is None or client.tipo != TipoUsuario.CLIENTE:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    update_data = data.model_dump(exclude_none=True)
+    try:
+        return service.update(client, UsuarioUpdate(**update_data))
+    except CorreoDuplicadoError as exc:
+        raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
 
 
 @router.get("/veterinario/resumen", response_model=AppointmentSummary, tags=["Portal veterinario"])

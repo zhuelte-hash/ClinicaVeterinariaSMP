@@ -1,0 +1,6 @@
+.module-hero { background: linear-gradient(125deg, #102b35 0%, #164a50 62%, #176f68 100%); box-shadow: 0 22px 50px rgb(16 43 53 / 16%); }
+.module-hero::after { content: ''; position: absolute; right: 8%; top: -50%; width: 18rem; height: 18rem; border-radius: 999px; background: rgb(88 211 194 / 12%); filter: blur(2px); }
+.hero-orbit::before, .hero-orbit::after { content: ''; position: absolute; border: 1px solid rgb(255 255 255 / 9%); border-radius: inherit; }
+.hero-orbit::before { inset: 2rem; }
+.hero-orbit::after { inset: 4rem; }
+.metric-card { box-shadow: 0 10px 30px rgb(16 43 53 / 4%); }

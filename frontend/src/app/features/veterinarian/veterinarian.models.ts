@@ -25,3 +25,20 @@ export interface ClinicalRecord {
   proxima_fecha_control: string | null;
   veterinario_id: number; veterinario_nombre: string; servicio_nombre: string;
 }
+
+export interface VeterinarianClient {
+  id: number;
+  nombre: string;
+  correo: string;
+  tipo: 'cliente';
+  telefono: string | null;
+  direccion: string | null;
+}
+
+export interface VeterinarianClientPayload {
+  nombre: string;
+  correo: string;
+  contrasena?: string;
+  telefono: string;
+  direccion: string;
+}

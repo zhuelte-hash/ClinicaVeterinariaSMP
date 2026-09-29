@@ -1,0 +1,63 @@
+<div class="mx-auto max-w-[1500px] space-y-6">
+  <section class="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#102b35_0%,#164a50_62%,#176f68_100%)] px-6 py-8 text-white shadow-xl sm:px-8">
+    <div class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <p class="text-[10px] font-black uppercase tracking-[.22em] text-[#83e7d9]">Directorio clínico</p>
+        <h2 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Clientes y propietarios</h2>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">Registra propietarios, mantén sus datos de contacto actualizados y localízalos rápidamente antes de una atención.</p>
+      </div>
+      <button type="button" (click)="openCreate()" class="w-full rounded-xl bg-[#58d3c2] px-5 py-3 text-sm font-black text-[#102b35] shadow-lg transition hover:-translate-y-0.5 sm:w-auto">+ Registrar cliente</button>
+    </div>
+  </section>
+
+  @if (errorMessage() && !formOpen()) { <p class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
+  @if (successMessage()) { <p class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">{{ successMessage() }}</p> }
+
+  <section class="grid gap-4 sm:grid-cols-3">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-widest text-slate-500">Propietarios</p><p class="mt-3 text-3xl font-black text-[#102b35]">{{ clients().length }}</p><p class="mt-1 text-xs text-slate-400">Registrados en la clínica</p></article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-widest text-slate-500">Con teléfono</p><p class="mt-3 text-3xl font-black text-[#102b35]">{{ clientsWithPhone() }}</p><p class="mt-1 text-xs text-slate-400">Disponibles para contacto</p></article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-widest text-slate-500">Con dirección</p><p class="mt-3 text-3xl font-black text-[#102b35]">{{ clientsWithAddress() }}</p><p class="mt-1 text-xs text-slate-400">Datos de ubicación completos</p></article>
+  </section>
+
+  <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <header class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div><h3 class="text-lg font-black text-[#102b35]">Directorio de clientes</h3><p class="mt-1 text-xs text-slate-500">Información real de propietarios registrados</p></div>
+      <label class="relative block sm:w-80"><span class="sr-only">Buscar cliente</span><input type="search" [value]="query()" (input)="setQuery($any($event.target).value)" placeholder="Buscar por nombre, correo o teléfono" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-[#58d3c2] focus:bg-white focus:ring-4 focus:ring-[#58d3c2]/15"></label>
+    </header>
+
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center"><div class="text-center"><span class="mx-auto block h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#168b83]"></span><p class="mt-3 text-sm text-slate-500">Cargando clientes...</p></div></div>
+    } @else {
+      <div class="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+        @for (client of filteredClients(); track client.id) {
+          <article class="rounded-2xl border border-slate-200 p-5 transition hover:border-[#58d3c2] hover:shadow-md">
+            <div class="flex items-start gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#dff8f3] text-sm font-black text-[#176f68]">{{ initials(client.nombre) }}</span><div class="min-w-0"><h4 class="truncate font-black text-[#102b35]">{{ client.nombre }}</h4><p class="mt-1 truncate text-sm text-slate-500">{{ client.correo }}</p></div></div>
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm"><p><span class="font-bold text-slate-700">Teléfono:</span> <span class="text-slate-500">{{ client.telefono || 'Sin registrar' }}</span></p><p><span class="font-bold text-slate-700">Dirección:</span> <span class="text-slate-500">{{ client.direccion || 'Sin registrar' }}</span></p></div>
+            <button type="button" (click)="openEdit(client)" class="mt-5 w-full rounded-xl border border-[#168b83] px-4 py-2.5 text-sm font-black text-[#168b83] hover:bg-[#eaf9f6]">Editar datos</button>
+          </article>
+        } @empty {
+          <div class="col-span-full grid min-h-56 place-items-center text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-xl text-slate-400">+</span><h4 class="mt-4 font-black text-slate-700">No se encontraron clientes</h4><p class="mt-2 text-sm text-slate-500">Registra un propietario nuevo o cambia la búsqueda.</p></div></div>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+@if (formOpen()) {
+  <div class="fixed inset-0 z-[70] grid place-items-center bg-slate-950/60 p-4" (click)="closeForm()">
+    <section role="dialog" aria-modal="true" aria-labelledby="client-form-title" class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl" (click)="$event.stopPropagation()">
+      <header class="flex items-start justify-between border-b border-slate-100 p-6"><div><p class="text-[10px] font-black uppercase tracking-[.18em] text-[#168b83]">Ficha del propietario</p><h3 id="client-form-title" class="mt-2 text-2xl font-black text-[#102b35]">{{ editingClient() ? 'Editar cliente' : 'Registrar cliente' }}</h3><p class="mt-1 text-sm text-slate-500">Los campos con asterisco son obligatorios.</p></div><button type="button" (click)="closeForm()" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500">Cerrar</button></header>
+      <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5 p-6">
+        @if (errorMessage()) { <p class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
+        <div class="grid gap-5 sm:grid-cols-2">
+          <label class="grid gap-2 text-sm font-bold text-slate-700 sm:col-span-2">Nombre completo *<input formControlName="nombre" autocomplete="name" placeholder="Ej. María López" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#168b83] focus:ring-4 focus:ring-[#58d3c2]/15">@if (form.controls.nombre.touched && form.controls.nombre.invalid) { <span class="text-xs text-rose-600">Ingresa un nombre de 2 a 150 caracteres.</span> }</label>
+          <label class="grid gap-2 text-sm font-bold text-slate-700">Correo electrónico *<input type="email" formControlName="correo" autocomplete="email" placeholder="cliente@correo.com" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#168b83] focus:ring-4 focus:ring-[#58d3c2]/15">@if (form.controls.correo.touched && form.controls.correo.invalid) { <span class="text-xs text-rose-600">Ingresa un correo válido.</span> }</label>
+          <label class="grid gap-2 text-sm font-bold text-slate-700">Teléfono<input formControlName="telefono" autocomplete="tel" placeholder="999 999 999" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#168b83] focus:ring-4 focus:ring-[#58d3c2]/15"></label>
+          <label class="grid gap-2 text-sm font-bold text-slate-700 sm:col-span-2">Dirección<input formControlName="direccion" autocomplete="street-address" placeholder="Calle, número, distrito y referencia" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#168b83] focus:ring-4 focus:ring-[#58d3c2]/15"></label>
+          <label class="grid gap-2 text-sm font-bold text-slate-700 sm:col-span-2">{{ editingClient() ? 'Nueva contraseña (opcional)' : 'Contraseña temporal *' }}<input type="password" formControlName="contrasena" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#168b83] focus:ring-4 focus:ring-[#58d3c2]/15"><span class="text-xs font-normal text-slate-500">{{ editingClient() ? 'Déjala vacía para conservar la contraseña actual.' : 'El cliente podrá usarla para ingresar al portal.' }}</span></label>
+        </div>
+        <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end"><button type="button" (click)="closeForm()" class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-600">Cancelar</button><button type="submit" [disabled]="saving()" class="rounded-xl bg-[#102b35] px-6 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60">{{ saving() ? 'Guardando...' : (editingClient() ? 'Guardar cambios' : 'Registrar cliente') }}</button></div>
+      </form>
+    </section>
+  </div>
+}

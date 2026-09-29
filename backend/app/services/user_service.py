@@ -1,7 +1,7 @@
 from passlib.context import CryptContext
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.user import Administrador, Cajero, Cliente, TipoUsuario, Usuario, Veterinario
 from app.schemas.auth import ClientRegisterRequest
@@ -33,6 +33,21 @@ class UserService:
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[Usuario]:
         statement = select(Usuario).order_by(Usuario.id).offset(skip).limit(limit)
+        return list(self.db.scalars(statement).all())
+
+    def get_clients(self, search: str | None = None) -> list[Usuario]:
+        statement = (
+            select(Usuario)
+            .where(Usuario.tipo == TipoUsuario.CLIENTE)
+            .options(selectinload(Usuario.cliente))
+            .order_by(Usuario.nombre)
+            .limit(200)
+        )
+        if search:
+            term = f"%{search.strip()}%"
+            statement = statement.where(
+                Usuario.nombre.ilike(term) | Usuario.correo.ilike(term)
+            )
         return list(self.db.scalars(statement).all())
 
     def get_by_id(self, user_id: int) -> Usuario | None:
@@ -75,7 +90,7 @@ class UserService:
             raise ValueError("El rol no se puede cambiar; crea el perfil con sus datos profesionales")
         profile_data = {
             key: update_data.pop(key, None)
-            for key in ("telefono", "colegiatura", "especialidad")
+            for key in ("telefono", "direccion", "colegiatura", "especialidad")
             if key in update_data
         }
         if "contrasena" in update_data:
@@ -112,9 +127,15 @@ class UserService:
         values = data if isinstance(data, dict) else data.model_dump(exclude_unset=True)
         if user.tipo == TipoUsuario.CLIENTE:
             if user.cliente is None:
-                user.cliente = Cliente(telefono=values.get("telefono"))
-            elif "telefono" in values:
-                user.cliente.telefono = values["telefono"]
+                user.cliente = Cliente(
+                    telefono=values.get("telefono"),
+                    direccion=values.get("direccion"),
+                )
+            else:
+                if "telefono" in values:
+                    user.cliente.telefono = values["telefono"]
+                if "direccion" in values:
+                    user.cliente.direccion = values["direccion"]
         elif user.tipo == TipoUsuario.VETERINARIO:
             veterinarian = user.veterinario
             colegiatura = values.get("colegiatura")

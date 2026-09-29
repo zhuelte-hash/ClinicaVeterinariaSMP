@@ -22,6 +22,13 @@ class PetCreate(BaseModel):
         return normalized or None
 
 
+class VeterinarianWalkInCreate(BaseModel):
+    mascota_id: int
+    servicio_id: int
+    motivo: str | None = Field(default=None, max_length=500)
+    es_urgente: bool = False
+
+
 class PetRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

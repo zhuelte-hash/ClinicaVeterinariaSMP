@@ -25,6 +25,7 @@ from app.schemas.appointments import (
     AppointmentCreate,
     ClinicalRecordCreate,
     PetCreate,
+    VeterinarianWalkInCreate,
     ScheduleBlockCreate,
     ScheduleUpdate,
 )
@@ -99,6 +100,35 @@ class AppointmentService:
         self.db.commit()
         self.db.refresh(pet)
         return pet
+
+    def create_pet_for_client(self, client_id: int, data: PetCreate) -> Mascota:
+        pet = Mascota(cliente_id=client_id, **data.model_dump())
+        self.db.add(pet)
+        self.db.commit()
+        self.db.refresh(pet)
+        return pet
+
+    def create_walk_in_appointment(self, veterinarian: Usuario, data: VeterinarianWalkInCreate) -> Cita:
+        pet = self.db.get(Mascota, data.mascota_id)
+        service = self.db.get(Servicio, data.servicio_id)
+        if pet is None:
+            raise PetNotFoundError
+        if service is None:
+            raise ServiceNotFoundError
+        scheduled_at = datetime.datetime.now(datetime.timezone.utc)
+        appointment = Cita(
+            mascota_id=pet.id,
+            servicio_id=service.id,
+            veterinario_id=veterinarian.id,
+            fecha_hora_programada=scheduled_at,
+            fecha_hora_fin_programada=scheduled_at + datetime.timedelta(minutes=service.duracion_estimada_min),
+            estado=EstadoCita.CONFIRMADA,
+            es_urgente=data.es_urgente,
+            motivo=data.motivo,
+        )
+        self.db.add(appointment)
+        self.db.commit()
+        return self._get_appointment_with_details(appointment.id)
 
     def get_services(self) -> list[Servicio]:
         return list(self.db.scalars(select(Servicio).order_by(Servicio.nombre)).all())
