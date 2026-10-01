@@ -6,22 +6,22 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <footer class="bg-pet-900 text-gray-200 mt-0">
-      <div class="max-w-7xl mx-auto px-4 py-12 grid md:grid-cols-4 gap-8">
+     <footer class="mt-0 bg-pet-900 text-slate-200">
+       <div class="mx-auto grid max-w-7xl gap-9 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
         <div>
           <div class="flex items-center gap-2 mb-4">
-            <img src="/logo.png" alt="logo" class="w-12 h-12 rounded-full object-cover border-2 border-white/20" />
+             <img src="/logo.png" alt="" class="h-12 w-12 rounded-full border border-white/20 object-contain" />
             <span class="text-white font-extrabold text-lg">San Martín de Porres</span>
           </div>
-          <p class="text-sm text-gray-300">Clínica veterinaria integral en Ayacucho. Cuidado, amor y salud para tu mejor amigo.</p>
-          <div class="flex gap-3 mt-4 text-xl">
-            <a href="https://www.facebook.com/vamospetveterinaria" target="_blank" class="hover:text-white">📘</a>
-            <a href="https://www.instagram.com/vamospetveterinaria/" target="_blank" class="hover:text-white">📸</a>
-            <a href="https://www.tiktok.com/@vamos_pet_veterinaria" target="_blank" class="hover:text-white">🎵</a>
+           <p class="text-sm leading-6 text-slate-200">Clínica veterinaria integral en Ayacucho. Cuidado, amor y salud para tu mejor amigo.</p>
+           <div class="mt-4 flex gap-2 text-lg">
+             <a href="https://www.facebook.com/vamospetveterinaria" target="_blank" rel="noopener noreferrer" aria-label="Facebook de la clínica" class="grid h-11 w-11 place-items-center rounded-full border border-white/20 transition hover:border-brand-300 hover:text-white">📘</a>
+             <a href="https://www.instagram.com/vamospetveterinaria/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de la clínica" class="grid h-11 w-11 place-items-center rounded-full border border-white/20 transition hover:border-brand-300 hover:text-white">📸</a>
+             <a href="https://www.tiktok.com/@vamos_pet_veterinaria" target="_blank" rel="noopener noreferrer" aria-label="TikTok de la clínica" class="grid h-11 w-11 place-items-center rounded-full border border-white/20 transition hover:border-brand-300 hover:text-white">🎵</a>
           </div>
         </div>
         <div>
-          <h4 class="text-white font-bold mb-3">Links</h4>
+           <h2 class="mb-3 font-bold text-white">Enlaces</h2>
           <ul class="space-y-2 text-sm">
             <li><a routerLink="/inicio" class="hover:text-brand-500">Inicio</a></li>
             <li><a routerLink="/inicio" class="hover:text-brand-500">Sobre Nosotros</a></li>
@@ -32,7 +32,7 @@ import { RouterLink } from '@angular/router';
           </ul>
         </div>
         <div>
-          <h4 class="text-white font-bold mb-3">Empresa</h4>
+           <h2 class="mb-3 font-bold text-white">Empresa</h2>
           <ul class="space-y-2 text-sm">
             <li><a routerLink="/" class="hover:text-brand-500">Preguntas Frecuentes</a></li>
             <li><a routerLink="/" class="hover:text-brand-500">Políticas de Privacidad</a></li>
@@ -42,17 +42,17 @@ import { RouterLink } from '@angular/router';
           </ul>
         </div>
         <div>
-          <h4 class="text-white font-bold mb-3">Contacto</h4>
+           <h2 class="mb-3 font-bold text-white">Contacto</h2>
           <ul class="space-y-2 text-sm">
-            <li><b>Celular:</b> 965 939 522</li>
-            <li><b>Correo:</b> vamospetshop@gmail.com</li>
+           <li><b>Celular:</b> <a href="tel:965939522" class="hover:text-brand-300">965 939 522</a></li>
+           <li><b>Correo:</b> <a href="mailto:vamospetshop@gmail.com" class="break-all hover:text-brand-300">vamospetshop@gmail.com</a></li>
             <li><b>Dirección:</b> Jr. Quinua N° 178 - Cercado, Ayacucho</li>
             <li class="pt-2 text-xs text-gray-400">Lun - Sáb: 8am - 8pm<br/>Dom: 9am - 2pm</li>
           </ul>
         </div>
       </div>
       <div class="border-t border-white/10">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between text-xs text-gray-400">
+         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-2 px-4 py-4 text-xs text-slate-300 sm:flex-row sm:px-6 lg:px-8">
           <span>Todos los derechos © 2026 / Clínica Veterinaria San Martín de Porres - Ayacucho</span>
           <span>Hecho con 💚 para las mascotas</span>
         </div>

@@ -13,35 +13,35 @@ type CategoryFilter = 'Todos' | ProductCategory;
   imports: [ProductCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="bg-[#FFF9F4]">
-      <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+     <section class="border-b border-[#e3e6ea] bg-[#FFF9F4]">
+       <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div class="max-w-3xl">
-          <p class="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-sky-600">Tienda veterinaria</p>
-          <h1 class="text-4xl font-black tracking-tight text-[#0B1B6D] sm:text-5xl">Productos para tu mascota</h1>
-          <p class="mt-5 text-lg leading-8 text-slate-600">Encuentra alimentos, accesorios, ropa y artículos para el bienestar de tu compañero.</p>
+           <p class="mb-3 text-sm font-bold uppercase tracking-[0.14em] text-[#147d87]">Tienda veterinaria</p>
+           <h1 class="text-3xl font-extrabold tracking-tight text-[#0B1B6D] sm:text-4xl lg:text-5xl">Productos para tu mascota</h1>
+           <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">Encuentra alimentos, accesorios, ropa y artículos para el bienestar de tu compañero.</p>
         </div>
-        <div class="mt-10 flex flex-col gap-5 rounded-3xl border border-orange-100 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex flex-wrap gap-2" aria-label="Categorías de productos">
+         <div class="site-card mt-8 flex flex-col gap-5 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+           <div class="flex gap-2 overflow-x-auto pb-2 lg:flex-wrap lg:overflow-visible lg:pb-0" role="group" aria-label="Categorías de productos">
             @for (category of categories; track category) {
-              <button type="button" (click)="selectedCategory.set(category)" class="rounded-full border px-4 py-2 text-sm font-bold transition" [class.border-[#0B1B6D]]="selectedCategory() === category" [class.bg-[#0B1B6D]]="selectedCategory() === category" [class.text-white]="selectedCategory() === category" [class.border-slate-200]="selectedCategory() !== category" [class.text-slate-600]="selectedCategory() !== category">{{ category }}</button>
+               <button type="button" (click)="selectedCategory.set(category)" class="min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-[#1A98A2]" [class.border-[#0B1B6D]]="selectedCategory() === category" [class.bg-[#0B1B6D]]="selectedCategory() === category" [class.text-white]="selectedCategory() === category" [class.border-slate-300]="selectedCategory() !== category" [class.text-slate-700]="selectedCategory() !== category" [attr.aria-pressed]="selectedCategory() === category">{{ category }}</button>
             }
           </div>
           <label class="relative block w-full lg:max-w-sm">
             <span class="sr-only">Buscar productos</span>
-            <svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar productos" class="w-full rounded-full border border-slate-200 py-3 pl-12 pr-4 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100" />
+             <svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#147d87]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+             <input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar productos" class="site-input rounded-full pl-12" />
           </label>
         </div>
       </div>
     </section>
     <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div class="mb-7 flex items-end justify-between gap-4"><h2 class="text-2xl font-extrabold text-[#0B1B6D]">Nuestro catálogo</h2><p class="text-sm text-slate-500">{{ filteredProducts().length }} productos</p></div>
+       <div class="mb-7 flex flex-wrap items-end justify-between gap-2"><h2 class="text-2xl font-bold text-[#0B1B6D]">Nuestro catálogo</h2><p class="text-sm text-slate-600" aria-live="polite">{{ filteredProducts().length }} productos</p></div>
       @if (filteredProducts().length) {
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           @for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" /> }
         </div>
       } @else {
-        <div class="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No encontramos productos</p><p class="mt-2 text-slate-500">Prueba con otra categoría o término de búsqueda.</p><button type="button" (click)="clearFilters()" class="mt-5 rounded-full bg-sky-500 px-5 py-2.5 font-bold text-white">Limpiar filtros</button></div>
+         <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No encontramos productos</p><p class="mt-2 text-slate-600">Prueba con otra categoría o término de búsqueda.</p><button type="button" (click)="clearFilters()" class="site-button mt-5">Limpiar filtros</button></div>
       }
     </section>
   `,

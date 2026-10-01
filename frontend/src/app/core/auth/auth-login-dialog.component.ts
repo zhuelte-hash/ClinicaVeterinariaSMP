@@ -4,8 +4,6 @@ import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
-import { CartService } from '../../services/cart.service';
-import { NoticeService } from '../services/notice.service';
 import { VisualSessionService } from '../services/visual-session.service';
 import { AuthService } from './auth.service';
 
@@ -44,8 +42,6 @@ export class AuthLoginDialogComponent {
   private readonly auth = inject(AuthService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly visualSession = inject(VisualSessionService);
-  private readonly cart = inject(CartService);
-  private readonly notice = inject(NoticeService);
   private readonly router = inject(Router);
 
   readonly submitting = signal(false);
@@ -69,7 +65,6 @@ export class AuthLoginDialogComponent {
       .subscribe({
         next: ({ user }) => {
           this.visualSession.login(user.correo, user.nombre);
-          if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
           this.dialogRef.close(true);
         },
         error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),

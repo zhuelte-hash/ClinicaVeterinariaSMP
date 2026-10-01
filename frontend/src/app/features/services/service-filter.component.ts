@@ -10,7 +10,7 @@ import { ServiceCategoryFilter } from './service.model';
       @for (category of categories(); track category) {
         <button
           type="button"
-          class="shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]"
+          class="min-h-11 shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition hover:border-[#1A98A2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]"
           [class.bg-[#1A1E27]]="selected() === category"
           [class.text-white]="selected() === category"
           [class.border-[#1A1E27]]="selected() === category"

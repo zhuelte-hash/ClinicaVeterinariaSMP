@@ -1,12 +1,26 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthDialogService } from '../../core/auth/auth-dialog.service';
 import { AppointmentsApiService } from './appointments-api.service';
 import { Appointment, AppointmentStatus, AvailabilitySlot, ClinicalRecord, ClinicService, Pet } from './appointments.models';
+
+const BOOKING_DRAFT_KEY = 'clinic_booking_draft_v1';
+type BookingDraft = {
+  servicioId: number;
+  fecha: string;
+  slot: string;
+  motivo: string;
+  esUrgente: boolean;
+  telefono: string;
+  preferenciaContacto: string;
+  savedAt: number;
+};
 
 @Component({
   selector: 'app-appointments-page',
@@ -19,14 +33,18 @@ export class AppointmentsPageComponent {
   private readonly api = inject(AppointmentsApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly notice = inject(NoticeService);
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
+  private readonly authDialog = inject(AuthDialogService);
+  private readonly router = inject(Router);
   private readonly requestedService = inject(ActivatedRoute).snapshot.queryParamMap.get('servicio');
 
   readonly pets = signal<Pet[]>([]);
   readonly services = signal<ClinicService[]>([]);
   readonly appointments = signal<Appointment[]>([]);
   readonly loading = signal(true);
+  readonly privateLoading = signal(false);
   readonly submitting = signal(false);
+  readonly loginPromptOpen = signal(false);
   readonly petSubmitting = signal(false);
   readonly showPetForm = signal(false);
   readonly errorMessage = signal('');
@@ -36,6 +54,7 @@ export class AppointmentsPageComponent {
   readonly availabilityLoading = signal(false);
   readonly historyPetId = signal<number | null>(null);
   readonly petHistory = signal<ClinicalRecord[]>([]);
+  private availabilityRequest = 0;
 
   readonly petForm = this.formBuilder.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(100)]],
@@ -58,33 +77,65 @@ export class AppointmentsPageComponent {
   });
 
   constructor() {
-    this.loadData();
+    this.restoreDraft();
+    this.loadServices();
+    toObservable(this.auth.currentUser).pipe(
+      takeUntilDestroyed(),
+    ).subscribe((user) => {
+      this.pets.set([]);
+      this.appointments.set([]);
+      this.historyPetId.set(null);
+      this.appointmentForm.controls.mascotaId.setValue(0);
+      if (user?.tipo === 'cliente') this.loadData();
+    });
   }
 
-  loadData(): void {
+  private loadServices(): void {
     this.loading.set(true);
     this.errorMessage.set('');
-    forkJoin({
-      pets: this.api.getPets(),
-      services: this.api.getServices(),
-      appointments: this.api.getAppointments(),
-    }).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: ({ pets, services, appointments }) => {
-        this.pets.set(pets);
+    this.api.getServices().pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: (services) => {
         this.services.set(services);
-        this.appointments.set(appointments);
-        if (!this.appointmentForm.controls.mascotaId.value && pets.length) {
-          this.appointmentForm.controls.mascotaId.setValue(pets[0].id);
+        if (this.appointmentForm.controls.servicioId.value
+          && !services.some((service) => service.id === this.appointmentForm.controls.servicioId.value)) {
+          this.appointmentForm.patchValue({ servicioId: 0, slot: '' });
+          sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+          this.errorMessage.set('El servicio seleccionado ya no está disponible. Elige otro.');
         }
         const requested = services.find((service) => service.codigo === this.requestedService);
-        if (requested) this.appointmentForm.controls.servicioId.setValue(requested.id);
+        if (requested && !this.appointmentForm.controls.servicioId.value) {
+          this.appointmentForm.controls.servicioId.setValue(requested.id);
+        }
         if (this.appointmentForm.controls.servicioId.value) this.loadAvailability();
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
 
+  loadData(): void {
+    if (!this.auth.isAuthenticated() || this.auth.currentUser()?.tipo !== 'cliente') return;
+    const clientId = this.auth.currentUser()!.id;
+    this.privateLoading.set(true);
+    forkJoin({
+      pets: this.api.getPets(),
+      appointments: this.api.getAppointments(),
+    }).pipe(finalize(() => this.privateLoading.set(false))).subscribe({
+      next: ({ pets, appointments }) => {
+        if (this.auth.currentUser()?.id !== clientId) return;
+        this.pets.set(pets);
+        this.appointments.set(appointments);
+        if (!this.appointmentForm.controls.mascotaId.value && pets.length) {
+          this.appointmentForm.controls.mascotaId.setValue(pets[0].id);
+        }
+      },
+      error: (error: unknown) => {
+        if (this.auth.currentUser()?.id === clientId) this.errorMessage.set(this.errorText(error));
+      },
+    });
+  }
+
   createPet(): void {
+    if (!this.auth.isAuthenticated() || this.auth.currentUser()?.tipo !== 'cliente') return;
     if (this.petForm.invalid) {
       this.petForm.markAllAsTouched();
       return;
@@ -113,18 +164,75 @@ export class AppointmentsPageComponent {
   }
 
   schedule(): void {
-    if (this.appointmentForm.invalid) {
+    if (this.submitting() || this.loginPromptOpen()) return;
+    const value = this.appointmentForm.getRawValue();
+    if (!value.servicioId || !value.fecha || value.fecha < this.minDate || !value.slot || this.availabilityLoading()) {
       this.appointmentForm.markAllAsTouched();
+      this.errorMessage.set('Selecciona un servicio, una fecha válida y un horario disponible.');
       return;
     }
-    const value = this.appointmentForm.getRawValue();
     const selectedSlot = this.availability().find((slot) => slot.fecha_hora === value.slot);
     if (!selectedSlot) {
       this.errorMessage.set('Selecciona un horario disponible actualizado.');
       return;
     }
+    if (this.auth.isLoading()) return;
+    if (!this.auth.isAuthenticated()) {
+      this.saveDraft();
+      this.notice.show('Para confirmar tu reserva, inicia sesión.');
+      this.loginPromptOpen.set(true);
+      this.authDialog.open(this.router.url).pipe(
+        finalize(() => this.loginPromptOpen.set(false)),
+      ).subscribe((authenticated) => {
+        if (!authenticated) return;
+        if (this.auth.currentUser()?.tipo !== 'cliente') {
+          this.errorMessage.set('Para solicitar una cita necesitas una cuenta de cliente.');
+          return;
+        }
+        this.loadAvailability();
+        this.notice.show('Sesión iniciada. Revisa tu mascota y confirma la solicitud.');
+      });
+      return;
+    }
+    if (this.auth.currentUser()?.tipo !== 'cliente') {
+      this.errorMessage.set('Para solicitar una cita necesitas una cuenta de cliente.');
+      return;
+    }
+    if (this.privateLoading()) return;
+    if (this.appointmentForm.invalid || !this.pets().some((pet) => pet.id === value.mascotaId)) {
+      this.appointmentForm.markAllAsTouched();
+      this.showPetForm.set(this.pets().length === 0);
+      this.errorMessage.set('Selecciona o registra una mascota para completar la solicitud.');
+      return;
+    }
     this.submitting.set(true);
     this.errorMessage.set('');
+    // A slot may have been taken while the visitor was signing in or editing the form.
+    this.api.getAvailability(value.servicioId, value.fecha).subscribe({
+      next: (slots) => {
+        this.availability.set(slots);
+        if (!slots.some((slot) => slot.fecha_hora === selectedSlot.fecha_hora && slot.veterinario_id === selectedSlot.veterinario_id)) {
+          this.appointmentForm.controls.slot.setValue('');
+          this.submitting.set(false);
+          this.errorMessage.set('Ese horario ya no está disponible. Selecciona otro.');
+          return;
+        }
+        if (this.appointmentForm.controls.servicioId.value !== value.servicioId
+          || this.appointmentForm.controls.fecha.value !== value.fecha
+          || this.appointmentForm.controls.slot.value !== value.slot) {
+          this.submitting.set(false);
+          return;
+        }
+        this.createAppointment(value, selectedSlot);
+      },
+      error: (error: unknown) => {
+        this.submitting.set(false);
+        this.errorMessage.set(this.errorText(error));
+      },
+    });
+  }
+
+  private createAppointment(value: ReturnType<typeof this.appointmentForm.getRawValue>, selectedSlot: AvailabilitySlot): void {
     this.api.createAppointment({
       mascota_id: value.mascotaId,
       servicio_id: value.servicioId,
@@ -136,6 +244,7 @@ export class AppointmentsPageComponent {
         preferencia_contacto: value.preferenciaContacto || undefined,
     }).pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: (appointment) => {
+        sessionStorage.removeItem(BOOKING_DRAFT_KEY);
         this.appointments.update((items) => [appointment, ...items]);
           this.appointmentForm.patchValue({ slot: '', motivo: '', esUrgente: false });
           this.loadAvailability();
@@ -145,18 +254,33 @@ export class AppointmentsPageComponent {
     });
   }
 
-  loadAvailability(): void {
+  loadAvailability(clearSlot = false): void {
+    const request = ++this.availabilityRequest;
+    if (clearSlot) this.appointmentForm.controls.slot.setValue('');
     const { servicioId, fecha } = this.appointmentForm.getRawValue();
-    if (!servicioId || !fecha) {
+    if (!servicioId || !fecha || fecha < this.minDate) {
       this.availability.set([]);
+      this.appointmentForm.controls.slot.setValue('');
+      this.availabilityLoading.set(false);
       return;
     }
+    this.availability.set([]);
     this.availabilityLoading.set(true);
     this.api.getAvailability(servicioId, fecha)
-      .pipe(finalize(() => this.availabilityLoading.set(false)))
+      .pipe(finalize(() => {
+        if (request === this.availabilityRequest) this.availabilityLoading.set(false);
+      }))
       .subscribe({
-        next: (slots) => this.availability.set(slots),
+        next: (slots) => {
+          if (request !== this.availabilityRequest || this.appointmentForm.controls.servicioId.value !== servicioId || this.appointmentForm.controls.fecha.value !== fecha) return;
+          this.availability.set(slots);
+          if (this.appointmentForm.controls.slot.value && !slots.some((slot) => slot.fecha_hora === this.appointmentForm.controls.slot.value)) {
+            this.appointmentForm.controls.slot.setValue('');
+            this.errorMessage.set('El horario seleccionado ya no está disponible. Elige otro.');
+          }
+        },
         error: (error: unknown) => {
+          if (request !== this.availabilityRequest) return;
           this.availability.set([]);
           this.errorMessage.set(this.errorText(error));
         },
@@ -238,6 +362,33 @@ export class AppointmentsPageComponent {
 
   money(value: string): string {
     return Number(value).toFixed(2);
+  }
+
+  private saveDraft(): void {
+    const { servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto } = this.appointmentForm.getRawValue();
+    const draft: BookingDraft = { servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto, savedAt: Date.now() };
+    sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  }
+
+  private restoreDraft(): void {
+    const saved = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const draft: BookingDraft = JSON.parse(saved);
+      if (typeof draft.servicioId !== 'number' || typeof draft.fecha !== 'string'
+        || typeof draft.slot !== 'string' || typeof draft.savedAt !== 'number'
+        || Date.now() - draft.savedAt > 60 * 60 * 1000 || draft.fecha < this.minDate) {
+        sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+        return;
+      }
+      this.appointmentForm.patchValue({
+        servicioId: draft.servicioId, fecha: draft.fecha, slot: draft.slot,
+        motivo: draft.motivo ?? '', esUrgente: draft.esUrgente ?? false,
+        telefono: draft.telefono ?? '', preferenciaContacto: draft.preferenciaContacto ?? 'llamada',
+      });
+    } catch {
+      sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+    }
   }
 
   private toDateTimeLocal(date: Date): string {

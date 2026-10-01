@@ -3,8 +3,10 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.database import get_db
 from app.security import get_current_active_user
 from app.models.user import TipoUsuario, Usuario
+from app.services.appointment_service import AppointmentService
 from app.routers.users import delete_user
 
 
@@ -65,6 +67,20 @@ def test_portal_citas_routes_are_documented() -> None:
     assert "/portal/citas/{appointment_id}/aceptar-horario" in paths
     assert "/portal/mascotas/{pet_id}/historial" in paths
     assert "/portal/notificaciones" in paths
+
+
+def test_guest_can_read_booking_options_but_not_private_portal_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    app.dependency_overrides[get_db] = lambda: object()
+    monkeypatch.setattr(AppointmentService, "get_services", lambda self: [])
+    monkeypatch.setattr(AppointmentService, "get_availability", lambda self, service_id, fecha: [])
+    try:
+        assert client.get("/portal/servicios").status_code == 200
+        assert client.get("/portal/disponibilidad", params={"servicio_id": 1, "fecha": "2026-10-10"}).status_code == 200
+        for path in ("/portal/mascotas", "/portal/citas", "/portal/mascotas/1/historial"):
+            assert client.get(path).status_code == 401
+        assert client.post("/portal/citas", json={}).status_code == 401
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 def test_veterinarian_routes_are_documented() -> None:

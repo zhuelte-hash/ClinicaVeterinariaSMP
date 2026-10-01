@@ -1,7 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 
 const CART_KEY = 'clinic_cart_v1';
-const PENDING_CART_ITEM_KEY = 'clinic_pending_cart_item_v1';
 
 export interface CartItem {
   id: string;
@@ -37,18 +36,6 @@ export class CartService {
     this.update(items);
   }
 
-  queuePending(item: NewCartItem): void {
-    sessionStorage.setItem(PENDING_CART_ITEM_KEY, JSON.stringify(item));
-  }
-
-  addPending(): boolean {
-    const pending = this.readPending();
-    sessionStorage.removeItem(PENDING_CART_ITEM_KEY);
-    if (!pending) return false;
-    this.add(pending);
-    return true;
-  }
-
   remove(id: string): void {
     this.update(this.itemsState().filter((item) => item.id !== id));
   }
@@ -70,15 +57,6 @@ export class CartService {
   private update(items: CartItem[]): void {
     this.itemsState.set(items);
     sessionStorage.setItem(CART_KEY, JSON.stringify(items));
-  }
-
-  private readPending(): NewCartItem | null {
-    try {
-      const value: unknown = JSON.parse(sessionStorage.getItem(PENDING_CART_ITEM_KEY) ?? 'null');
-      return this.isNewItem(value) ? value : null;
-    } catch {
-      return null;
-    }
   }
 
   private readItems(key: string): CartItem[] {

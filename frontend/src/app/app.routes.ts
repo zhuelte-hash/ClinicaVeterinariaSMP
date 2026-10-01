@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { cashierGuard } from './core/guards/cashier.guard';
-import { clientGuard } from './core/guards/client.guard';
 import { purchaseGuard } from './core/guards/purchase.guard';
 import { veterinarianGuard } from './core/guards/veterinarian.guard';
 
@@ -43,7 +42,6 @@ export const routes: Routes = [
   },
   {
     path: 'carrito',
-    canActivate: [purchaseGuard],
     loadComponent: () =>
       import('./components/carrito/carrito.component').then((m) => m.CarritoComponent),
   },
@@ -82,7 +80,6 @@ export const routes: Routes = [
   },
   {
     path: 'reservar-cita',
-    canActivate: [clientGuard],
     loadComponent: () =>
       import('./features/appointments/appointments-page.component').then((m) => m.AppointmentsPageComponent),
   },

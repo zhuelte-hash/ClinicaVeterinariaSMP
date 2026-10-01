@@ -3,6 +3,13 @@
 @tailwind utilities;
 
 :root {
+  --site-navy: #0b1b6d;
+  --site-teal: #1a98a2;
+  --site-teal-dark: #147d87;
+  --site-gold: #e0a71a;
+  --site-cream: #fff9f4;
+  --site-border: #e3e6ea;
+  --site-shadow: 0 8px 28px rgb(11 27 109 / 7%);
   --admin-primary: #56c4d8;
   --admin-primary-dark: #111827;
   --admin-accent: #56c4d8;
@@ -24,6 +31,46 @@ body {
   font-family: 'Poppins', system-ui, sans-serif;
   color: var(--admin-text);
 }
+
+/* Shared public-facing surfaces and actions; admin controls retain their own styles. */
+.site-card {
+  border: 1px solid var(--site-border);
+  border-radius: 1.25rem;
+  background: white;
+  box-shadow: var(--site-shadow);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.site-card:hover { border-color: #b6dce0; box-shadow: 0 12px 32px rgb(11 27 109 / 10%); }
+.site-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  border-radius: 999px;
+  background: var(--site-navy);
+  padding: .7rem 1.4rem;
+  color: white;
+  font-size: .875rem;
+  font-weight: 700;
+  text-align: center;
+  transition: background .2s ease, transform .2s ease;
+}
+.site-button:hover { background: var(--site-teal-dark); transform: translateY(-1px); }
+.site-button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.site-input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: .85rem;
+  background: white;
+  padding: .7rem .9rem;
+  color: #1a1e27;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.site-input:focus { border-color: var(--site-teal-dark); box-shadow: 0 0 0 3px rgb(26 152 162 / 16%); }
+.site-input[aria-invalid='true'] { border-color: #b91c1c; }
 
 ::-webkit-scrollbar {
   width: 8px;

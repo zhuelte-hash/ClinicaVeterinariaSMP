@@ -6,7 +6,6 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { NoticeService } from '../../core/services/notice.service';
 import { VisualSessionService } from '../../core/services/visual-session.service';
-import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-login',
@@ -23,7 +22,6 @@ export class LoginComponent {
   private readonly router = inject(Router);
   private readonly notice = inject(NoticeService);
   private readonly visualSession = inject(VisualSessionService);
-  private readonly cart = inject(CartService);
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
@@ -55,7 +53,6 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.visualSession.login(email, this.auth.currentUser()?.nombre ?? 'Cliente');
-          if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
           const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
           const destination =
             this.isSafePurchaseUrl(requestedUrl)

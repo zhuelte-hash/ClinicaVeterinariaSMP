@@ -67,7 +67,7 @@ def create_pet(data: PetCreate, db: DbSession, client: CurrentClient):
 
 
 @router.get("/servicios", response_model=list[ServiceRead])
-def get_services(db: DbSession, _client: CurrentClient):
+def get_services(db: DbSession):
     return AppointmentService(db).get_services()
 
 
@@ -76,7 +76,6 @@ def get_availability(
     servicio_id: int,
     fecha: datetime.date,
     db: DbSession,
-    _client: CurrentClient,
 ):
     try:
         return AppointmentService(db).get_availability(servicio_id, fecha)

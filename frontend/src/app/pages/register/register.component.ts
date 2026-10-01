@@ -4,9 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { NoticeService } from '../../core/services/notice.service';
 import { VisualSessionService } from '../../core/services/visual-session.service';
-import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-register',
@@ -22,8 +20,6 @@ export class RegisterComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly visualSession = inject(VisualSessionService);
-  private readonly cart = inject(CartService);
-  private readonly notice = inject(NoticeService);
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal('');
@@ -57,7 +53,6 @@ export class RegisterComponent {
     }).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: ({ user }) => {
         this.visualSession.login(user.correo, user.nombre);
-        if (this.cart.addPending()) this.notice.show('Producto añadido al carrito');
         const destination = this.isSafePurchaseUrl(this.returnUrl) ? this.returnUrl! : '/inicio';
         void this.router.navigateByUrl(destination);
       },

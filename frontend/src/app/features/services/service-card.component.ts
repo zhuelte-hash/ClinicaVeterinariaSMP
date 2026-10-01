@@ -7,7 +7,7 @@ import { VeterinaryService } from './service.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full' },
   template: `
-    <article class="group flex h-full flex-col overflow-hidden rounded-3xl border border-[#D5D2D3] bg-white shadow-[0_12px_35px_rgba(26,30,39,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(26,152,162,0.15)]">
+    <article class="site-card group flex h-full flex-col overflow-hidden hover:-translate-y-0.5">
       <div class="relative h-52 overflow-hidden">
         <img
           [src]="service().imageUrl"
@@ -15,7 +15,7 @@ import { VeterinaryService } from './service.model';
           loading="lazy"
           class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
-        <div class="absolute left-5 top-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#1A98A2] shadow-lg" aria-hidden="true">
+        <div class="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[#1A98A2]/15 bg-white text-[#147d87]" aria-hidden="true">
           @switch (service().icon) {
             @case ('science') { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v6l-5.4 9.1A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.9L14 9V3M8 15h8"/></svg> }
             @case ('bed') { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 19v-8m18 8v-6a2 2 0 0 0-2-2H9v8M3 15h18M5 11V7h4a2 2 0 0 1 2 2v2"/></svg> }
@@ -27,11 +27,11 @@ import { VeterinaryService } from './service.model';
       </div>
       <div class="flex flex-1 flex-col p-6">
         <p class="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[#1A98A2]">{{ service().category }}</p>
-        <h3 class="text-xl font-extrabold text-[#1A1E27]">{{ service().name }}</h3>
+        <h3 class="text-xl font-bold leading-snug text-[#1A1E27]">{{ service().name }}</h3>
         <p class="mt-3 flex-1 text-sm leading-6 text-[#1A1E27]/70">{{ service().summary }}</p>
         <button
           type="button"
-          class="mt-6 inline-flex items-center gap-2 self-start font-bold text-[#521B32] transition hover:gap-3 hover:text-[#1A98A2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1A98A2]"
+          class="mt-6 inline-flex min-h-11 items-center gap-2 self-start font-bold text-[#0B1B6D] transition hover:text-[#147d87] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1A98A2]"
           [attr.aria-label]="'Ver más sobre ' + service().name"
           (click)="showDetails.emit(service())"
         >
