@@ -92,7 +92,14 @@ def test_veterinarian_routes_are_documented() -> None:
     assert "/portal/veterinario/horarios" in paths
     assert "/portal/veterinario/bloqueos" in paths
     assert "/portal/veterinario/solicitudes/{appointment_id}/atencion" in paths
+    assert "/portal/veterinario/solicitudes/{appointment_id}/atencion/iniciar" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/diagnosticos" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/ordenes-examen" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/receta" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/procedimientos" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/preventivos" in paths
     assert "/portal/veterinario/mascotas/{pet_id}/historial" in paths
+    assert "/portal/veterinario/atenciones/{process_id}/ordenes-examen" in paths
     assert "/portal/veterinario/clientes" in paths
     assert "/portal/veterinario/clientes/{client_id}" in paths
 

@@ -2,11 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { VeterinarianApiService } from './veterinarian-api.service';
-import { ClinicalRecord, VeterinarianAppointment } from './veterinarian.models';
+import { AppointmentSummary, ClinicalRecord, VeterinarianAppointment } from './veterinarian.models';
 
 type ModuleKey = 'agenda' | 'clientes' | 'mascotas' | 'consultas' | 'hospitalizacion' | 'hospedaje' | 'vacunacion' | 'desparasitacion' | 'estetica' | 'domicilio' | 'imagenes' | 'laboratorio' | 'farmacia' | 'reportes';
 
@@ -17,7 +17,7 @@ interface ModuleDefinition {
   action: string;
   empty: string;
   keywords: string[];
-  metrics: [string, string, string];
+  metrics: string[];
   features: string[];
   categories: string[];
 }
@@ -26,7 +26,7 @@ const MODULES: Record<ModuleKey, ModuleDefinition> = {
   agenda: { eyebrow: 'Agenda central', title: 'Todas las citas, un solo calendario', description: 'Consulta la programación clínica y filtra rápidamente por paciente, propietario o servicio.', action: 'Gestionar solicitudes', empty: 'No hay citas que coincidan con la búsqueda.', keywords: [], metrics: ['Citas visibles', 'Confirmadas', 'Pendientes'], features: ['Vista día, semana y mes', 'Control de cruces de horario', 'Disponibilidad de veterinario y box'], categories: ['Consulta', 'Cirugía', 'Vacuna', 'Estética', 'Laboratorio', 'Hospedaje'] },
   clientes: { eyebrow: 'Directorio clínico', title: 'Clientes y propietarios', description: 'Directorio de propietarios vinculado con sus mascotas y el historial de atención.', action: 'Nueva atención', empty: 'No hay propietarios registrados en las solicitudes disponibles.', keywords: [], metrics: ['Propietarios', 'Con teléfono', 'Pacientes vinculados'], features: ['DNI o RUC y datos de contacto', 'Dirección por ubigeo', 'Notas y valoración del cliente'], categories: ['Datos personales', 'Contacto', 'Ubicación', 'Mascotas'] },
   mascotas: { eyebrow: 'Pacientes', title: 'Historial', description: 'Consulta al propietario, sus mascotas y toda la historia clínica unificada.', action: 'Abrir historial', empty: 'No hay pacientes registrados en las solicitudes disponibles.', keywords: [], metrics: ['Pacientes', 'Caninos', 'Otras especies'], features: ['Propietario y mascotas vinculados', 'Datos de identificación del paciente', 'Línea de tiempo clínica unificada'], categories: ['Consultas', 'Cirugías', 'Vacunas', 'Estética', 'Internamientos'] },
-  consultas: { eyebrow: 'Atención clínica', title: 'Nueva atención', description: 'Registra al propietario, la mascota, el servicio y la ficha clínica desde un solo flujo.', action: 'Iniciar atención', empty: 'No hay atenciones clínicas activas para mostrar.', keywords: ['consulta', 'cirugía', 'cirugia', 'traumatología', 'traumatologia', 'urgencia'], metrics: ['Atenciones', 'Confirmadas', 'Urgencias'], features: ['Registro completo del paciente', 'Diagnóstico y plan terapéutico', 'Historial clínico por mascota'], categories: ['Propietario', 'Mascota', 'Servicio', 'Ficha clínica'] },
+  consultas: { eyebrow: 'Atención clínica', title: 'Mis citas y pacientes', description: 'Prioriza la jornada, abre la ficha clínica y registra atenciones sin mezclar cobros ni administración.', action: 'Iniciar atención', empty: 'No hay atenciones clínicas activas para mostrar.', keywords: ['consulta', 'cirugía', 'cirugia', 'traumatología', 'traumatologia', 'urgencia'], metrics: ['Citas de hoy', 'En espera', 'En atención', 'Resultados', 'Seguimientos'], features: ['Agenda filtrada por veterinario', 'Diagnóstico, exámenes y receta', 'Cierre clínico trazable'], categories: ['Agenda', 'Historia clínica', 'Órdenes', 'Recetas'] },
   hospitalizacion: { eyebrow: 'Cuidado continuo', title: 'Internamientos y hospitalización', description: 'Controla ocupación de boxes, evolución diaria, medicación y alta de cada paciente.', action: 'Nueva atención', empty: 'No hay internamientos vinculados con las citas actuales.', keywords: ['hospital', 'internamiento', 'internado'], metrics: ['Ingresos', 'Confirmados', 'Pendientes'], features: ['Ingreso y box asignado', 'Signos vitales y evolución diaria', 'Costo acumulado y alta médica'], categories: ['Boxes ocupados', 'Boxes disponibles', 'Altas del día'] },
   hospedaje: { eyebrow: 'Estadías', title: 'Reservas de hospedaje', description: 'Supervisa check-in, check-out, tarifa e indicaciones especiales durante la estadía.', action: 'Nueva atención', empty: 'No hay reservas de hospedaje en las citas actuales.', keywords: ['hospedaje', 'guardería', 'guarderia'], metrics: ['Reservas', 'Confirmadas', 'Por coordinar'], features: ['Reserva por rango de fechas', 'Tarifa y costo acumulado', 'Alimentación y medicación'], categories: ['Próximos ingresos', 'Hospedados', 'Check-out próximo'] },
   vacunacion: { eyebrow: 'Medicina preventiva', title: 'Vacunación y próximos refuerzos', description: 'Consulta aplicaciones registradas y próximas citas de vacunación por paciente.', action: 'Registrar desde atención', empty: 'No hay citas de vacunación en las solicitudes disponibles.', keywords: ['vacuna', 'vacunación', 'vacunacion'], metrics: ['Registros', 'Confirmadas', 'Pendientes'], features: ['Producto, lote, peso y precio', 'Programación del próximo refuerzo', 'Delivery y cartilla imprimible'], categories: ['Aplicadas', 'Programadas', 'Vencidas', 'Delivery'] },
@@ -50,6 +50,7 @@ const MODULES: Record<ModuleKey, ModuleDefinition> = {
 export class VeterinarianModuleComponent {
   private readonly api = inject(VeterinarianApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly notice = inject(NoticeService);
   private readonly routeData = toSignal(this.route.data, { initialValue: this.route.snapshot.data });
 
@@ -57,6 +58,7 @@ export class VeterinarianModuleComponent {
   readonly errorMessage = signal('');
   readonly search = signal('');
   readonly appointments = signal<VeterinarianAppointment[]>([]);
+  readonly summary = signal<AppointmentSummary>({ pendientes: 0, confirmadas: 0, atendidas: 0, proximas: 0 });
   readonly selectedAppointment = signal<number | null>(null);
   readonly historyPetId = signal<number | null>(null);
   readonly history = signal<ClinicalRecord[]>([]);
@@ -80,6 +82,10 @@ export class VeterinarianModuleComponent {
   readonly uniqueServices = computed(() => new Set(this.filteredAppointments().map((item) => item.servicio.id)).size);
   readonly metricValues = computed(() => {
     const items = this.filteredAppointments();
+    if (this.moduleKey() === 'consultas') {
+      const summary = this.summary();
+      return [summary.citas_hoy ?? items.length, summary.pacientes_espera ?? 0, summary.atenciones_en_curso ?? 0, summary.resultados_pendientes ?? 0, summary.seguimientos_pendientes ?? 0];
+    }
     if (this.moduleKey() === 'clientes') return [this.uniqueClients(), items.filter((item) => !!item.telefono_contacto).length, this.uniquePets()];
     if (this.moduleKey() === 'mascotas') return [this.uniquePets(), new Set(items.filter((item) => item.mascota.especie.toLowerCase().includes('can')).map((item) => item.mascota.id)).size, new Set(items.filter((item) => !item.mascota.especie.toLowerCase().includes('can')).map((item) => item.mascota.id)).size];
     if (this.moduleKey() === 'reportes') return [items.filter((item) => item.estado === 'atendida').length, this.uniqueServices(), this.uniquePets()];
@@ -91,14 +97,13 @@ export class VeterinarianModuleComponent {
       next: (appointments) => this.appointments.set(appointments),
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
+    this.api.getSummary().subscribe({ next: (summary) => this.summary.set(summary), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
   setSearch(value: string): void { this.search.set(value); }
 
   startAttention(appointment: VeterinarianAppointment): void {
-    this.resetAttention();
-    this.attentionForm.motivo_consulta = appointment.motivo || '';
-    this.selectedAppointment.set(appointment.id);
+    void this.router.navigate(['/veterinario/atencion', appointment.id]);
   }
 
   cancelAttention(): void { this.selectedAppointment.set(null); this.resetAttention(); }
@@ -113,11 +118,7 @@ export class VeterinarianModuleComponent {
   }
 
   showHistory(appointment: VeterinarianAppointment): void {
-    if (this.historyPetId() === appointment.mascota.id) { this.historyPetId.set(null); return; }
-    this.api.getPetHistory(appointment.mascota.id).subscribe({
-      next: (history) => { this.history.set(history); this.historyPetId.set(appointment.mascota.id); },
-      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
-    });
+    void this.router.navigate(['/veterinario/mascota', appointment.mascota.id]);
   }
 
   sendHistory(appointment: VeterinarianAppointment, channel: 'whatsapp' | 'correo'): void {

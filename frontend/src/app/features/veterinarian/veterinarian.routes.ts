@@ -19,21 +19,22 @@ export const VETERINARIAN_ROUTES: Routes = [{
       loadComponent: () => import('./veterinarian-new-attention.component').then((m) => m.VeterinarianNewAttentionComponent),
     },
     {
+      path: 'atencion/:id',
+      title: 'Atención clínica | Clínica SMP',
+      loadComponent: () => import('./veterinarian-attention.component').then((m) => m.VeterinarianAttentionComponent),
+    },
+    {
+      path: 'mascota/:id',
+      title: 'Ficha clínica | Clínica SMP',
+      loadComponent: () => import('./veterinarian-pet-history.component').then((m) => m.VeterinarianPetHistoryComponent),
+    },
+    {
       path: 'clientes',
       title: 'Clientes | Clínica SMP',
       loadComponent: () => import('./veterinarian-clients.component').then((m) => m.VeterinarianClientsComponent),
     },
     moduleRoute('mascotas', 'mascotas', 'Mascotas e historia clínica'),
     moduleRoute('consultas', 'consultas', 'Consultas y cirugías'),
-    moduleRoute('hospitalizacion', 'hospitalizacion', 'Hospitalización'),
-    moduleRoute('hospedaje', 'hospedaje', 'Hospedaje'),
-    moduleRoute('vacunacion', 'vacunacion', 'Vacunación'),
-    moduleRoute('desparasitacion', 'desparasitacion', 'Desparasitación'),
-    moduleRoute('estetica', 'estetica', 'Estética'),
-    moduleRoute('domicilio', 'domicilio', 'Servicio a domicilio'),
-    moduleRoute('imagenes', 'imagenes', 'Imágenes médicas'),
-    moduleRoute('laboratorio', 'laboratorio', 'Laboratorio clínico'),
-    moduleRoute('reportes', 'reportes', 'Reportes internos'),
   ],
 }];
 

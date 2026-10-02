@@ -2,69 +2,175 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
-import { VeterinarianApiService } from './veterinarian-api.service';
-import { ClinicalRecord, VeterinarianAppointment, VeterinarianClient } from './veterinarian.models';
+import { finalize } from 'rxjs';
 import { ClinicService, Pet } from '../appointments/appointments.models';
+import { VeterinarianApiService } from './veterinarian-api.service';
+import { VeterinarianClient } from './veterinarian.models';
+
+interface ClinicalField {
+  key: 'anamnesis' | 'observaciones' | 'diagnostico' | 'tratamiento' | 'historial_alergias' | 'vacunas' | 'desparasitaciones' | 'medicamentos' | 'procedimientos' | 'examenes_resultados';
+  label: string;
+  placeholder: string;
+}
+
+interface ClinicalProfile {
+  title: string;
+  hint: string;
+  fields: ClinicalField[];
+}
+
+const FIELD = (key: ClinicalField['key'], label: string, placeholder: string): ClinicalField => ({ key, label, placeholder });
+
+const PROFILES: Array<{ match: RegExp; profile: ClinicalProfile }> = [
+  { match: /urgencia|emergencia/i, profile: { title: 'Triaje y estabilización', hint: 'Registra la prioridad y las medidas tomadas durante la emergencia.', fields: [FIELD('anamnesis', 'Motivo de emergencia', 'Signos, tiempo de evolución y antecedentes relevantes'), FIELD('observaciones', 'Estado y nivel de triaje', 'Conciencia, mucosas, hidratación y prioridad'), FIELD('procedimientos', 'Estabilización', 'Oxígeno, fluidoterapia, procedimientos realizados'), FIELD('medicamentos', 'Medicación administrada', 'Fármaco, dosis, vía y hora'), FIELD('diagnostico', 'Destino del paciente', 'Alta, hospitalización, cirugía o referencia')] } },
+  { match: /vacun/i, profile: { title: 'Control de vacunación', hint: 'Completa los datos de la vacuna para mantener el carné del paciente.', fields: [FIELD('vacunas', 'Vacuna, dosis y lote', 'Ej.: Quíntuple · 1ra dosis · lote A123 · laboratorio'), FIELD('observaciones', 'Evaluación previa y reacción', 'Estado general, indicaciones y reacción adversa')] } },
+  { match: /desparasit|antiparas/i, profile: { title: 'Control antiparasitario', hint: 'Registra producto, dosis y la fecha del siguiente control.', fields: [FIELD('desparasitaciones', 'Producto y aplicación', 'Interna o externa, producto, dosis y vía'), FIELD('observaciones', 'Indicaciones', 'Cuidados, alertas y recomendaciones al propietario')] } },
+  { match: /rayos|radiograf|ecograf|imagen/i, profile: { title: 'Estudio diagnóstico', hint: 'Deja trazabilidad del estudio, hallazgos e impresión diagnóstica.', fields: [FIELD('examenes_resultados', 'Estudio y resultados', 'Región, proyecciones, hallazgos y conclusión'), FIELD('observaciones', 'Preparación o sedación', 'Ayuno, sedación, técnica y observaciones')] } },
+  { match: /laboratorio|hemograma|urian|bioquím|citolog|raspado/i, profile: { title: 'Laboratorio y análisis', hint: 'Asocia la muestra y la interpretación al historial clínico.', fields: [FIELD('examenes_resultados', 'Muestra y resultados', 'Examen, muestra, valores relevantes y unidades'), FIELD('diagnostico', 'Interpretación', 'Lectura clínica y diagnóstico sugerido')] } },
+  { match: /cirug|esteriliz|castr|operac/i, profile: { title: 'Registro quirúrgico', hint: 'Documenta el procedimiento y las indicaciones posteriores.', fields: [FIELD('procedimientos', 'Procedimiento quirúrgico', 'Técnica, cirujano, anestesia, duración y complicaciones'), FIELD('medicamentos', 'Anestesia y medicación', 'Inducción, mantenimiento, analgésicos y antibióticos'), FIELD('observaciones', 'Indicaciones postoperatorias', 'Cuidados, retiro de puntos y signos de alarma')] } },
+  { match: /hospital|intern/i, profile: { title: 'Evolución de hospitalización', hint: 'Registra la evolución, fluidoterapia, alimentación y medicación.', fields: [FIELD('observaciones', 'Evolución diaria', 'Signos, respuesta al tratamiento y alimentación'), FIELD('medicamentos', 'Medicación y fluidoterapia', 'Fármaco, dosis, vía, frecuencia y fluidos'), FIELD('procedimientos', 'Cuidados y procedimientos', 'Curaciones, controles y fecha de alta')] } },
+  { match: /baño|bano|est[eé]tica|peluquer|corte|uñas|unas|oído|oido|groom/i, profile: { title: 'Ficha de estética y bienestar', hint: 'Registra el servicio realizado y cualquier hallazgo que requiera seguimiento.', fields: [FIELD('procedimientos', 'Servicio realizado', 'Baño, corte, uñas, oídos, productos y estilista'), FIELD('observaciones', 'Estado de piel y conducta', 'Piel, nudos, parásitos, reacción y recomendaciones')] } },
+];
+
+const DEFAULT_PROFILE: ClinicalProfile = {
+  title: 'Consulta clínica',
+  hint: 'Registra la evaluación completa, el diagnóstico y el plan terapéutico.',
+  fields: [
+    FIELD('anamnesis', 'Anamnesis y antecedentes', 'Lo informado por el propietario y evolución del motivo'),
+    FIELD('diagnostico', 'Diagnóstico presuntivo', 'Hallazgos y diagnóstico clínico'),
+    FIELD('tratamiento', 'Tratamiento e indicaciones', 'Medicamentos, dosis, cuidados y recomendaciones'),
+    FIELD('observaciones', 'Examen físico', 'Mucosas, hidratación, condición corporal y hallazgos'),
+  ],
+};
 
 @Component({
   selector: 'app-veterinarian-new-attention',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="mx-auto max-w-5xl space-y-6">
-      <section class="rounded-[2rem] bg-[linear-gradient(125deg,#102b35_0%,#164a50_62%,#176f68_100%)] px-6 py-8 text-white shadow-xl sm:px-8"><p class="text-[10px] font-black uppercase tracking-[.22em] text-[#83e7d9]">Recepción clínica</p><h2 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Nueva atención</h2><p class="mt-3 max-w-2xl text-sm leading-6 text-slate-200">Completa cada paso en orden. Cada registro se guarda antes de pasar al siguiente.</p></section>
-      <section class="flex items-center gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs font-black uppercase tracking-wide text-slate-400"><span [class.bg-[#58d3c2]]="step() === 1" [class.text-[#102b35]]="step() === 1" class="rounded-full px-3 py-2">1 Propietario</span><span>›</span><span [class.bg-[#58d3c2]]="step() === 2" [class.text-[#102b35]]="step() === 2" class="rounded-full px-3 py-2">2 Mascota</span><span>›</span><span [class.bg-[#58d3c2]]="step() === 3" [class.text-[#102b35]]="step() === 3" class="rounded-full px-3 py-2">3 Servicio</span><span>›</span><span [class.bg-[#58d3c2]]="step() === 4" [class.text-[#102b35]]="step() === 4" class="rounded-full px-3 py-2">4 Atención</span></section>
-      @if (errorMessage()) { <p class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
-
-      @if (step() === 1) {
-        <section class="grid gap-6 lg:grid-cols-[1fr_1.1fr]"><article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-black uppercase tracking-[.16em] text-[#168b83]">Cliente existente</p><h3 class="mt-2 text-xl font-black text-[#102b35]">Buscar propietario</h3><input [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Nombre, correo o teléfono" class="mt-5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"><div class="mt-4 max-h-80 space-y-2 overflow-y-auto">@for (client of filteredClients(); track client.id) { <button type="button" (click)="selectClient(client)" class="flex w-full items-center justify-between rounded-xl border border-slate-200 p-3 text-left hover:border-[#58d3c2] hover:bg-[#f2fcfa]"><span><strong class="block text-sm text-slate-800">{{ client.nombre }}</strong><small class="text-slate-500">{{ client.correo }}</small></span><span class="text-xs font-black text-[#168b83]">Elegir</span></button> } @empty { <p class="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No encontramos propietarios.</p> }</div></article><article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-black uppercase tracking-[.16em] text-[#168b83]">Cliente nuevo</p><h3 class="mt-2 text-xl font-black text-[#102b35]">Registrar propietario</h3><form [formGroup]="clientForm" (ngSubmit)="createClient()" class="mt-5 grid gap-4"><input formControlName="nombre" placeholder="Nombre completo *" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><input formControlName="correo" type="email" placeholder="Correo electrónico *" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><input formControlName="telefono" placeholder="Teléfono" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><input formControlName="direccion" placeholder="Dirección" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><button type="submit" [disabled]="saving()" class="rounded-xl bg-[#102b35] px-4 py-3 text-sm font-black text-white disabled:opacity-50">{{ saving() ? 'Guardando...' : 'Guardar propietario' }}</button></form></article></section>
-      }
-      @if (step() === 2 && selectedClient(); as client) {
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-black uppercase tracking-[.16em] text-[#168b83]">Propietario: {{ client.nombre }}</p><h3 class="mt-2 text-2xl font-black text-[#102b35]">Registrar o elegir mascota</h3><div class="mt-5 grid gap-6 lg:grid-cols-[1fr_1.1fr]"><div class="space-y-3">@for (pet of pets(); track pet.id) { <button type="button" (click)="selectPet(pet)" class="flex w-full items-center justify-between rounded-xl border border-slate-200 p-4 text-left hover:border-[#58d3c2]"><span><strong class="block text-slate-800">{{ pet.nombre }}</strong><small class="text-slate-500">{{ pet.especie }} · {{ pet.raza || 'Sin raza' }}</small></span><span class="text-xs font-black text-[#168b83]">Elegir</span></button> } @empty { <p class="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Este propietario aún no tiene mascotas.</p> }</div><form [formGroup]="petForm" (ngSubmit)="createPet()" class="grid gap-3"><input formControlName="nombre" placeholder="Nombre de mascota *" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><select formControlName="especie" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm"><option value="">Selecciona la especie *</option><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Ave">Ave</option><option value="Conejo">Conejo</option><option value="Reptil">Reptil</option><option value="Otro">Otro</option></select><input formControlName="raza" placeholder="Raza" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><select formControlName="sexo" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm"><option value="">Selecciona el sexo</option><option value="Macho">Macho</option><option value="Hembra">Hembra</option><option value="No especificado">No especificado</option></select><input formControlName="peso_actual" type="number" step="0.01" placeholder="Peso actual (kg)" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><button type="submit" [disabled]="saving()" class="rounded-xl bg-[#102b35] px-4 py-3 text-sm font-black text-white disabled:opacity-50">Registrar mascota</button></form></div></section>
-      }
-      @if (step() === 3 && selectedPet(); as pet) {
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-black uppercase tracking-[.16em] text-[#168b83]">Mascota: {{ pet.nombre }} · {{ pet.especie }}</p><h3 class="mt-2 text-2xl font-black text-[#102b35]">Seleccionar servicio</h3><div class="mt-5 grid gap-5 md:grid-cols-2">@for (category of serviceCategories; track category) { <div><h4 class="mb-3 rounded-xl bg-[#eaf9f6] px-4 py-3 text-sm font-black uppercase tracking-wide text-[#176f68]">{{ category }}</h4><div class="space-y-3">@for (service of categoryServices(category); track service.id) { <button type="button" (click)="selectService(service)" class="w-full rounded-2xl border p-4 text-left" [class.border-[#168b83]]="selectedService()?.id === service.id" [class.bg-[#effbf8]]="selectedService()?.id === service.id"><strong class="block text-slate-800">{{ service.nombre }}</strong><span class="mt-1 block text-sm text-slate-500">{{ service.descripcion || category }}</span></button> } @empty { <p class="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No hay servicios configurados.</p> }</div></div> }</div></section>
-      }
-      @if (step() === 4 && selectedPet(); as pet) {
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p class="text-xs font-black uppercase tracking-[.16em] text-[#168b83]">{{ pet.nombre }} · {{ selectedService()?.nombre }}</p><h3 class="mt-2 text-2xl font-black text-[#102b35]">Ficha de atención</h3><form [formGroup]="attentionForm" (ngSubmit)="finishAttention()" class="mt-5 grid gap-3 sm:grid-cols-2"><textarea formControlName="motivo_consulta" placeholder="Motivo de consulta" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><textarea formControlName="anamnesis" placeholder="Anamnesis y antecedentes" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><textarea formControlName="diagnostico" placeholder="Diagnóstico" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><textarea formControlName="tratamiento" placeholder="Tratamiento e indicaciones" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><input formControlName="peso" type="number" step="0.01" placeholder="Peso (kg)" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"><input formControlName="temperatura" type="number" step="0.1" placeholder="Temperatura (°C)" class="rounded-xl border border-slate-300 px-4 py-3 text-sm">@if (serviceIs('vacun')) { <textarea formControlName="vacunas" placeholder="Vacuna aplicada, lote y próxima dosis" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea> } @if (serviceIs('desparasit')) { <textarea formControlName="desparasitaciones" placeholder="Producto, dosis y próxima aplicación" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea> } @if (serviceIs('laboratorio', 'imagen', 'rayos', 'ecograf')) { <textarea formControlName="examenes_resultados" placeholder="Examen solicitado, hallazgos y resultados" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea> } @if (serviceIs('cirug', 'hospital', 'intern')) { <textarea formControlName="procedimientos" placeholder="Procedimiento, anestesia, evolución y alta" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea> } @if (serviceIs('estét', 'estet', 'baño', 'bano')) { <textarea formControlName="procedimientos" placeholder="Servicio realizado, productos utilizados y observaciones del estilista" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea> }<textarea formControlName="medicamentos" placeholder="Medicamentos" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><textarea formControlName="historial_alergias" placeholder="Alergias y alertas clínicas" class="rounded-xl border border-slate-300 px-4 py-3 text-sm"></textarea><textarea formControlName="observaciones" placeholder="Observaciones generales" class="rounded-xl border border-slate-300 px-4 py-3 text-sm sm:col-span-2"></textarea><label class="grid gap-1 text-xs font-bold text-slate-600">Próximo control<input formControlName="proxima_fecha_control" type="date" class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal"></label><button type="submit" [disabled]="saving()" class="rounded-xl bg-[#168b83] px-4 py-3 text-sm font-black text-white disabled:opacity-50 sm:col-span-2">{{ saving() ? 'Guardando...' : 'Finalizar atención y guardar historial' }}</button></form></section>
-      }
-      <div class="flex justify-between"><a routerLink="/veterinario/mascotas" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600">Salir</a>@if (step() > 1) { <button type="button" (click)="previousStep()" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-600">Atrás</button> } @if (step() === 1 && selectedClient()) { <button type="button" (click)="goToPets()" class="rounded-xl bg-[#168b83] px-5 py-2.5 text-sm font-black text-white">Continuar con mascota</button> } @if (step() === 2 && selectedPet()) { <button type="button" (click)="goToServices()" class="rounded-xl bg-[#168b83] px-5 py-2.5 text-sm font-black text-white">Continuar con servicio</button> } @if (step() === 3 && selectedService()) { <button type="button" (click)="goToAttention()" class="rounded-xl bg-[#168b83] px-5 py-2.5 text-sm font-black text-white">Abrir ficha clínica</button> }</div>
-    </div>
-  `,
+  templateUrl: './veterinarian-new-attention.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VeterinarianNewAttentionComponent {
   private readonly api = inject(VeterinarianApiService);
   private readonly formBuilder = inject(FormBuilder);
-  readonly step = signal(1); readonly clients = signal<VeterinarianClient[]>([]); readonly pets = signal<Pet[]>([]); readonly services = signal<ClinicService[]>([]); readonly query = signal(''); readonly selectedClient = signal<VeterinarianClient | null>(null); readonly selectedPet = signal<Pet | null>(null); readonly selectedService = signal<ClinicService | null>(null); readonly saving = signal(false); readonly errorMessage = signal('');
-  readonly filteredClients = computed(() => { const q = this.query().trim().toLocaleLowerCase('es'); return this.clients().filter((client) => !q || `${client.nombre} ${client.correo} ${client.telefono || ''}`.toLocaleLowerCase('es').includes(q)); });
-  readonly serviceCategories = ['Atención médica', 'Prevención', 'Estética canina y felina'];
-  readonly clientForm = this.formBuilder.nonNullable.group({ nombre: ['', [Validators.required, Validators.minLength(2)]], correo: ['', [Validators.required, Validators.email]], telefono: [''], direccion: [''] });
-  readonly petForm = this.formBuilder.nonNullable.group({ nombre: ['', Validators.required], especie: ['', Validators.required], raza: [''], sexo: [''], peso_actual: [''] });
-  readonly attentionForm = this.formBuilder.nonNullable.group({ motivo_consulta: [''], anamnesis: [''], observaciones: [''], diagnostico: [''], tratamiento: [''], peso: [''], temperatura: [''], medicamentos: [''], procedimientos: [''], vacunas: [''], desparasitaciones: [''], examenes_resultados: [''], historial_alergias: [''], proxima_fecha_control: [''] });
 
-  constructor() { this.api.getClients().subscribe({ next: (clients) => this.clients.set(clients), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
+  readonly step = signal(1);
+  readonly clients = signal<VeterinarianClient[]>([]);
+  readonly pets = signal<Pet[]>([]);
+  readonly services = signal<ClinicService[]>([]);
+  readonly query = signal('');
+  readonly selectedClient = signal<VeterinarianClient | null>(null);
+  readonly selectedPet = signal<Pet | null>(null);
+  readonly selectedService = signal<ClinicService | null>(null);
+  readonly saving = signal(false);
+  readonly loading = signal(false);
+  readonly errorMessage = signal('');
+  readonly today = new Date().toISOString().slice(0, 10);
+
+  readonly filteredClients = computed(() => {
+    const query = this.query().trim().toLocaleLowerCase('es');
+    return this.clients().filter((client) => !query || `${client.nombre} ${client.correo} ${client.telefono || ''}`.toLocaleLowerCase('es').includes(query));
+  });
+  readonly clinicalProfile = computed(() => {
+    const name = this.selectedService()?.nombre || '';
+    return PROFILES.find((item) => item.match.test(name))?.profile || DEFAULT_PROFILE;
+  });
+  readonly isPreventive = computed(() => /vacun|desparasit/i.test(this.selectedService()?.nombre || ''));
+
+  readonly serviceCategories = ['Atención médica', 'Prevención', 'Diagnóstico'];
+  readonly clientForm = this.formBuilder.nonNullable.group({ nombre: ['', [Validators.required, Validators.minLength(2)]], correo: ['', [Validators.required, Validators.email]], telefono: [''], direccion: [''] });
+  readonly petForm = this.formBuilder.nonNullable.group({ nombre: ['', Validators.required], especie: ['', Validators.required], raza: [''], sexo: [''], fecha_nacimiento: [''], peso_actual: [''], caracteristicas: [''] });
+  readonly attentionForm = this.formBuilder.nonNullable.group({ motivo_consulta: [''], anamnesis: [''], observaciones: [''], diagnostico: [''], tratamiento: [''], peso: [''], temperatura: [''], historial_alergias: [''], vacunas: [''], desparasitaciones: [''], medicamentos: [''], procedimientos: [''], examenes_resultados: [''], proxima_fecha_control: [''] });
+
+  constructor() {
+    this.loadClients();
+  }
+
+  loadClients(): void {
+    this.loading.set(true);
+    this.api.getClients().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (clients) => this.clients.set(clients), error: (error: unknown) => this.showError(error) });
+  }
+
   selectClient(client: VeterinarianClient): void { this.selectedClient.set(client); }
-  createClient(): void { if (this.clientForm.invalid) { this.clientForm.markAllAsTouched(); return; } this.saving.set(true); this.api.createClient(this.clientForm.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({ next: (client) => { this.clients.update((items) => [...items, client]); this.selectClient(client); this.goToPets(); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
-  goToPets(): void { const client = this.selectedClient(); if (!client) return; this.api.getPetsForClient(client.id).subscribe({ next: (pets) => { this.pets.set(pets); this.step.set(2); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
+
+  createClient(): void {
+    if (this.clientForm.invalid) { this.clientForm.markAllAsTouched(); return; }
+    this.save(this.api.createClient(this.clientForm.getRawValue()), (client) => { this.clients.update((items) => [...items, client]); this.selectClient(client); this.goToPets(); });
+  }
+
+  goToPets(): void {
+    const client = this.selectedClient();
+    if (!client) return;
+    this.api.getPetsForClient(client.id).subscribe({ next: (pets) => { this.pets.set(pets); this.step.set(2); }, error: (error: unknown) => this.showError(error) });
+  }
+
   selectPet(pet: Pet): void { this.selectedPet.set(pet); }
-  createPet(): void { const client = this.selectedClient(); if (!client || this.petForm.invalid) { this.petForm.markAllAsTouched(); return; } this.saving.set(true); this.api.createPet(client.id, this.petForm.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({ next: (pet) => { this.pets.update((items) => [...items, pet]); this.selectedPet.set(pet); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
-  goToServices(): void { this.api.getServices().subscribe({ next: (services) => { this.services.set(services); this.step.set(3); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
-  selectService(service: ClinicService): void { this.selectedService.set(service); }
+
+  createPet(): void {
+    const client = this.selectedClient();
+    if (!client || this.petForm.invalid) { this.petForm.markAllAsTouched(); return; }
+    this.save(this.api.createPet(client.id, this.petForm.getRawValue()), (pet) => { this.pets.update((items) => [...items, pet]); this.selectPet(pet); this.petForm.reset(); });
+  }
+
+  goToServices(): void {
+    this.loading.set(true);
+    this.api.getServices().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (services) => { this.services.set(services); this.step.set(3); }, error: (error: unknown) => this.showError(error) });
+  }
+
+  selectService(service: ClinicService): void {
+    this.selectedService.set(service);
+    this.attentionForm.patchValue({ motivo_consulta: '', proxima_fecha_control: '' });
+  }
+
   categoryServices(category: string): ClinicService[] {
     const patterns: Record<string, RegExp> = {
       'Atención médica': /consulta|tratamiento|cirug|traumat|intern|hospital|urgencia|domicilio/i,
-      'Prevención': /vacun|desparasit|profilaxis|dental|microchip/i,
-      'Diagnóstico': /laboratorio|ecograf|rayos|imagen|radiograf/i,
-      'Hospedaje': /hospedaje|guardería|guarderia/i,
-      'Estética canina y felina': /baño|bano|est[eé]tica|peluquer|corte|cepill|uñas|unas|glándula|glandula|oído|oido|antipulgas/i,
+      Prevención: /vacun|desparasit|profilaxis|dental|microchip/i,
+      Diagnóstico: /laboratorio|ecograf|rayos|imagen|radiograf/i,
     };
     return this.services().filter((service) => patterns[category]?.test(service.nombre));
   }
-  serviceIs(...terms: string[]): boolean { const name = (this.selectedService()?.nombre || '').toLocaleLowerCase('es'); return terms.some((term) => name.includes(term)); }
-  goToAttention(): void { if (this.selectedService()) this.step.set(4); }
+
+  goToAttention(): void {
+    if (!this.selectedService()) return;
+    this.attentionForm.patchValue({ motivo_consulta: this.selectedService()?.nombre || '' });
+    this.step.set(4);
+  }
+
   previousStep(): void { this.step.update((value) => Math.max(1, value - 1)); }
-  finishAttention(): void { const pet = this.selectedPet(); const service = this.selectedService(); if (!pet || !service) return; this.saving.set(true); const form = this.attentionForm.getRawValue(); this.api.startWalkIn({ mascota_id: pet.id, servicio_id: service.id, motivo: form.motivo_consulta || undefined, es_urgente: false }).pipe(finalize(() => this.saving.set(false))).subscribe({ next: (appointment) => { this.api.registerAttention(appointment.id, form).subscribe({ next: () => { this.step.set(1); this.selectedClient.set(null); this.selectedPet.set(null); this.selectedService.set(null); this.attentionForm.reset(); alert('Atención guardada en el historial clínico.'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
-  private errorText(error: unknown): string { if (error instanceof HttpErrorResponse && typeof error.error?.detail === 'string') return error.error.detail; return 'No se pudo completar este paso.'; }
+
+  finishAttention(): void {
+    const pet = this.selectedPet();
+    const service = this.selectedService();
+    if (!pet || !service || this.attentionForm.invalid) return;
+    this.saving.set(true);
+    const raw = this.attentionForm.getRawValue();
+    const form = {
+      ...raw,
+      peso: raw.peso || null,
+      temperatura: raw.temperatura || null,
+      proxima_fecha_control: raw.proxima_fecha_control || null,
+    };
+    this.api.startWalkIn({ mascota_id: pet.id, servicio_id: service.id, motivo: form.motivo_consulta || undefined, es_urgente: /urgencia|emergencia/i.test(service.nombre) }).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: (appointment) => this.api.registerAttention(appointment.id, form).subscribe({ next: () => this.resetFlow(), error: (error: unknown) => this.showError(error) }),
+      error: (error: unknown) => this.showError(error),
+    });
+  }
+
+  resetFlow(): void {
+    this.step.set(1); this.selectedClient.set(null); this.selectedPet.set(null); this.selectedService.set(null); this.query.set(''); this.clientForm.reset(); this.petForm.reset(); this.attentionForm.reset();
+    this.loadClients();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private save<T>(request: import('rxjs').Observable<T>, success: (value: T) => void): void {
+    this.saving.set(true);
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({ next: success, error: (error: unknown) => this.showError(error) });
+  }
+
+  private showError(error: unknown): void {
+    if (error instanceof HttpErrorResponse && typeof error.error?.detail === 'string') this.errorMessage.set(error.error.detail);
+    else if (error instanceof HttpErrorResponse && Array.isArray(error.error?.detail)) this.errorMessage.set(error.error.detail.map((item: { loc?: unknown[]; msg?: string }) => `${item.loc?.slice(-1)[0] || 'campo'}: ${item.msg || 'valor inválido'}`).join(' · '));
+    else this.errorMessage.set('No se pudo completar este paso. Revisa la conexión e inténtalo nuevamente.');
+  }
 }

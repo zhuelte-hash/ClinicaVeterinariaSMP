@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     Text,
     Time,
+    JSON,
     UniqueConstraint,
     func,
     text,
@@ -61,6 +62,32 @@ class TipoProcesoAtencion(str, enum.Enum):
     ESTETICA = "estetica"
 
 
+class EstadoProcesoAtencion(str, enum.Enum):
+    BORRADOR = "borrador"
+    EN_ATENCION = "en_atencion"
+    CERRADA = "cerrada"
+    CANCELADA = "cancelada"
+
+
+class PrioridadExamen(str, enum.Enum):
+    RUTINA = "rutina"
+    URGENTE = "urgente"
+    EMERGENCIA = "emergencia"
+
+
+class EstadoOrdenExamen(str, enum.Enum):
+    SOLICITADO = "solicitado"
+    EN_PROCESO = "en_proceso"
+    RESULTADO_DISPONIBLE = "resultado_disponible"
+    REVISADO = "revisado"
+    CANCELADO = "cancelado"
+
+
+class TipoAplicacionPreventiva(str, enum.Enum):
+    VACUNA = "vacuna"
+    DESPARASITACION = "desparasitacion"
+
+
 class EstadoPago(str, enum.Enum):
     PENDIENTE = "pendiente"
     PAGO_ENVIADO = "pago_enviado"
@@ -81,6 +108,10 @@ estado_cita_db = _enum_type(EstadoCita, "estado_cita")
 tipo_atencion_medica_db = _enum_type(TipoAtencionMedica, "tipo_atencion_medica")
 tipo_estetica_db = _enum_type(TipoEstetica, "tipo_estetica")
 tipo_proceso_atencion_db = _enum_type(TipoProcesoAtencion, "tipo_proceso_atencion")
+estado_proceso_atencion_db = _enum_type(EstadoProcesoAtencion, "estado_proceso_atencion")
+prioridad_examen_db = _enum_type(PrioridadExamen, "prioridad_examen")
+estado_orden_examen_db = _enum_type(EstadoOrdenExamen, "estado_orden_examen")
+tipo_aplicacion_preventiva_db = _enum_type(TipoAplicacionPreventiva, "tipo_aplicacion_preventiva")
 estado_pago_db = _enum_type(EstadoPago, "estado_pago")
 
 
@@ -317,6 +348,7 @@ class ProcesoAtencion(Base):
             "fecha_fin IS NULL OR fecha_fin >= fecha_inicio", name="fechas"
         ),
         Index("idx_procesos_mascota", "mascota_id"),
+        Index("idx_procesos_estado", "estado"),
         {"schema": SCHEMA},
     )
 
@@ -338,6 +370,10 @@ class ProcesoAtencion(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     fecha_fin: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    estado: Mapped[EstadoProcesoAtencion] = mapped_column(
+        estado_proceso_atencion_db, server_default=text("'borrador'"), nullable=False
+    )
+    fecha_cierre: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
     observaciones: Mapped[str | None] = mapped_column(Text)
     motivo_consulta: Mapped[str | None] = mapped_column(Text)
     anamnesis: Mapped[str | None] = mapped_column(Text)
@@ -357,6 +393,21 @@ class ProcesoAtencion(Base):
     )
     ordenes_cobro: Mapped[list["OrdenCobro"]] = relationship(
         back_populates="proceso_atencion", passive_deletes=True
+    )
+    diagnosticos: Mapped[list["DiagnosticoAtencion"]] = relationship(
+        back_populates="proceso", cascade="all, delete-orphan"
+    )
+    ordenes_examen: Mapped[list["OrdenExamen"]] = relationship(
+        back_populates="proceso", cascade="all, delete-orphan"
+    )
+    receta: Mapped["Receta | None"] = relationship(
+        back_populates="proceso", cascade="all, delete-orphan", uselist=False
+    )
+    procedimientos_realizados: Mapped[list["ProcedimientoRealizado"]] = relationship(
+        back_populates="proceso", cascade="all, delete-orphan"
+    )
+    aplicaciones_preventivas: Mapped[list["AplicacionPreventiva"]] = relationship(
+        back_populates="proceso", cascade="all, delete-orphan"
     )
 
 
@@ -382,6 +433,105 @@ class ProcesoAtencionMedica(Base):
     ficha_clinica: Mapped["FichaClinica | None"] = relationship(
         back_populates="proceso_medico", cascade="all, delete-orphan", uselist=False
     )
+
+
+class DiagnosticoAtencion(Base):
+    __tablename__ = "diagnosticos_atencion"
+    __table_args__ = ({"schema": SCHEMA},)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proceso_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="CASCADE"), nullable=False)
+    codigo: Mapped[str | None] = mapped_column(String(50))
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False)
+    es_principal: Mapped[bool] = mapped_column(Boolean, server_default=text("false"), nullable=False)
+    observaciones: Mapped[str | None] = mapped_column(Text)
+
+    proceso: Mapped[ProcesoAtencion] = relationship(back_populates="diagnosticos")
+
+
+class OrdenExamen(Base):
+    __tablename__ = "ordenes_examen"
+    __table_args__ = (Index("idx_ordenes_examen_proceso", "proceso_id"), {"schema": SCHEMA})
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proceso_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="CASCADE"), nullable=False)
+    veterinario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.veterinarios.usuario_id", ondelete="RESTRICT"), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(100), nullable=False)
+    prioridad: Mapped[PrioridadExamen] = mapped_column(prioridad_examen_db, server_default=text("'rutina'"), nullable=False)
+    estado: Mapped[EstadoOrdenExamen] = mapped_column(estado_orden_examen_db, server_default=text("'solicitado'"), nullable=False)
+    resultado: Mapped[str | None] = mapped_column(Text)
+    interpretacion: Mapped[str | None] = mapped_column(Text)
+    revisado_por: Mapped[int | None] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.veterinarios.usuario_id", ondelete="RESTRICT"))
+    revisado_en: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    fecha_solicitud: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    proceso: Mapped[ProcesoAtencion] = relationship(back_populates="ordenes_examen")
+
+
+class Receta(Base):
+    __tablename__ = "recetas"
+    __table_args__ = ({"schema": SCHEMA},)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proceso_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="CASCADE"), unique=True, nullable=False)
+    veterinario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.veterinarios.usuario_id", ondelete="RESTRICT"), nullable=False)
+    indicaciones_generales: Mapped[str | None] = mapped_column(Text)
+    fecha_emision: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    proceso: Mapped[ProcesoAtencion] = relationship(back_populates="receta")
+    detalles: Mapped[list["DetalleReceta"]] = relationship(back_populates="receta", cascade="all, delete-orphan")
+
+
+class DetalleReceta(Base):
+    __tablename__ = "detalles_receta"
+    __table_args__ = ({"schema": SCHEMA},)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    receta_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.recetas.id", ondelete="CASCADE"), nullable=False)
+    medicamento: Mapped[str] = mapped_column(String(150), nullable=False)
+    presentacion: Mapped[str | None] = mapped_column(String(150))
+    dosis: Mapped[str] = mapped_column(String(100), nullable=False)
+    unidad: Mapped[str] = mapped_column(String(50), nullable=False)
+    via: Mapped[str] = mapped_column(String(80), nullable=False)
+    frecuencia: Mapped[str] = mapped_column(String(100), nullable=False)
+    duracion: Mapped[str] = mapped_column(String(100), nullable=False)
+    cantidad: Mapped[str | None] = mapped_column(String(50))
+    indicaciones: Mapped[str | None] = mapped_column(Text)
+
+    receta: Mapped[Receta] = relationship(back_populates="detalles")
+
+
+class ProcedimientoRealizado(Base):
+    __tablename__ = "procedimientos_realizados"
+    __table_args__ = ({"schema": SCHEMA},)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proceso_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="CASCADE"), nullable=False)
+    veterinario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.veterinarios.usuario_id", ondelete="RESTRICT"), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    fecha_realizacion: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    medicamentos_materiales: Mapped[list | None] = mapped_column(JSON)
+    observaciones: Mapped[str | None] = mapped_column(Text)
+
+    proceso: Mapped[ProcesoAtencion] = relationship(back_populates="procedimientos_realizados")
+
+
+class AplicacionPreventiva(Base):
+    __tablename__ = "aplicaciones_preventivas"
+    __table_args__ = ({"schema": SCHEMA},)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proceso_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.procesos_atencion.id", ondelete="CASCADE"), nullable=False)
+    veterinario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.veterinarios.usuario_id", ondelete="RESTRICT"), nullable=False)
+    tipo: Mapped[TipoAplicacionPreventiva] = mapped_column(tipo_aplicacion_preventiva_db, nullable=False)
+    producto: Mapped[str] = mapped_column(String(150), nullable=False)
+    lote: Mapped[str | None] = mapped_column(String(100))
+    fecha_vencimiento: Mapped[datetime.date | None] = mapped_column(Date)
+    fecha_aplicacion: Mapped[datetime.date] = mapped_column(Date, server_default=func.current_date(), nullable=False)
+    proxima_fecha: Mapped[datetime.date | None] = mapped_column(Date)
+    observaciones: Mapped[str | None] = mapped_column(Text)
+
+    proceso: Mapped[ProcesoAtencion] = relationship(back_populates="aplicaciones_preventivas")
 
 
 class ProcesoAtencionEstetica(Base):

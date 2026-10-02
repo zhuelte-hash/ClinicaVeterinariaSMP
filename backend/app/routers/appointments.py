@@ -15,6 +15,18 @@ from app.schemas.appointments import (
     AvailabilitySlot,
     ClinicalRecordCreate,
     ClinicalRecordRead,
+    AttentionStatusUpdate,
+    DiagnosisCreate,
+    DiagnosisRead,
+    ExamOrderCreate,
+    ExamOrderRead,
+    ExamOrderUpdate,
+    PrescriptionCreate,
+    PrescriptionRead,
+    ProcedureCreate,
+    ProcedureRead,
+    PreventiveApplicationCreate,
+    PreventiveApplicationRead,
     VeterinarianAppointmentRead,
     PetCreate,
     PetRead,
@@ -232,6 +244,8 @@ def start_veterinarian_walk_in(data: VeterinarianWalkInCreate, db: DbSession, ve
         raise HTTPException(status_code=404, detail="Mascota no encontrada") from exc
     except ServiceNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Servicio no encontrado") from exc
+    except AppointmentConflictError as exc:
+        raise HTTPException(status_code=409, detail="No hay un espacio inmediato; intenta nuevamente para buscar el siguiente horario disponible.") from exc
 
 
 @router.patch(
@@ -369,6 +383,94 @@ def register_clinical_record(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+@router.post(
+    "/veterinario/solicitudes/{appointment_id}/atencion/iniciar",
+    response_model=ClinicalRecordRead,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Portal veterinario"],
+)
+def start_clinical_record(appointment_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return _clinical_read(AppointmentService(db).start_clinical_record(veterinarian, appointment_id))
+    except AppointmentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Cita no encontrada o no asignada") from exc
+    except CoordinationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def _clinical_not_found(exc: AppointmentNotFoundError) -> HTTPException:
+    return HTTPException(status_code=404, detail="Atención no encontrada o no asignada al veterinario")
+
+
+@router.patch("/veterinario/atenciones/{process_id}/estado", response_model=ClinicalRecordRead, tags=["Portal veterinario"])
+def update_attention_status(process_id: int, data: AttentionStatusUpdate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        process = AppointmentService(db).update_attention_status(veterinarian, process_id, data)
+        return _clinical_read(AppointmentService(db).get_clinical_record_for_process(process.id))
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+    except CoordinationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/veterinario/atenciones/{process_id}/diagnosticos", response_model=DiagnosisRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def add_diagnosis(process_id: int, data: DiagnosisCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).add_diagnosis(veterinarian, process_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
+@router.post("/veterinario/atenciones/{process_id}/ordenes-examen", response_model=ExamOrderRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def add_exam_order(process_id: int, data: ExamOrderCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).add_exam_order(veterinarian, process_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
+@router.get("/veterinario/atenciones/{process_id}/ordenes-examen", response_model=list[ExamOrderRead], tags=["Portal veterinario"])
+def get_exam_orders(process_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).get_exam_orders(veterinarian, process_id)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
+@router.patch("/veterinario/ordenes-examen/{order_id}", response_model=ExamOrderRead, tags=["Portal veterinario"])
+def update_exam_order(order_id: int, data: ExamOrderUpdate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).update_exam_order(veterinarian, order_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+    except CoordinationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.put("/veterinario/atenciones/{process_id}/receta", response_model=PrescriptionRead, tags=["Portal veterinario"])
+def save_prescription(process_id: int, data: PrescriptionCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).save_prescription(veterinarian, process_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
+@router.post("/veterinario/atenciones/{process_id}/procedimientos", response_model=ProcedureRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def add_procedure(process_id: int, data: ProcedureCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).add_procedure(veterinarian, process_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
+@router.post("/veterinario/atenciones/{process_id}/preventivos", response_model=PreventiveApplicationRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
+def add_preventive(process_id: int, data: PreventiveApplicationCreate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return AppointmentService(db).add_preventive(veterinarian, process_id, data)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
 @router.get("/notificaciones", response_model=list[NotificationRead], tags=["Notificaciones"])
 def get_notifications(db: DbSession, user: CurrentUser):
     return AppointmentService(db).get_notifications(user.id)
@@ -393,6 +495,8 @@ def _clinical_read(process):
         tipo=process.tipo.value,
         fecha_inicio=process.fecha_inicio,
         fecha_fin=process.fecha_fin,
+        estado=process.estado.value,
+        fecha_cierre=process.fecha_cierre,
         observaciones=process.observaciones,
         motivo_consulta=process.motivo_consulta,
         anamnesis=process.anamnesis,

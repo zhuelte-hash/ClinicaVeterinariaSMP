@@ -72,10 +72,8 @@ export class VeterinarianLayoutComponent {
   private readonly router = inject(Router);
   readonly drawerOpen = signal(false);
   readonly navigation: NavigationGroup[] = [
-    { label: 'Inicio', items: [{ label: 'Nueva atención', route: 'consultas', icon: '01' }] },
-    { label: 'Pacientes', items: [{ label: 'Historial', route: 'mascotas', icon: '03' }] },
-    { label: 'Atención', items: [{ label: 'Hospitalización', route: 'hospitalizacion', icon: '06' }, { label: 'Hospedaje', route: 'hospedaje', icon: '07' }, { label: 'Vacunación', route: 'vacunacion', icon: '08' }, { label: 'Desparasitación', route: 'desparasitacion', icon: '09' }, { label: 'Estética', route: 'estetica', icon: '10' }, { label: 'A domicilio', route: 'domicilio', icon: '11' }] },
-    { label: 'Diagnóstico y gestión', items: [{ label: 'Imágenes médicas', route: 'imagenes', icon: '12' }, { label: 'Laboratorio', route: 'laboratorio', icon: '13' }, { label: 'Reportes', route: 'reportes', icon: '15' }] },
+    { label: 'Inicio', items: [{ label: 'Mis citas', route: 'consultas', icon: '01' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: '02' }] },
+    { label: 'Pacientes', items: [{ label: 'Historia clínica', route: 'mascotas', icon: '03' }] },
   ];
   readonly veterinarianName = computed(() => this.auth.currentUser()?.nombre || 'Veterinario');
   readonly veterinarianInitials = computed(() => this.veterinarianName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());

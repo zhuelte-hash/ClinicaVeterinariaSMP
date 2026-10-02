@@ -3,7 +3,10 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.clinic import EstadoCita
+from app.models.clinic import (
+    EstadoCita, EstadoOrdenExamen, EstadoProcesoAtencion, PrioridadExamen,
+    TipoAplicacionPreventiva,
+)
 
 
 class PetCreate(BaseModel):
@@ -140,10 +143,16 @@ class AppointmentCoordinationUpdate(BaseModel):
 
 
 class AppointmentSummary(BaseModel):
-    pendientes: int
-    confirmadas: int
-    atendidas: int
-    proximas: int
+    pendientes: int = 0
+    confirmadas: int = 0
+    atendidas: int = 0
+    proximas: int = 0
+    citas_hoy: int = 0
+    pacientes_espera: int = 0
+    atenciones_en_curso: int = 0
+    resultados_pendientes: int = 0
+    seguimientos_pendientes: int = 0
+    hospitalizados: int = 0
 
 
 class ScheduleRead(BaseModel):
@@ -191,6 +200,7 @@ class ScheduleBlockRead(ScheduleBlockCreate):
 
 
 class ClinicalRecordCreate(BaseModel):
+    estado: EstadoProcesoAtencion = EstadoProcesoAtencion.CERRADA
     motivo_consulta: str | None = Field(default=None, max_length=5000)
     anamnesis: str | None = Field(default=None, max_length=5000)
     observaciones: str | None = Field(default=None, max_length=5000)
@@ -214,6 +224,8 @@ class ClinicalRecordRead(BaseModel):
     tipo: str
     fecha_inicio: datetime.datetime
     fecha_fin: datetime.datetime | None
+    estado: str
+    fecha_cierre: datetime.datetime | None
     observaciones: str | None
     motivo_consulta: str | None
     anamnesis: str | None
@@ -231,6 +243,110 @@ class ClinicalRecordRead(BaseModel):
     veterinario_id: int
     veterinario_nombre: str
     servicio_nombre: str
+
+
+class AttentionStatusUpdate(BaseModel):
+    estado: EstadoProcesoAtencion
+
+
+class DiagnosisCreate(BaseModel):
+    descripcion: str = Field(min_length=1, max_length=5000)
+    codigo: str | None = Field(default=None, max_length=50)
+    es_principal: bool = False
+    observaciones: str | None = Field(default=None, max_length=5000)
+
+
+class DiagnosisRead(DiagnosisCreate):
+    id: int
+    proceso_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExamOrderCreate(BaseModel):
+    tipo: str = Field(min_length=1, max_length=100)
+    prioridad: PrioridadExamen = PrioridadExamen.RUTINA
+
+
+class ExamOrderUpdate(BaseModel):
+    estado: EstadoOrdenExamen
+    resultado: str | None = Field(default=None, max_length=10000)
+    interpretacion: str | None = Field(default=None, max_length=10000)
+
+
+class ExamOrderRead(ExamOrderCreate, ExamOrderUpdate):
+    id: int
+    proceso_id: int
+    veterinario_id: int
+    revisado_por: int | None
+    revisado_en: datetime.datetime | None
+    fecha_solicitud: datetime.datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PrescriptionDetailCreate(BaseModel):
+    medicamento: str = Field(min_length=1, max_length=150)
+    presentacion: str | None = Field(default=None, max_length=150)
+    dosis: str = Field(min_length=1, max_length=100)
+    unidad: str = Field(min_length=1, max_length=50)
+    via: str = Field(min_length=1, max_length=80)
+    frecuencia: str = Field(min_length=1, max_length=100)
+    duracion: str = Field(min_length=1, max_length=100)
+    cantidad: str | None = Field(default=None, max_length=50)
+    indicaciones: str | None = Field(default=None, max_length=5000)
+
+
+class PrescriptionCreate(BaseModel):
+    indicaciones_generales: str | None = Field(default=None, max_length=5000)
+    detalles: list[PrescriptionDetailCreate] = Field(min_length=1)
+
+
+class PrescriptionDetailRead(PrescriptionDetailCreate):
+    id: int
+    receta_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PrescriptionRead(BaseModel):
+    id: int
+    proceso_id: int
+    veterinario_id: int
+    indicaciones_generales: str | None
+    fecha_emision: datetime.datetime
+    detalles: list[PrescriptionDetailRead]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProcedureCreate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=150)
+    fecha_realizacion: datetime.datetime | None = None
+    medicamentos_materiales: list[dict[str, object]] | None = None
+    observaciones: str | None = Field(default=None, max_length=5000)
+
+
+class ProcedureRead(ProcedureCreate):
+    id: int
+    proceso_id: int
+    veterinario_id: int
+    fecha_realizacion: datetime.datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PreventiveApplicationCreate(BaseModel):
+    tipo: TipoAplicacionPreventiva
+    producto: str = Field(min_length=1, max_length=150)
+    lote: str | None = Field(default=None, max_length=100)
+    fecha_vencimiento: datetime.date | None = None
+    fecha_aplicacion: datetime.date | None = None
+    proxima_fecha: datetime.date | None = None
+    observaciones: str | None = Field(default=None, max_length=5000)
+
+
+class PreventiveApplicationRead(PreventiveApplicationCreate):
+    id: int
+    proceso_id: int
+    veterinario_id: int
+    fecha_aplicacion: datetime.date
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationRead(BaseModel):

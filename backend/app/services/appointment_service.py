@@ -8,6 +8,14 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.clinic import (
     BloqueoHorario,
     Cita,
+    AplicacionPreventiva,
+    DiagnosticoAtencion,
+    DetalleReceta,
+    EstadoOrdenExamen,
+    EstadoProcesoAtencion,
+    OrdenExamen,
+    ProcedimientoRealizado,
+    Receta,
     EstadoCita,
     FichaClinica,
     HorarioVeterinario,
@@ -24,6 +32,13 @@ from app.schemas.appointments import (
     AppointmentCoordinationUpdate,
     AppointmentCreate,
     ClinicalRecordCreate,
+    AttentionStatusUpdate,
+    DiagnosisCreate,
+    ExamOrderCreate,
+    ExamOrderUpdate,
+    PrescriptionCreate,
+    ProcedureCreate,
+    PreventiveApplicationCreate,
     PetCreate,
     VeterinarianWalkInCreate,
     ScheduleBlockCreate,
@@ -116,12 +131,31 @@ class AppointmentService:
         if service is None:
             raise ServiceNotFoundError
         scheduled_at = datetime.datetime.now(datetime.timezone.utc)
+        duration = datetime.timedelta(minutes=service.duracion_estimada_min)
+        # A walk-in still needs a cita because the clinical process keeps that traceability.
+        # Move it to the next free minute instead of violating the agenda exclusion constraint.
+        while True:
+            scheduled_end = scheduled_at + duration
+            conflict_end = self.db.scalar(
+                select(Cita.fecha_hora_fin_programada)
+                .where(
+                    Cita.veterinario_id == veterinarian.id,
+                    Cita.estado.not_in({EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO}),
+                    Cita.fecha_hora_programada < scheduled_end,
+                    Cita.fecha_hora_fin_programada > scheduled_at,
+                )
+                .order_by(Cita.fecha_hora_fin_programada.desc())
+                .limit(1)
+            )
+            if conflict_end is None:
+                break
+            scheduled_at = conflict_end + datetime.timedelta(minutes=1)
         appointment = Cita(
             mascota_id=pet.id,
             servicio_id=service.id,
             veterinario_id=veterinarian.id,
             fecha_hora_programada=scheduled_at,
-            fecha_hora_fin_programada=scheduled_at + datetime.timedelta(minutes=service.duracion_estimada_min),
+            fecha_hora_fin_programada=scheduled_at + duration,
             estado=EstadoCita.CONFIRMADA,
             es_urgente=data.es_urgente,
             motivo=data.motivo,
@@ -413,7 +447,15 @@ class AppointmentService:
 
     def get_summary(self, veterinarian_id: int) -> dict[str, int]:
         now = datetime.datetime.now(datetime.timezone.utc)
+        today = now.astimezone(CLINIC_TIMEZONE).date()
+        day_start = datetime.datetime.combine(today, datetime.time.min, tzinfo=CLINIC_TIMEZONE)
+        day_end = day_start + datetime.timedelta(days=1)
         active = self.get_veterinarian_appointments(veterinarian_id)
+        owned_process = select(ProcesoAtencion.id).outerjoin(ProcesoAtencion.cita).outerjoin(
+            ProcesoAtencion.proceso_medico
+        ).where(
+            or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id)
+        )
         return {
             "pendientes": sum(item.estado == EstadoCita.PENDIENTE_CONTACTO for item in active),
             "confirmadas": sum(item.estado in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA} for item in active),
@@ -427,6 +469,34 @@ class AppointmentService:
                 and item.fecha_hora_programada >= now
                 for item in active
             ),
+            "citas_hoy": self.db.scalar(select(func.count(Cita.id)).where(
+                Cita.veterinario_id == veterinarian_id,
+                Cita.fecha_hora_programada >= day_start,
+                Cita.fecha_hora_programada < day_end,
+                Cita.estado.not_in({EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO}),
+            )) or 0,
+            "pacientes_espera": sum(item.estado in {
+                EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA
+            } and item.fecha_hora_programada <= now for item in active),
+            "atenciones_en_curso": self.db.scalar(select(func.count(ProcesoAtencion.id)).where(
+                ProcesoAtencion.estado == EstadoProcesoAtencion.EN_ATENCION,
+                ProcesoAtencion.id.in_(owned_process),
+            )) or 0,
+            "resultados_pendientes": self.db.scalar(select(func.count(OrdenExamen.id)).where(
+                OrdenExamen.estado == EstadoOrdenExamen.RESULTADO_DISPONIBLE,
+                OrdenExamen.proceso_id.in_(owned_process),
+            )) or 0,
+            "seguimientos_pendientes": self.db.scalar(select(func.count(ProcesoAtencion.id)).where(
+                ProcesoAtencion.proxima_fecha_control >= today,
+                ProcesoAtencion.id.in_(owned_process),
+            )) or 0,
+            "hospitalizados": self.db.scalar(select(func.count(ProcesoAtencion.id)).join(
+                ProcesoAtencion.cita
+            ).join(Cita.servicio).where(
+                ProcesoAtencion.estado == EstadoProcesoAtencion.EN_ATENCION,
+                Cita.veterinario_id == veterinarian_id,
+                func.lower(Servicio.nombre).like("%hospital%"),
+            )) or 0,
         }
 
     def get_schedules(self, veterinarian_id: int) -> list[HorarioVeterinario]:
@@ -531,6 +601,11 @@ class AppointmentService:
             process.motivo_consulta = data.motivo_consulta
             process.anamnesis = data.anamnesis
             process.proxima_fecha_control = data.proxima_fecha_control
+        if process.estado == EstadoProcesoAtencion.CERRADA:
+            raise CoordinationError("La atención ya está cerrada y no puede modificarse")
+        process.estado = data.estado
+        if data.estado == EstadoProcesoAtencion.CERRADA:
+            process.fecha_cierre = datetime.datetime.now(datetime.timezone.utc)
         if appointment.servicio.medico:
             medical = process.proceso_medico
             if medical is None:
@@ -569,10 +644,40 @@ class AppointmentService:
                 aesthetic = ProcesoAtencionEstetica(proceso_id=process.id)
                 self.db.add(aesthetic)
             aesthetic.notas_especiales_estilista = data.observaciones
-        appointment.estado = EstadoCita.ATENDIDA
-        appointment.estado_actualizado_por = veterinarian.id
-        process.fecha_fin = datetime.datetime.now(datetime.timezone.utc)
+        if data.estado == EstadoProcesoAtencion.CERRADA:
+            appointment.estado = EstadoCita.ATENDIDA
+            appointment.estado_actualizado_por = veterinarian.id
+            process.fecha_fin = datetime.datetime.now(datetime.timezone.utc)
+        else:
+            process.fecha_fin = None
         self.db.commit()
+        return self.get_clinical_record_for_process(process.id)
+
+    def start_clinical_record(self, veterinarian: Usuario, appointment_id: int) -> ProcesoAtencion:
+        appointment = self._get_appointment_with_details(appointment_id)
+        if appointment is None or appointment.veterinario_id != veterinarian.id:
+            raise AppointmentNotFoundError
+        if appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}:
+            raise CoordinationError("La atención solo puede iniciarse en una cita confirmada")
+        if appointment.proceso_atencion is not None:
+            return self.get_clinical_record_for_process(appointment.proceso_atencion.id)
+        process = ProcesoAtencion(
+            cita_id=appointment.id,
+            mascota_id=appointment.mascota_id,
+            tipo=TipoProcesoAtencion.MEDICA if appointment.servicio.medico else TipoProcesoAtencion.ESTETICA,
+            estado=EstadoProcesoAtencion.EN_ATENCION,
+        )
+        self.db.add(process)
+        self.db.flush()
+        if appointment.servicio.medico:
+            self.db.add(ProcesoAtencionMedica(proceso_id=process.id, veterinario_id=veterinarian.id))
+        else:
+            self.db.add(ProcesoAtencionEstetica(proceso_id=process.id))
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise AppointmentConflictError from exc
         return self.get_clinical_record_for_process(process.id)
 
     def create_initial_clinical_record(
@@ -583,6 +688,15 @@ class AppointmentService:
             Cita.mascota_id == pet_id, Cita.veterinario_id == veterinarian.id
         ).limit(1)):
             raise AppointmentNotFoundError
+        existing = self.db.scalar(
+            select(ProcesoAtencion).join(ProcesoAtencion.proceso_medico).where(
+                ProcesoAtencion.cita_id.is_(None),
+                ProcesoAtencion.mascota_id == pet_id,
+                ProcesoAtencionMedica.veterinario_id == veterinarian.id,
+            )
+        )
+        if existing is not None:
+            return existing
         process = ProcesoAtencion(
             cita_id=None,
             mascota_id=pet_id,
@@ -592,6 +706,8 @@ class AppointmentService:
             anamnesis=data.anamnesis,
             proxima_fecha_control=data.proxima_fecha_control,
             fecha_fin=datetime.datetime.now(datetime.timezone.utc),
+            estado=EstadoProcesoAtencion.CERRADA,
+            fecha_cierre=datetime.datetime.now(datetime.timezone.utc),
         )
         self.db.add(process)
         self.db.flush()
@@ -629,6 +745,127 @@ class AppointmentService:
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica),
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.veterinario).selectinload(Veterinario.usuario),
         ))
+
+    def _owned_process(self, veterinarian_id: int, process_id: int) -> ProcesoAtencion | None:
+        return self.db.scalar(
+            select(ProcesoAtencion)
+            .outerjoin(ProcesoAtencion.cita)
+            .outerjoin(ProcesoAtencion.proceso_medico)
+            .where(
+                ProcesoAtencion.id == process_id,
+                or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id),
+            )
+        )
+
+    def update_attention_status(self, veterinarian: Usuario, process_id: int, data: AttentionStatusUpdate) -> ProcesoAtencion:
+        process = self._owned_process(veterinarian.id, process_id)
+        if process is None:
+            raise AppointmentNotFoundError
+        allowed = {
+            EstadoProcesoAtencion.BORRADOR: {EstadoProcesoAtencion.EN_ATENCION, EstadoProcesoAtencion.CANCELADA},
+            EstadoProcesoAtencion.EN_ATENCION: {EstadoProcesoAtencion.CERRADA, EstadoProcesoAtencion.CANCELADA},
+            EstadoProcesoAtencion.CERRADA: set(),
+            EstadoProcesoAtencion.CANCELADA: set(),
+        }
+        if data.estado not in allowed[process.estado]:
+            raise CoordinationError("La transición de estado de la atención no está permitida")
+        process.estado = data.estado
+        if data.estado == EstadoProcesoAtencion.CERRADA:
+            process.fecha_cierre = datetime.datetime.now(datetime.timezone.utc)
+            process.fecha_fin = process.fecha_cierre
+        self.db.commit()
+        return process
+
+    def add_diagnosis(self, veterinarian: Usuario, process_id: int, data: DiagnosisCreate) -> DiagnosticoAtencion:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        item = DiagnosticoAtencion(proceso_id=process_id, **data.model_dump())
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def add_exam_order(self, veterinarian: Usuario, process_id: int, data: ExamOrderCreate) -> OrdenExamen:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        item = OrdenExamen(proceso_id=process_id, veterinario_id=veterinarian.id, **data.model_dump())
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def get_exam_orders(self, veterinarian: Usuario, process_id: int) -> list[OrdenExamen]:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        return list(self.db.scalars(select(OrdenExamen).where(
+            OrdenExamen.proceso_id == process_id
+        ).order_by(OrdenExamen.fecha_solicitud.desc())).all())
+
+    def update_exam_order(self, veterinarian: Usuario, order_id: int, data: ExamOrderUpdate) -> OrdenExamen:
+        item = self.db.scalar(select(OrdenExamen).where(OrdenExamen.id == order_id))
+        if item is None or self._owned_process(veterinarian.id, item.proceso_id) is None:
+            raise AppointmentNotFoundError
+        allowed = {
+            EstadoOrdenExamen.SOLICITADO: {EstadoOrdenExamen.EN_PROCESO, EstadoOrdenExamen.CANCELADO},
+            EstadoOrdenExamen.EN_PROCESO: {EstadoOrdenExamen.RESULTADO_DISPONIBLE, EstadoOrdenExamen.CANCELADO},
+            EstadoOrdenExamen.RESULTADO_DISPONIBLE: {EstadoOrdenExamen.REVISADO, EstadoOrdenExamen.CANCELADO},
+            EstadoOrdenExamen.REVISADO: set(),
+            EstadoOrdenExamen.CANCELADO: set(),
+        }
+        if data.estado not in allowed[item.estado]:
+            raise CoordinationError("La transición de estado de la orden no está permitida")
+        if data.estado == EstadoOrdenExamen.RESULTADO_DISPONIBLE and not data.resultado:
+            raise CoordinationError("El resultado es obligatorio al marcarlo disponible")
+        if data.estado == EstadoOrdenExamen.REVISADO and not data.resultado:
+            raise CoordinationError("El resultado es obligatorio al revisar la orden")
+        if data.estado == EstadoOrdenExamen.REVISADO:
+            item.revisado_por = veterinarian.id
+            item.revisado_en = datetime.datetime.now(datetime.timezone.utc)
+        item.estado = data.estado
+        item.resultado = data.resultado
+        item.interpretacion = data.interpretacion
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def save_prescription(self, veterinarian: Usuario, process_id: int, data: PrescriptionCreate) -> Receta:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        recipe = self.db.scalar(select(Receta).where(Receta.proceso_id == process_id))
+        if recipe is None:
+            recipe = Receta(proceso_id=process_id, veterinario_id=veterinarian.id, indicaciones_generales=data.indicaciones_generales)
+            self.db.add(recipe)
+            self.db.flush()
+        else:
+            recipe.indicaciones_generales = data.indicaciones_generales
+            recipe.veterinario_id = veterinarian.id
+            recipe.detalles.clear()
+        recipe.detalles = [DetalleReceta(**detail.model_dump()) for detail in data.detalles]
+        self.db.commit()
+        self.db.refresh(recipe)
+        return recipe
+
+    def add_procedure(self, veterinarian: Usuario, process_id: int, data: ProcedureCreate) -> ProcedimientoRealizado:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        values = data.model_dump()
+        values["fecha_realizacion"] = values["fecha_realizacion"] or datetime.datetime.now(datetime.timezone.utc)
+        item = ProcedimientoRealizado(proceso_id=process_id, veterinario_id=veterinarian.id, **values)
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def add_preventive(self, veterinarian: Usuario, process_id: int, data: PreventiveApplicationCreate) -> AplicacionPreventiva:
+        if self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        values = data.model_dump()
+        values["fecha_aplicacion"] = values["fecha_aplicacion"] or datetime.date.today()
+        item = AplicacionPreventiva(proceso_id=process_id, veterinario_id=veterinarian.id, **values)
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item
 
     def get_pet_history(self, pet_id: int, *, client_id: int | None = None, veterinarian_id: int | None = None) -> list[ProcesoAtencion]:
         statement = select(ProcesoAtencion).where(ProcesoAtencion.mascota_id == pet_id)
