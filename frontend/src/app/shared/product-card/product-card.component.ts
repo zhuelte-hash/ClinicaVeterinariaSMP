@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { Router } from '@angular/router';
 import { PharmacyProduct, Product } from '../../core/models/producto.model';
 import { NoticeService } from '../../core/services/notice.service';
 import { CartService } from '../../services/cart.service';
@@ -27,13 +26,9 @@ import { CartService } from '../../services/cart.service';
           @if (previousPrice()) { <span class="pb-0.5 text-sm text-slate-400 line-through">S/ {{ previousPrice()!.toFixed(2) }}</span> }
         </div>
         <p class="mt-2 text-xs font-semibold" [class.text-[#276508]]="item().stock > 0" [class.text-rose-700]="item().stock <= 0">{{ item().stock > 0 ? item().stock + ' unidades disponibles' : 'Sin stock' }}</p>
-        <button type="button" (click)="buyNow()" [disabled]="item().stock <= 0" class="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#E0A71A] px-5 py-3 text-sm font-bold text-[#1A1E27] transition hover:bg-[#efc456] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2] disabled:cursor-not-allowed disabled:bg-[#e3e6ea] disabled:text-slate-600">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18m6-12H6"/><path d="M5 7h14l-1 13H6L5 7Z"/></svg>
-          {{ item().stock > 0 ? 'Comprar ahora' : 'Producto agotado' }}
-        </button>
-        <button type="button" (click)="addToCart()" [disabled]="item().stock <= 0" class="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1A1E27]/20 bg-white px-5 py-2.5 text-sm font-bold text-[#1A1E27] transition hover:border-[#1A98A2] hover:bg-[#1A98A2]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2] disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" (click)="addToCart()" [disabled]="item().stock <= 0" class="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#1A1E27]/20 bg-white px-5 py-2.5 text-sm font-bold text-[#1A1E27] transition hover:border-[#1A98A2] hover:bg-[#1A98A2]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2] disabled:cursor-not-allowed disabled:opacity-50">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2 12h11l2-8H6m4 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
-          {{ compactLabel() ? 'Agregar' : 'Añadir al carrito' }}
+          Agregar al carrito
         </button>
       </div>
     </article>
@@ -41,11 +36,9 @@ import { CartService } from '../../services/cart.service';
 })
 export class ProductCardComponent {
   readonly item = input.required<Product | PharmacyProduct>();
-  readonly compactLabel = input(false);
   readonly favorite = signal(false);
   private readonly cart = inject(CartService);
   private readonly notice = inject(NoticeService);
-  private readonly router = inject(Router);
 
   badge(): string | undefined {
     const product = this.item();
@@ -68,15 +61,6 @@ export class ProductCardComponent {
     const cartItem = this.toCartItem(product);
     this.cart.add(cartItem);
     this.notice.show('Producto añadido al carrito');
-  }
-
-  buyNow(): void {
-    const product = this.item();
-    if (product.stock <= 0) return;
-    const cartItem = this.toCartItem(product);
-    this.cart.add(cartItem);
-    this.notice.show('Producto añadido al carrito');
-    void this.router.navigate(['/carrito']);
   }
 
   private toCartItem(product: Product | PharmacyProduct) {

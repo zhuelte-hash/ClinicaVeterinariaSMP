@@ -72,7 +72,7 @@ export class VeterinarianLayoutComponent {
   private readonly router = inject(Router);
   readonly drawerOpen = signal(false);
   readonly navigation: NavigationGroup[] = [
-    { label: 'Inicio', items: [{ label: 'Mis citas', route: 'consultas', icon: '01' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: '02' }] },
+    { label: 'Inicio', items: [{ label: 'Solicitudes de citas', route: 'agenda', icon: '01' }, { label: 'Mis citas', route: 'consultas', icon: '02' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: '03' }] },
     { label: 'Pacientes', items: [{ label: 'Historia clínica', route: 'mascotas', icon: '03' }] },
   ];
   readonly veterinarianName = computed(() => this.auth.currentUser()?.nombre || 'Veterinario');

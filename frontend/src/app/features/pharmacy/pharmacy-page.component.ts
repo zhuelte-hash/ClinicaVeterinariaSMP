@@ -27,7 +27,7 @@ type SortOption = 'Recomendados' | 'Menor precio' | 'Mayor precio' | 'Nombre A-Z
           </div>
         </aside>
         <div><div class="mb-5 flex items-center justify-between"><p class="text-sm text-slate-500">{{ filteredProducts().length }} resultados</p></div>
-          @if (filteredProducts().length) { <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" [compactLabel]="true" /> }</div> }
+          @if (filteredProducts().length) { <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" /> }</div> }
           @else { <div class="rounded-3xl border border-dashed border-slate-300 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No hay resultados con estos filtros</p><button type="button" (click)="clearFilters()" class="mt-4 font-bold text-sky-600">Limpiar filtros</button></div> }
         </div>
       </div>

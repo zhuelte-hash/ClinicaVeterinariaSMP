@@ -33,6 +33,11 @@ export const VETERINARIAN_ROUTES: Routes = [{
       title: 'Clientes | Clínica SMP',
       loadComponent: () => import('./veterinarian-clients.component').then((m) => m.VeterinarianClientsComponent),
     },
+    {
+      path: 'agenda',
+      title: 'Solicitudes de citas | Clínica SMP',
+      loadComponent: () => import('./veterinarian-dashboard.component').then((m) => m.VeterinarianDashboardComponent),
+    },
     moduleRoute('mascotas', 'mascotas', 'Mascotas e historia clínica'),
     moduleRoute('consultas', 'consultas', 'Consultas y cirugías'),
   ],

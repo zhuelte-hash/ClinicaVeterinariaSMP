@@ -97,8 +97,12 @@ export class VeterinarianDashboardComponent {
   }
 
   update(request: VeterinarianAppointment, estado: AppointmentStatus): void {
-    const nota = this.coordinationNotes[request.id] || '';
+    const nota = this.coordinationNotes[request.id]?.trim() || '';
     const propuesta = this.coordinationDates[request.id] || '';
+    if (estado === 'cancelada' && !nota) {
+      this.errorMessage.set('Indica el motivo del rechazo o cancelación.');
+      return;
+    }
     if (estado === 'requiere_otro_horario' && !propuesta) {
       this.errorMessage.set('Indica el horario alternativo antes de proponerlo.');
       return;
@@ -107,12 +111,13 @@ export class VeterinarianDashboardComponent {
     this.api.updateRequest(request.id, {
       estado,
       nota_coordinacion: nota || undefined,
-      fecha_hora_propuesta: propuesta ? new Date(propuesta).toISOString() : undefined,
+      fecha_hora_propuesta: estado === 'requiere_otro_horario' && propuesta ? new Date(propuesta).toISOString() : undefined,
     }).pipe(finalize(() => this.savingId.set(null))).subscribe({
       next: (updated) => {
         this.requests.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         delete this.coordinationNotes[request.id];
         delete this.coordinationDates[request.id];
+        this.errorMessage.set('');
         this.notice.show('Solicitud actualizada');
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),

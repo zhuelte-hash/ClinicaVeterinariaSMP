@@ -351,7 +351,7 @@ class AppointmentService:
             statement = statement.where(Cita.estado == state)
         if search:
             term = f"%{search.strip()}%"
-            statement = statement.where(or_(Mascota.nombre.ilike(term), Servicio.nombre.ilike(term)))
+            statement = statement.join(Cita.servicio).where(or_(Mascota.nombre.ilike(term), Servicio.nombre.ilike(term)))
         return list(self.db.scalars(statement).all())
 
     def coordinate_appointment(
@@ -400,7 +400,7 @@ class AppointmentService:
             raise CoordinationError("La transición de estado no está permitida")
         if data.estado == EstadoCita.REQUIERE_OTRO_HORARIO and data.fecha_hora_propuesta is None:
             raise CoordinationError("Debes indicar el nuevo horario propuesto")
-        if data.estado == EstadoCita.CANCELADA and not data.nota_coordinacion:
+        if data.estado == EstadoCita.CANCELADA and not (data.nota_coordinacion or "").strip():
             raise CoordinationError("Indica el motivo del rechazo o cancelación")
         if data.fecha_hora_propuesta is not None:
             self._validate_schedule(data.fecha_hora_propuesta, appointment.servicio.duracion_estimada_min)
@@ -429,7 +429,8 @@ class AppointmentService:
             appointment.fecha_hora_propuesta = data.fecha_hora_propuesta
         appointment.veterinario_id = veterinarian.id
         appointment.estado = data.estado
-        appointment.nota_coordinacion = data.nota_coordinacion
+        if data.nota_coordinacion is not None:
+            appointment.nota_coordinacion = data.nota_coordinacion
         appointment.estado_actualizado_por = veterinarian.id
         try:
             self.db.add(
@@ -963,6 +964,7 @@ class AppointmentService:
         return notification
 
     def _confirm_without_overlap(self, appointment: Cita, veterinarian_id: int, scheduled_at: datetime.datetime) -> None:
+        self._validate_schedule(scheduled_at, appointment.servicio.duracion_estimada_min)
         if not self._has_schedule(veterinarian_id, scheduled_at, appointment.servicio.duracion_estimada_min):
             raise InvalidScheduleError("El veterinario no tiene disponibilidad en ese horario")
         candidate_end = scheduled_at + datetime.timedelta(minutes=appointment.servicio.duracion_estimada_min)

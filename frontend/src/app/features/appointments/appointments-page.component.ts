@@ -251,7 +251,7 @@ export class AppointmentsPageComponent {
         this.appointments.update((items) => [appointment, ...items]);
           this.appointmentForm.patchValue({ slot: '', motivo: '', esUrgente: false });
           this.loadAvailability();
-         this.notice.show('Recibimos tu solicitud. El veterinario se comunicará contigo para coordinar y confirmar la cita.');
+          this.notice.show(`Recibimos tu solicitud. Estado: ${this.statusLabel(appointment.estado)}. El veterinario se comunicará contigo para coordinar la cita.`);
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });

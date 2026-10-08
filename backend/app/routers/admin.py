@@ -78,7 +78,7 @@ def deactivate_product(product_id: int, db: DbSession, _user: Annotated[Usuario,
         raise HTTPException(status_code=404, detail="Producto no encontrado") from exc
 
 
-@router.get("/citas", response_model=list[AdminAppointmentRead])
+@router.get("/citas", response_model=list[AdminAppointmentRead], dependencies=[Depends(get_current_admin_user)])
 def get_appointments(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("citas"))], fecha: datetime.date | None = None, estado: str | None = Query(default=None, max_length=50)):
     return AdminService(db).get_appointments(fecha, estado)
 
