@@ -1,4 +1,6 @@
 import pytest
+import datetime
+from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -81,6 +83,19 @@ def test_guest_can_read_booking_options_but_not_private_portal_data(monkeypatch:
         assert client.post("/portal/citas", json={}).status_code == 401
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+def test_booking_hours_exclude_lunch_and_allow_evening() -> None:
+    timezone = ZoneInfo("America/Lima")
+    slot = lambda hour, minute=0: datetime.datetime(2026, 10, 8, hour, minute, tzinfo=timezone)
+    within = AppointmentService._within_booking_hours
+    assert within(slot(8), 30)
+    assert within(slot(11, 30), 30)
+    assert not within(slot(11, 30), 60)
+    assert not within(slot(12), 30)
+    assert within(slot(13), 30)
+    assert within(slot(19, 30), 30)
+    assert not within(slot(19, 30), 60)
 
 
 def test_veterinarian_routes_are_documented() -> None:

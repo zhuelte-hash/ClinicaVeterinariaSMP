@@ -94,7 +94,7 @@ class AdminService:
             statement = statement.where(Cita.fecha_hora_programada >= start, Cita.fecha_hora_programada < end)
         if status:
             statement = statement.where(Cita.estado == status)
-        appointments = self.db.scalars(statement.order_by(Cita.fecha_hora_programada)).all()
+        appointments = self.db.scalars(statement.order_by(Cita.fecha_creacion.desc(), Cita.id.desc())).all()
         return [
             AdminAppointmentRead(
                 id=item.id,

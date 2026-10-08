@@ -202,7 +202,7 @@ class AppointmentService:
                 requested_date, schedule.hora_fin, tzinfo=CLINIC_TIMEZONE
             )
             while cursor + datetime.timedelta(minutes=service.duracion_estimada_min) <= end:
-                if cursor > datetime.datetime.now(datetime.timezone.utc) and not self._has_block(
+                if self._within_booking_hours(cursor, service.duracion_estimada_min) and cursor > datetime.datetime.now(datetime.timezone.utc) and not self._has_block(
                     schedule.veterinario_id,
                     cursor,
                     cursor + datetime.timedelta(minutes=service.duracion_estimada_min),
@@ -1074,7 +1074,13 @@ class AppointmentService:
         now = datetime.datetime.now(datetime.timezone.utc)
         if scheduled_at.astimezone(datetime.timezone.utc) <= now:
             raise InvalidScheduleError("La cita debe programarse en el futuro")
-        local_start = scheduled_at.astimezone(CLINIC_TIMEZONE)
+        if not self._within_booking_hours(scheduled_at, duration_min):
+            raise InvalidScheduleError("El horario de reservas es de lunes a sábado, de 08:00 a 12:00 y de 13:00 a 20:00")
+
+    @staticmethod
+    def _within_booking_hours(start: datetime.datetime, duration_min: int) -> bool:
+        local_start = start.astimezone(CLINIC_TIMEZONE)
         local_end = local_start + datetime.timedelta(minutes=duration_min)
-        if local_start.weekday() == 6 or local_start.time() < datetime.time(8) or local_end.time() > datetime.time(19):
-            raise InvalidScheduleError("El horario de atención es de lunes a sábado, de 08:00 a 19:00")
+        morning = datetime.time(8) <= local_start.time() and local_end.time() <= datetime.time(12)
+        afternoon = datetime.time(13) <= local_start.time() and local_end.time() <= datetime.time(20)
+        return local_start.weekday() < 6 and (morning or afternoon)

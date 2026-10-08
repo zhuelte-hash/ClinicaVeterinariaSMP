@@ -12,6 +12,7 @@ import { Appointment, AppointmentStatus, AvailabilitySlot, ClinicalRecord, Clini
 
 const BOOKING_DRAFT_KEY = 'clinic_booking_draft_v1';
 type BookingDraft = {
+  nombreReserva: string;
   servicioId: number;
   fecha: string;
   slot: string;
@@ -66,6 +67,7 @@ export class AppointmentsPageComponent {
     caracteristicas: ['', Validators.maxLength(2000)],
   });
   readonly appointmentForm = this.formBuilder.nonNullable.group({
+    nombreReserva: ['', [Validators.required, Validators.maxLength(150)]],
     mascotaId: [0, Validators.min(1)],
     servicioId: [0, Validators.min(1)],
     fecha: [this.minDate, Validators.required],
@@ -82,6 +84,7 @@ export class AppointmentsPageComponent {
     toObservable(this.auth.currentUser).pipe(
       takeUntilDestroyed(),
     ).subscribe((user) => {
+      this.appointmentForm.controls.nombreReserva.setValue(user?.nombre ?? this.appointmentForm.controls.nombreReserva.value);
       this.pets.set([]);
       this.appointments.set([]);
       this.historyPetId.set(null);
@@ -166,9 +169,9 @@ export class AppointmentsPageComponent {
   schedule(): void {
     if (this.submitting() || this.loginPromptOpen()) return;
     const value = this.appointmentForm.getRawValue();
-    if (!value.servicioId || !value.fecha || value.fecha < this.minDate || !value.slot || this.availabilityLoading()) {
+    if (!value.nombreReserva.trim() || !value.servicioId || !value.fecha || value.fecha < this.minDate || !value.slot || this.availabilityLoading()) {
       this.appointmentForm.markAllAsTouched();
-      this.errorMessage.set('Selecciona un servicio, una fecha válida y un horario disponible.');
+      this.errorMessage.set('Indica el nombre de quien reserva, un servicio, una fecha válida y un horario disponible.');
       return;
     }
     const selectedSlot = this.availability().find((slot) => slot.fecha_hora === value.slot);
@@ -360,13 +363,9 @@ export class AppointmentsPageComponent {
     }).format(new Date(value));
   }
 
-  money(value: string): string {
-    return Number(value).toFixed(2);
-  }
-
   private saveDraft(): void {
-    const { servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto } = this.appointmentForm.getRawValue();
-    const draft: BookingDraft = { servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto, savedAt: Date.now() };
+    const { nombreReserva, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto } = this.appointmentForm.getRawValue();
+    const draft: BookingDraft = { nombreReserva, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto, savedAt: Date.now() };
     sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
   }
 
@@ -382,6 +381,7 @@ export class AppointmentsPageComponent {
         return;
       }
       this.appointmentForm.patchValue({
+        nombreReserva: draft.nombreReserva ?? '',
         servicioId: draft.servicioId, fecha: draft.fecha, slot: draft.slot,
         motivo: draft.motivo ?? '', esUrgente: draft.esUrgente ?? false,
         telefono: draft.telefono ?? '', preferenciaContacto: draft.preferenciaContacto ?? 'llamada',

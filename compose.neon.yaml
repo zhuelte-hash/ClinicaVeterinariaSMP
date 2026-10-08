@@ -4,9 +4,10 @@ services:
       context: ./backend
     env_file:
       - ./backend/.env
+    # Neon ya tiene una revision posterior a las migraciones de este repositorio.
+    # No ejecutar Alembic automaticamente hasta recuperar esa migracion.
     command: >-
-      sh -c "alembic upgrade head &&
-      (python -m app.tasks.appointment_worker &) &&
+      sh -c "(python -m app.tasks.appointment_worker &) &&
       exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"

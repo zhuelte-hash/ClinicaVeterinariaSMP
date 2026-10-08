@@ -77,7 +77,7 @@ def main() -> None:
                         veterinario_id=user.id,
                         dia_semana=weekday,
                         hora_inicio=time(8),
-                        hora_fin=time(19),
+                        hora_fin=time(20),
                     )
                 )
         db.commit()
