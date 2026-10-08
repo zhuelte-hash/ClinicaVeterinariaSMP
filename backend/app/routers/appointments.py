@@ -275,6 +275,16 @@ def get_veterinarian_summary(db: DbSession, veterinarian: CurrentVeterinarian):
     return AppointmentService(db).get_summary(veterinarian.id)
 
 
+@router.post("/veterinario/solicitudes/{appointment_id}/llegada", response_model=VeterinarianAppointmentRead, tags=["Portal veterinario"])
+def register_veterinarian_arrival(appointment_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return _veterinarian_read(AppointmentService(db).register_arrival(veterinarian, appointment_id))
+    except AppointmentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Cita no encontrada") from exc
+    except CoordinationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.get("/veterinario/horarios", response_model=list[ScheduleRead], tags=["Portal veterinario"])
 def get_veterinarian_schedules(db: DbSession, veterinarian: CurrentVeterinarian):
     return AppointmentService(db).get_schedules(veterinarian.id)

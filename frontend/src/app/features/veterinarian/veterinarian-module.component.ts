@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import jsPDF from 'jspdf';
 import { NoticeService } from '../../core/services/notice.service';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { AppointmentSummary, ClinicalRecord, VeterinarianAppointment } from './veterinarian.models';
@@ -106,6 +107,26 @@ export class VeterinarianModuleComponent {
     void this.router.navigate(['/veterinario/atencion', appointment.id]);
   }
 
+  registerArrival(appointment: VeterinarianAppointment): void {
+    this.api.registerArrival(appointment.id).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.notice.show('Llegada registrada');
+      },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  confirmAppointment(appointment: VeterinarianAppointment): void {
+    this.api.updateRequest(appointment.id, { estado: 'confirmada' }).subscribe({
+      next: (updated) => {
+        this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.notice.show('Cita confirmada');
+      },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
   cancelAttention(): void { this.selectedAppointment.set(null); this.resetAttention(); }
 
   registerAttention(appointment: VeterinarianAppointment): void {
@@ -122,18 +143,119 @@ export class VeterinarianModuleComponent {
   }
 
   sendHistory(appointment: VeterinarianAppointment, channel: 'whatsapp' | 'correo'): void {
+    if (channel === 'whatsapp') {
+      void this.downloadHistoryPdf(appointment);
+      return;
+    }
     this.api.getPetHistory(appointment.mascota.id).subscribe({
       next: (records) => {
         const summary = records.map((record) => `${record.servicio_nombre}: ${record.diagnostico || 'Atención registrada'}`).join(' | ');
         const message = `Historial clínico de ${appointment.mascota.nombre}. ${summary || 'Sin atenciones registradas.'}`;
-        if (channel === 'whatsapp' && appointment.telefono_contacto) {
-          window.open(`https://wa.me/${appointment.telefono_contacto.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
-        } else if (channel === 'correo') {
+        if (channel === 'correo') {
           window.location.href = `mailto:${appointment.cliente_correo}?subject=${encodeURIComponent(`Historial de ${appointment.mascota.nombre}`)}&body=${encodeURIComponent(message)}`;
         }
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
+  }
+
+  async downloadHistoryPdf(appointment: VeterinarianAppointment): Promise<void> {
+    this.api.getPetHistory(appointment.mascota.id).subscribe({
+      next: async (records) => {
+        const pdf = new jsPDF();
+        const logo = await this.loadImage('/logo.png');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        let y = 18;
+
+        if (logo) pdf.addImage(logo, 'PNG', 16, 12, 28, 28);
+        pdf.setTextColor(16, 43, 53);
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('CLINICA VETERINARIA SAN MARTIN DE PORRES', 50, 23);
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Historial clinico veterinario', 50, 30);
+        pdf.setDrawColor(22, 139, 131);
+        pdf.line(16, 46, pageWidth - 16, 46);
+        y = 58;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Datos del paciente', 16, y);
+        y += 8;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Mascota: ${appointment.mascota.nombre}`, 16, y);
+        pdf.text(`Especie: ${appointment.mascota.especie}`, 105, y);
+        y += 6;
+        pdf.text(`Raza: ${appointment.mascota.raza || 'No registrada'}`, 16, y);
+        pdf.text(`Propietario: ${appointment.cliente_nombre}`, 105, y);
+        y += 6;
+        pdf.text(`Correo: ${appointment.cliente_correo}`, 16, y);
+        pdf.text(`Telefono: ${appointment.telefono_contacto || 'No registrado'}`, 105, y);
+        y += 14;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`Atenciones registradas (${records.length})`, 16, y);
+        y += 9;
+
+        const fields: Array<[string, keyof ClinicalRecord]> = [
+          ['Motivo de consulta', 'motivo_consulta'], ['Anamnesis', 'anamnesis'],
+          ['Observaciones', 'observaciones'], ['Diagnostico', 'diagnostico'],
+          ['Tratamiento', 'tratamiento'], ['Peso (kg)', 'peso'],
+          ['Temperatura (C)', 'temperatura'], ['Alergias', 'historial_alergias'],
+          ['Vacunas', 'vacunas'], ['Desparasitaciones', 'desparasitaciones'],
+          ['Medicamentos', 'medicamentos'], ['Procedimientos', 'procedimientos'],
+          ['Examenes y resultados', 'examenes_resultados'], ['Proximo control', 'proxima_fecha_control'],
+        ];
+
+        records.forEach((record, index) => {
+          if (y > 260) { pdf.addPage(); y = 18; }
+          pdf.setFillColor(234, 249, 246);
+          pdf.rect(16, y - 5, pageWidth - 32, 10, 'F');
+          pdf.setTextColor(16, 43, 53);
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${record.servicio_nombre} · ${this.formatDate(record.fecha_inicio)}`, 20, y + 2);
+          y += 12;
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(60, 70, 75);
+          for (const [label, key] of fields) {
+            const value = record[key];
+            if (value === null || value === undefined || value === '') continue;
+            const lines = pdf.splitTextToSize(`${label}: ${String(value)}`, pageWidth - 40);
+            if (y + lines.length * 5 > 280) { pdf.addPage(); y = 18; }
+            pdf.text(lines, 20, y);
+            y += lines.length * 5 + 2;
+          }
+          pdf.text(`Veterinario: ${record.veterinario_nombre || 'Sin asignar'}`, 20, y);
+          y += 10;
+        });
+
+        pdf.setFontSize(8);
+        pdf.setTextColor(110, 110, 110);
+        pdf.text('Documento generado por la Clinica Veterinaria San Martin de Porres', 16, 290);
+        pdf.save(`historial-${appointment.mascota.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+      },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  private async loadImage(url: string): Promise<string | null> {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
   }
 
   resetAttention(): void { Object.assign(this.attentionForm, { motivo_consulta: '', anamnesis: '', observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '', proxima_fecha_control: '' }); }
@@ -145,7 +267,7 @@ export class VeterinarianModuleComponent {
   }
 
   statusLabel(status: string): string {
-    const labels: Record<string, string> = { pendiente_contacto: 'Pendiente', contactando_cliente: 'Contactando', esperando_respuesta: 'Esperando respuesta', requiere_otro_horario: 'Reprogramar', confirmada: 'Confirmada', cancelada: 'Cancelada', cliente_no_respondio: 'Sin respuesta', atendida: 'Atendida', reprogramada: 'Reprogramada' };
+    const labels: Record<string, string> = { pendiente_contacto: 'Pendiente de confirmación', contactando_cliente: 'Contactando', esperando_respuesta: 'Esperando respuesta', requiere_otro_horario: 'Reprogramar', confirmada: 'Confirmada', cancelada: 'Cancelada', cliente_no_respondio: 'Sin respuesta', no_asistio: 'Cancelada por inasistencia', atendida: 'Atendida', reprogramada: 'Reprogramada' };
     return labels[status] || status;
   }
 

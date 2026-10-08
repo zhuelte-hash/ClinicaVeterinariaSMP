@@ -90,6 +90,8 @@ class AppointmentRead(BaseModel):
     motivo: str | None
     fecha_creacion: datetime.datetime
     fecha_actualizacion: datetime.datetime
+    fecha_hora_llegada: datetime.datetime | None
+    cancelacion_automatica_at: datetime.datetime | None
     fecha_hora_propuesta: datetime.datetime | None
     telefono_contacto: str | None
     preferencia_contacto: str | None

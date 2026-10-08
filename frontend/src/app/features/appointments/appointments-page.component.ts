@@ -329,7 +329,7 @@ export class AppointmentsPageComponent {
       contactando_cliente: 'Contactando al cliente', esperando_respuesta: 'Esperando respuesta',
       requiere_otro_horario: 'Requiere otro horario', confirmada: 'Confirmada',
       reprogramada: 'Reprogramada', atendida: 'Atendida', cancelada: 'Cancelada',
-      cliente_no_respondio: 'Cliente no respondió', no_asistio: 'No asistió',
+       cliente_no_respondio: 'Cliente no respondió', no_asistio: 'Cancelada por inasistencia',
     };
     return labels[status];
   }
@@ -349,7 +349,7 @@ export class AppointmentsPageComponent {
       confirmada: 'Tu cita está confirmada.',
       reprogramada: 'Aceptaste el nuevo horario y la cita está confirmada.',
       atendida: 'La atención fue registrada en el historial de tu mascota.',
-      cancelada: 'Esta solicitud fue cancelada.',
+       cancelada: 'Esta solicitud fue cancelada.', no_asistio: 'La cita fue cancelada porque no registramos tu llegada dentro del tiempo de tolerancia.',
     };
     return descriptions[status] ?? 'Solicitud en revisión.';
   }

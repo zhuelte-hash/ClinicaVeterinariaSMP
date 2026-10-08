@@ -23,6 +23,10 @@ export class VeterinarianApiService {
     return this.http.patch<VeterinarianAppointment>(`${this.baseUrl}/solicitudes/${id}`, data);
   }
 
+  registerArrival(id: number): Observable<VeterinarianAppointment> {
+    return this.http.post<VeterinarianAppointment>(`${this.baseUrl}/solicitudes/${id}/llegada`, {});
+  }
+
   getClients(): Observable<VeterinarianClient[]> {
     return this.http.get<VeterinarianClient[]>(`${this.baseUrl}/clientes`);
   }

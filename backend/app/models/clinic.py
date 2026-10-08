@@ -272,6 +272,8 @@ class Cita(Base):
     fecha_actualizacion: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+    fecha_hora_llegada: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelacion_automatica_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
 
     mascota: Mapped[Mascota] = relationship(back_populates="citas")
     servicio: Mapped[Servicio] = relationship(back_populates="citas")
@@ -609,6 +611,28 @@ class Notificacion(Base):
 
     usuario: Mapped["Usuario"] = relationship(back_populates="notificaciones")
     cita: Mapped["Cita | None"] = relationship()
+
+
+class WhatsAppMessage(Base):
+    __tablename__ = "whatsapp_mensajes"
+    __table_args__ = (
+        UniqueConstraint("cita_id", "evento", name="uq_whatsapp_cita_evento"),
+        Index("idx_whatsapp_mensajes_estado", "estado"),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    cita_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.citas.id", ondelete="CASCADE"), nullable=False)
+    evento: Mapped[str] = mapped_column(String(50), nullable=False)
+    telefono: Mapped[str] = mapped_column(String(30), nullable=False)
+    mensaje: Mapped[str] = mapped_column(Text, nullable=False)
+    estado: Mapped[str] = mapped_column(String(30), nullable=False)
+    proveedor_id: Mapped[str | None] = mapped_column(String(150))
+    detalle_error: Mapped[str | None] = mapped_column(String(500))
+    fecha_creacion: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    fecha_envio: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+
+    cita: Mapped["Cita"] = relationship()
 
 
 class ExamenMedicoAdjunto(Base):

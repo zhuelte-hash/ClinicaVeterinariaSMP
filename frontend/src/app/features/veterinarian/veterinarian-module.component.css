@@ -3,4 +3,12 @@
 .hero-orbit::before, .hero-orbit::after { content: ''; position: absolute; border: 1px solid rgb(255 255 255 / 9%); border-radius: inherit; }
 .hero-orbit::before { inset: 2rem; }
 .hero-orbit::after { inset: 4rem; }
+.hero-pet { animation: pet-float 5s ease-in-out infinite; transform: rotate(3deg); }
+.hero-pet img { transition: transform .5s ease; }
+.hero-pet:hover img { transform: scale(1.08); }
+.empty-pet { animation: pet-bounce 3s ease-in-out infinite; }
+.empty-pet-cat { animation-delay: .35s; }
 .metric-card { box-shadow: 0 10px 30px rgb(16 43 53 / 4%); }
+
+@keyframes pet-float { 0%, 100% { transform: translateY(0) rotate(3deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
+@keyframes pet-bounce { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }

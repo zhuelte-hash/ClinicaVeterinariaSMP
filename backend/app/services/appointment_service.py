@@ -28,6 +28,8 @@ from app.models.clinic import (
     TipoProcesoAtencion,
 )
 from app.models.user import Cliente, Usuario, Veterinario
+from app.config import get_settings
+from app.services.whatsapp_service import WhatsAppService
 from app.schemas.appointments import (
     AppointmentCoordinationUpdate,
     AppointmentCreate,
@@ -443,7 +445,64 @@ class AppointmentService:
         except IntegrityError as exc:
             self.db.rollback()
             raise AppointmentConflictError from exc
+        if data.estado == EstadoCita.CONFIRMADA:
+            settings = get_settings()
+            scheduled_at = appointment.fecha_hora_programada.astimezone(CLINIC_TIMEZONE)
+            message = f"Hola {appointment.mascota.cliente.usuario.nombre}, tu cita para {appointment.mascota.nombre} está confirmada para el {scheduled_at:%d/%m/%Y} a las {scheduled_at:%H:%M}."
+            WhatsAppService(self.db).send_once(
+                appointment,
+                "cita_confirmada",
+                message,
+                settings.whatsapp_template_confirmed,
+                [appointment.mascota.cliente.usuario.nombre, appointment.mascota.nombre, scheduled_at.strftime("%d/%m/%Y"), scheduled_at.strftime("%H:%M")],
+            )
+            self.db.commit()
         return self._get_appointment_with_details(appointment.id)
+
+    def register_arrival(self, veterinarian: Usuario, appointment_id: int) -> Cita:
+        appointment = self._get_appointment_with_details(appointment_id, for_update=True)
+        if appointment is None or appointment.veterinario_id != veterinarian.id:
+            raise AppointmentNotFoundError
+        if appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}:
+            raise CoordinationError("Solo se puede registrar la llegada de una cita confirmada")
+        if appointment.fecha_hora_llegada is None:
+            appointment.fecha_hora_llegada = datetime.datetime.now(datetime.timezone.utc)
+            self.db.add(Notificacion(usuario_id=appointment.mascota.cliente_id, cita_id=appointment.id, tipo="llegada_registrada", titulo="Llegada registrada", mensaje=f"Registramos la llegada de {appointment.mascota.nombre}."))
+            self.db.commit()
+        return self._get_appointment_with_details(appointment.id)
+
+    def expire_unattended_appointments(self) -> list[Cita]:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        tolerance = datetime.timedelta(minutes=get_settings().appointment_tolerance_minutes)
+        candidates = list(self.db.scalars(select(Cita).where(
+            Cita.estado.in_({EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}),
+            Cita.fecha_hora_programada + tolerance <= now,
+            Cita.fecha_hora_llegada.is_(None),
+            Cita.cancelacion_automatica_at.is_(None),
+        ).options(
+            selectinload(Cita.mascota).selectinload(Mascota.cliente).selectinload(Cliente.usuario),
+            selectinload(Cita.servicio), selectinload(Cita.proceso_atencion),
+        ).with_for_update(skip_locked=True)).all())
+        expired: list[Cita] = []
+        settings = get_settings()
+        for appointment in candidates:
+            process = appointment.proceso_atencion
+            if process is not None and process.estado in {EstadoProcesoAtencion.EN_ATENCION, EstadoProcesoAtencion.CERRADA}:
+                continue
+            appointment.estado = EstadoCita.NO_ASISTIO
+            appointment.nota_coordinacion = "Cancelada automáticamente por inasistencia."
+            appointment.cancelacion_automatica_at = now
+            self.db.add(Notificacion(usuario_id=appointment.mascota.cliente_id, cita_id=appointment.id, tipo="cita_no_asistio", titulo="Cita cancelada por inasistencia", mensaje=f"La cita de {appointment.mascota.nombre} fue cancelada por inasistencia."))
+            if appointment.veterinario_id:
+                self.db.add(Notificacion(usuario_id=appointment.veterinario_id, cita_id=appointment.id, tipo="cita_no_asistio", titulo="Cita cancelada por inasistencia", mensaje=f"No se registró la llegada de {appointment.mascota.nombre}."))
+            scheduled_at = appointment.fecha_hora_programada.astimezone(CLINIC_TIMEZONE)
+            message = f"Hola, {appointment.mascota.cliente.usuario.nombre}. Tu cita para {appointment.mascota.nombre}, programada para el {scheduled_at:%d/%m/%Y} a las {scheduled_at:%H:%M}, fue cancelada porque no registramos tu llegada dentro del tiempo de tolerancia. Si deseas reservar una nueva cita, puedes hacerlo aquí: {settings.booking_url}. La nueva cita quedará pendiente de confirmación del veterinario."
+            self.db.flush()
+            WhatsAppService(self.db).send_once(appointment, "cita_no_asistio", message, settings.whatsapp_template_no_show, [appointment.mascota.cliente.usuario.nombre, appointment.mascota.nombre, scheduled_at.strftime("%d/%m/%Y"), scheduled_at.strftime("%H:%M"), settings.booking_url])
+            expired.append(appointment)
+        if expired:
+            self.db.commit()
+        return expired
 
     def get_summary(self, veterinarian_id: int) -> dict[str, int]:
         now = datetime.datetime.now(datetime.timezone.utc)
