@@ -23,8 +23,9 @@ export interface ClinicalRecord {
   vacunas: string | null; desparasitaciones: string | null; medicamentos: string | null;
   procedimientos: string | null; examenes_resultados: string | null;
   proxima_fecha_control: string | null;
-  veterinario_id: number; veterinario_nombre: string; servicio_nombre: string;
+  veterinario_id: number; veterinario_nombre: string; servicio_nombre: string; archivos: ClinicalAttachment[];
 }
+export interface ClinicalAttachment { id: number; tipo_examen: string; archivo_ruta: string; fecha_estudio: string; }
 
 export type AttentionStatus = 'borrador' | 'en_atencion' | 'cerrada' | 'cancelada';
 export type ExamPriority = 'rutina' | 'urgente' | 'emergencia';

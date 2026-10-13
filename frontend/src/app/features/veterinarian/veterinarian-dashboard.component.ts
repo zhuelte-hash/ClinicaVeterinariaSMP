@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { AppointmentStatus } from '../appointments/appointments.models';
@@ -11,7 +11,7 @@ import { AppointmentSummary, ClinicalRecord, Notification, ScheduleBlock, Veteri
 @Component({
   selector: 'app-veterinarian-dashboard',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [FormsModule, ReactiveFormsModule],
   templateUrl: './veterinarian-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -119,6 +119,17 @@ export class VeterinarianDashboardComponent {
         delete this.coordinationDates[request.id];
         this.errorMessage.set('');
         this.notice.show('Solicitud actualizada');
+      },
+      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  registerArrival(request: VeterinarianAppointment): void {
+    this.savingId.set(request.id);
+    this.api.registerArrival(request.id).pipe(finalize(() => this.savingId.set(null))).subscribe({
+      next: (updated) => {
+        this.requests.update((items) => items.map((item) => item.id === updated.id ? updated : item));
+        this.notice.show('Llegada registrada');
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });

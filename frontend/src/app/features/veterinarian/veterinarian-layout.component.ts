@@ -46,25 +46,27 @@ interface NavigationGroup {
         </div>
       </aside>
       <div class="page-shell">
-        <header class="sticky top-0 z-30 flex h-20 items-center border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-8">
+        <header class="sticky top-0 z-30 flex h-[4.25rem] items-center border-b border-slate-200/80 bg-[#f7faf9]/95 px-4 backdrop-blur-xl sm:px-6">
           <button class="rounded-xl border border-slate-200 bg-white p-2.5 lg:hidden" aria-label="Abrir menú" (click)="drawerOpen.set(true)">☰</button>
           <div class="ml-3 lg:ml-0"><p class="text-[10px] font-black uppercase tracking-[.2em] text-[#168b83]">Gestión clínica</p><h1 class="font-black text-[#102b35]">Panel del veterinario</h1></div>
            <div class="ml-auto flex items-center gap-3"><span class="hidden rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 md:block">● Turno activo</span><div class="grid h-10 w-10 place-items-center rounded-xl bg-[#dff8f3] font-black text-[#176f68]">{{ veterinarianInitials() }}</div></div>
         </header>
-        <main class="p-4 sm:p-6 lg:p-8"><router-outlet /></main>
+         <main class="w-full p-4 sm:p-5 lg:p-6"><router-outlet /></main>
       </div>
     </div>
   `,
   styles: [`
-    .vet-app { background: radial-gradient(circle at 88% 0, rgb(88 211 194 / .11), transparent 25rem), #f4f7f6; }
-    .sidebar { width: 17.5rem; background: linear-gradient(180deg, #123b44, #0d2d35 56%, #071e25); box-shadow: 12px 0 38px rgb(7 30 37 / .16); }
-    .page-shell { margin-left: 17.5rem; }
-    .nav-link { color: rgb(213 236 233 / .76); transition: .18s ease; }
-    .nav-link:hover { background: rgb(255 255 255 / .07); color: white; }
-    .nav-link.active { background: #58d3c2; color: #102b35; box-shadow: 0 8px 22px rgb(0 0 0 / .18); }
-    .nav-link.active span:first-child { background: rgb(16 43 53 / .12); }
-    .sidebar-nav { scrollbar-color: rgb(255 255 255 / .15) transparent; scrollbar-width: thin; }
-    @media (max-width: 1023px) { .sidebar { width: min(19rem, 88vw); transform: translateX(-105%); transition: transform .25s; } .sidebar.drawer-open { transform: translateX(0); } .page-shell { margin-left: 0; } }
+     .vet-app { background: #f2f5f7; }
+     .sidebar { width: 13.875rem; background: #172f40; box-shadow: none; }
+     .page-shell { min-width: 0; margin-left: 13.875rem; }
+    .nav-link { color: #d5e3ed; transition: .18s ease; }
+    .nav-link:hover { background: #25495e; color: white; }
+     .nav-link.active { background: #246b77; color: white; box-shadow: inset 3px 0 #86dcd7; }
+     .nav-link.active span:first-child { background: rgb(16 43 53 / .12); }
+     .sidebar-nav { scrollbar-color: rgb(255 255 255 / .15) transparent; scrollbar-width: thin; }
+     .page-shell > header { background: #fff !important; border-color: #dfe7ed !important; }
+     .page-shell > main { max-width: 1400px; margin: 0 auto; background: #f2f5f7; }
+      @media (max-width: 1023px) { .sidebar { width: min(18rem, 88vw); transform: translateX(-105%); transition: transform .25s; } .sidebar.drawer-open { transform: translateX(0); } .page-shell { margin-left: 0; } }
   `],
 })
 export class VeterinarianLayoutComponent {
@@ -72,8 +74,10 @@ export class VeterinarianLayoutComponent {
   private readonly router = inject(Router);
   readonly drawerOpen = signal(false);
   readonly navigation: NavigationGroup[] = [
-    { label: 'Inicio', items: [{ label: 'Solicitudes de citas', route: 'agenda', icon: '01' }, { label: 'Mis citas', route: 'consultas', icon: '02' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: '03' }] },
-    { label: 'Pacientes', items: [{ label: 'Historia clínica', route: 'mascotas', icon: '03' }] },
+    { label: 'Área de trabajo', items: [{ label: 'Inicio', route: 'inicio', icon: '01' }, { label: 'Citas', route: 'agenda', icon: '02' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: '03' }] },
+    { label: 'Pacientes', items: [{ label: 'Pacientes e historial', route: 'mascotas', icon: '04' }, { label: 'Hospedaje', route: 'hospedaje', icon: '05' }] },
+    { label: 'Servicios clínicos', items: [{ label: 'Laboratorio', route: 'laboratorio', icon: '06' }, { label: 'Rayos X / Ecografía', route: 'imagenes', icon: '07' }, { label: 'Vacunas y controles', route: 'vacunacion', icon: '08' }, { label: 'Cirugía', route: 'cirugia', icon: '09' }, { label: 'Hospitalización', route: 'hospitalizacion', icon: '10' }, { label: 'Estética', route: 'estetica', icon: '11' }] },
+    { label: 'Otros servicios', items: [{ label: 'Documentos', route: 'documentos', icon: '12' }] },
   ];
   readonly veterinarianName = computed(() => this.auth.currentUser()?.nombre || 'Veterinario');
   readonly veterinarianInitials = computed(() => this.veterinarianName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());

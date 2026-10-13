@@ -650,6 +650,7 @@ class ExamenMedicoAdjunto(Base):
     )
     tipo_examen: Mapped[str] = mapped_column(String(100), nullable=False)
     archivo_ruta: Mapped[str] = mapped_column(String(500), nullable=False)
+    fecha_estudio: Mapped[datetime.date] = mapped_column(Date, server_default=func.current_date(), nullable=False)
 
     ficha_clinica: Mapped[FichaClinica] = relationship(back_populates="examenes")
 

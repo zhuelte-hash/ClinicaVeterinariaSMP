@@ -1,11 +1,14 @@
 import datetime
 import secrets
+from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.clinic import ExamenMedicoAdjunto, FichaClinica
 from app.models.user import TipoUsuario, Usuario
 from app.schemas.appointments import (
     AppointmentCreate,
@@ -481,6 +484,34 @@ def add_preventive(process_id: int, data: PreventiveApplicationCreate, db: DbSes
         raise _clinical_not_found(exc) from exc
 
 
+@router.post("/veterinario/atenciones/{process_id}/imagenes", tags=["Portal veterinario"])
+async def upload_clinical_image(process_id: int, tipo_examen: str, fecha_estudio: datetime.date, db: DbSession, veterinarian: CurrentVeterinarian, archivo: UploadFile = File(...)):
+    if archivo.content_type not in {"image/jpeg", "image/png", "image/webp", "application/pdf"}:
+        raise HTTPException(status_code=415, detail="Solo se permiten imágenes JPG, PNG, WEBP o PDF")
+    service = AppointmentService(db)
+    process = service._owned_process(veterinarian.id, process_id)
+    if process is None or process.proceso_medico is None:
+        raise HTTPException(status_code=404, detail="Atención clínica no encontrada")
+    ficha = process.proceso_medico.ficha_clinica
+    if ficha is None:
+        ficha = FichaClinica(proceso_medico_id=process.proceso_medico.proceso_id)
+        db.add(ficha)
+        db.flush()
+    folder = Path(__file__).resolve().parents[2] / "uploads" / "clinical"
+    folder.mkdir(parents=True, exist_ok=True)
+    suffix = Path(archivo.filename or "imagen").suffix.lower() or ".jpg"
+    filename = f"{uuid4().hex}{suffix}"
+    contents = await archivo.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="La imagen no puede superar los 10 MB")
+    (folder / filename).write_bytes(contents)
+    attachment = ExamenMedicoAdjunto(ficha_clinica_id=ficha.id, tipo_examen=tipo_examen, fecha_estudio=fecha_estudio, archivo_ruta=f"/uploads/clinical/{filename}")
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    return {"id": attachment.id, "tipo_examen": attachment.tipo_examen, "archivo_ruta": attachment.archivo_ruta, "fecha_estudio": attachment.fecha_estudio}
+
+
 @router.get("/notificaciones", response_model=list[NotificationRead], tags=["Notificaciones"])
 def get_notifications(db: DbSession, user: CurrentUser):
     return AppointmentService(db).get_notifications(user.id)
@@ -524,4 +555,5 @@ def _clinical_read(process):
         veterinario_id=veterinarian.usuario_id if veterinarian else 0,
         veterinario_nombre=veterinarian.usuario.nombre if veterinarian else "",
         servicio_nombre=process.cita.servicio.nombre if process.cita else "Ficha inicial",
+        archivos=[{"id": item.id, "tipo_examen": item.tipo_examen, "archivo_ruta": item.archivo_ruta, "fecha_estudio": item.fecha_estudio} for item in (ficha.examenes if ficha else [])],
     )

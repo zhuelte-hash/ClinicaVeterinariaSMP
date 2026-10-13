@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import jsPDF from 'jspdf';
 import { NoticeService } from '../../core/services/notice.service';
@@ -27,7 +27,7 @@ const MODULES: Record<ModuleKey, ModuleDefinition> = {
   agenda: { eyebrow: 'Agenda central', title: 'Todas las citas, un solo calendario', description: 'Consulta la programación clínica y filtra rápidamente por paciente, propietario o servicio.', action: 'Gestionar solicitudes', empty: 'No hay citas que coincidan con la búsqueda.', keywords: [], metrics: ['Citas visibles', 'Confirmadas', 'Pendientes'], features: ['Vista día, semana y mes', 'Control de cruces de horario', 'Disponibilidad de veterinario y box'], categories: ['Consulta', 'Cirugía', 'Vacuna', 'Estética', 'Laboratorio', 'Hospedaje'] },
   clientes: { eyebrow: 'Directorio clínico', title: 'Clientes y propietarios', description: 'Directorio de propietarios vinculado con sus mascotas y el historial de atención.', action: 'Nueva atención', empty: 'No hay propietarios registrados en las solicitudes disponibles.', keywords: [], metrics: ['Propietarios', 'Con teléfono', 'Pacientes vinculados'], features: ['DNI o RUC y datos de contacto', 'Dirección por ubigeo', 'Notas y valoración del cliente'], categories: ['Datos personales', 'Contacto', 'Ubicación', 'Mascotas'] },
   mascotas: { eyebrow: 'Pacientes', title: 'Historial', description: 'Consulta al propietario, sus mascotas y toda la historia clínica unificada.', action: 'Abrir historial', empty: 'No hay pacientes registrados en las solicitudes disponibles.', keywords: [], metrics: ['Pacientes', 'Caninos', 'Otras especies'], features: ['Propietario y mascotas vinculados', 'Datos de identificación del paciente', 'Línea de tiempo clínica unificada'], categories: ['Consultas', 'Cirugías', 'Vacunas', 'Estética', 'Internamientos'] },
-  consultas: { eyebrow: 'Atención clínica', title: 'Mis citas y pacientes', description: 'Prioriza la jornada, abre la ficha clínica y registra atenciones sin mezclar cobros ni administración.', action: 'Iniciar atención', empty: 'No hay atenciones clínicas activas para mostrar.', keywords: ['consulta', 'cirugía', 'cirugia', 'traumatología', 'traumatologia', 'urgencia'], metrics: ['Citas de hoy', 'En espera', 'En atención', 'Resultados', 'Seguimientos'], features: ['Agenda filtrada por veterinario', 'Diagnóstico, exámenes y receta', 'Cierre clínico trazable'], categories: ['Agenda', 'Historia clínica', 'Órdenes', 'Recetas'] },
+  consultas: { eyebrow: 'Atención clínica', title: 'Consultas y pacientes', description: 'Prioriza la jornada, abre la ficha clínica y registra atenciones sin mezclar cobros ni administración.', action: 'Iniciar atención', empty: 'No hay atenciones clínicas activas para mostrar.', keywords: ['consulta', 'cirugía', 'cirugia', 'traumatología', 'traumatologia', 'urgencia'], metrics: ['Citas de hoy', 'En espera', 'En atención', 'Resultados', 'Seguimientos'], features: ['Agenda filtrada por veterinario', 'Diagnóstico, exámenes y receta', 'Cierre clínico trazable'], categories: ['Agenda', 'Historia clínica', 'Órdenes', 'Recetas'] },
   hospitalizacion: { eyebrow: 'Cuidado continuo', title: 'Internamientos y hospitalización', description: 'Controla ocupación de boxes, evolución diaria, medicación y alta de cada paciente.', action: 'Nueva atención', empty: 'No hay internamientos vinculados con las citas actuales.', keywords: ['hospital', 'internamiento', 'internado'], metrics: ['Ingresos', 'Confirmados', 'Pendientes'], features: ['Ingreso y box asignado', 'Signos vitales y evolución diaria', 'Costo acumulado y alta médica'], categories: ['Boxes ocupados', 'Boxes disponibles', 'Altas del día'] },
   hospedaje: { eyebrow: 'Estadías', title: 'Reservas de hospedaje', description: 'Supervisa check-in, check-out, tarifa e indicaciones especiales durante la estadía.', action: 'Nueva atención', empty: 'No hay reservas de hospedaje en las citas actuales.', keywords: ['hospedaje', 'guardería', 'guarderia'], metrics: ['Reservas', 'Confirmadas', 'Por coordinar'], features: ['Reserva por rango de fechas', 'Tarifa y costo acumulado', 'Alimentación y medicación'], categories: ['Próximos ingresos', 'Hospedados', 'Check-out próximo'] },
   vacunacion: { eyebrow: 'Medicina preventiva', title: 'Vacunación y próximos refuerzos', description: 'Consulta aplicaciones registradas y próximas citas de vacunación por paciente.', action: 'Registrar desde atención', empty: 'No hay citas de vacunación en las solicitudes disponibles.', keywords: ['vacuna', 'vacunación', 'vacunacion'], metrics: ['Registros', 'Confirmadas', 'Pendientes'], features: ['Producto, lote, peso y precio', 'Programación del próximo refuerzo', 'Delivery y cartilla imprimible'], categories: ['Aplicadas', 'Programadas', 'Vencidas', 'Delivery'] },
@@ -43,7 +43,7 @@ const MODULES: Record<ModuleKey, ModuleDefinition> = {
 @Component({
   selector: 'app-veterinarian-module',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   templateUrl: './veterinarian-module.component.html',
   styleUrl: './veterinarian-module.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -94,7 +94,8 @@ export class VeterinarianModuleComponent {
   });
 
   constructor() {
-    this.api.getRequests().pipe(finalize(() => this.loading.set(false))).subscribe({
+    const historyModule = ['mascotas', 'imagenes', 'laboratorio'].includes(this.moduleKey());
+    this.api.getRequests(undefined, historyModule ? 'atendida' : undefined).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (appointments) => this.appointments.set(appointments),
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });

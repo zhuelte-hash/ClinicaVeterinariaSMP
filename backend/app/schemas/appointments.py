@@ -219,6 +219,13 @@ class ClinicalRecordCreate(BaseModel):
     proxima_fecha_control: datetime.date | None = None
 
 
+class ClinicalAttachmentRead(BaseModel):
+    id: int
+    tipo_examen: str
+    archivo_ruta: str
+    fecha_estudio: datetime.date
+
+
 class ClinicalRecordRead(BaseModel):
     id: int
     cita_id: int | None
@@ -245,6 +252,7 @@ class ClinicalRecordRead(BaseModel):
     veterinario_id: int
     veterinario_nombre: str
     servicio_nombre: str
+    archivos: list[ClinicalAttachmentRead] = Field(default_factory=list)
 
 
 class AttentionStatusUpdate(BaseModel):

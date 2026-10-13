@@ -48,6 +48,10 @@ export class VeterinarianApiService {
   createBlock(data: { fecha_hora_inicio: string; fecha_hora_fin: string; motivo: string }): Observable<ScheduleBlock> { return this.http.post<ScheduleBlock>(`${this.baseUrl}/bloqueos`, data); }
   deleteBlock(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/bloqueos/${id}`); }
   getPetHistory(id: number): Observable<ClinicalRecord[]> { return this.http.get<ClinicalRecord[]>(`${this.baseUrl}/mascotas/${id}/historial`); }
+  uploadClinicalImage(processId: number, tipoExamen: string, fechaEstudio: string, file: File): Observable<{ id: number; tipo_examen: string; archivo_ruta: string; fecha_estudio: string }> {
+    const body = new FormData(); body.append('archivo', file);
+    return this.http.post<{ id: number; tipo_examen: string; archivo_ruta: string; fecha_estudio: string }>(`${this.baseUrl}/atenciones/${processId}/imagenes?tipo_examen=${encodeURIComponent(tipoExamen)}&fecha_estudio=${encodeURIComponent(fechaEstudio)}`, body);
+  }
   createInitialHistory(id: number, data: Partial<ClinicalRecord>): Observable<ClinicalRecord> { return this.http.post<ClinicalRecord>(`${this.baseUrl}/mascotas/${id}/historial`, data); }
   registerAttention(id: number, data: Record<string, unknown>): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion`, data); }
   startAttention(id: number): Observable<ClinicalRecord> { return this.http.post<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion/iniciar`, {}); }

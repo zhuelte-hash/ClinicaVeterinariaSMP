@@ -26,6 +26,8 @@ export class VeterinarianAttentionComponent {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
+  studyType = 'Radiografía';
+  studyDate = new Date().toISOString().slice(0, 10);
   readonly examForm = this.formBuilder.nonNullable.group({ tipo: ['Hemograma'], prioridad: ['rutina' as 'rutina' | 'urgente' | 'emergencia'] });
   readonly prescriptionForm = this.formBuilder.nonNullable.group({ medicamento: [''], presentacion: [''], dosis: [''], unidad: ['mg'], via: ['Oral'], frecuencia: [''], duracion: [''], cantidad: [''], indicaciones: [''], indicaciones_generales: [''] });
   readonly procedureForm = this.formBuilder.nonNullable.group({ nombre: [''], observaciones: [''] });
@@ -65,6 +67,21 @@ export class VeterinarianAttentionComponent {
     const record = this.record();
     if (!record || !this.examForm.value.tipo) return;
     this.api.addExamOrder(record.id, this.examForm.getRawValue()).subscribe({ next: (exam) => { this.exams.update((items) => [...items, exam]); this.notice.show('Orden de examen registrada'); }, error: (error: { error?: { detail?: string } }) => this.error.set(error.error?.detail || 'No se pudo solicitar el examen.') });
+  }
+
+  uploadImage(event: Event): void {
+    const record = this.record();
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!record || !file) return;
+    if (this.examForm.value.tipo === 'Laboratorio') {
+      this.error.set('Para laboratorio registra los datos del examen, no subas una imagen.');
+      return;
+    }
+    this.api.uploadClinicalImage(record.id, this.studyType, this.studyDate, file).subscribe({
+      next: (image) => { this.record.update((item) => item ? { ...item, archivos: [...item.archivos, image] } : item); this.notice.show('Imagen clínica cargada'); },
+      error: (error: { error?: { detail?: string } }) => this.error.set(error.error?.detail || 'No se pudo cargar la imagen.'),
+    });
+    (event.target as HTMLInputElement).value = '';
   }
 
   savePrescription(): void {
