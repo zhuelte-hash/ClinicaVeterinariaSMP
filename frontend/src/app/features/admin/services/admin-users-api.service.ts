@@ -21,6 +21,7 @@ export interface CreateAdminUser {
   contrasena: string;
   tipo: BackendRole;
   telefono?: string;
+  direccion?: string;
   colegiatura?: string;
   especialidad?: string;
 }
@@ -30,6 +31,7 @@ export interface UpdateAdminUser {
   correo?: string;
   contrasena?: string;
   telefono?: string;
+  direccion?: string;
   colegiatura?: string;
   especialidad?: string;
 }
@@ -40,7 +42,7 @@ export class AdminUsersApiService {
   private readonly baseUrl = `${environment.apiUrl}/usuarios`;
 
   getUsers(): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(this.baseUrl);
+    return this.http.get<AdminUser[]>(this.baseUrl, { params: { solo_personal: true } });
   }
 
   getUser(id: number): Observable<AdminUser> {

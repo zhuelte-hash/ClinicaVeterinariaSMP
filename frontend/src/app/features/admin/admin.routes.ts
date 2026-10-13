@@ -12,6 +12,7 @@ export const ADMIN_ROUTES: Routes = [{
     { path: 'ventas', title: 'Ventas | Clinica SMP', loadComponent: () => import('./pages/ventas/ventas.component').then((m) => m.VentasComponent) },
     { path: 'notificaciones', title: 'Notificaciones | Clinica SMP', loadComponent: () => import('./pages/notificaciones/notificaciones.component').then((m) => m.NotificacionesComponent) },
     { path: 'usuarios', title: 'Usuarios | Clinica SMP', loadComponent: () => import('./pages/usuarios/usuarios.component').then((m) => m.UsuariosComponent) },
+    { path: 'clientes', title: 'Clientes | Clinica SMP', loadComponent: () => import('./pages/clientes/clientes.component').then((m) => m.ClientesComponent) },
     { path: 'configuracion', title: 'Configuracion | Clinica SMP', loadComponent: () => import('./pages/configuracion/configuracion.component').then((m) => m.ConfiguracionComponent) },
   ],
 }];

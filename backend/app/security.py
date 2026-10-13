@@ -116,6 +116,13 @@ def require_permission(module: str, action: str = "ver"):
         user: Usuario = Depends(get_current_active_user),
         db: Session = Depends(get_db),
     ) -> Usuario:
+        # La matriz administra únicamente las rutas de administración. Los
+        # portales de caja, veterinaria y clientes tienen su propio rol.
+        if user.tipo != TipoUsuario.ADMINISTRADOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Se requiere rol de administrador",
+            )
         permission = db.scalar(
             select(PermisoRol).where(
                 PermisoRol.rol == user.tipo,

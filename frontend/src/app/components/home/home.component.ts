@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NoticeService } from '../../core/services/notice.service';
-import { CartService } from '../../services/cart.service';
-import { PRODUCTS } from '../../core/data/productos.mock';
+import { PublicProductsService } from '../../core/services/public-products.service';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 
 @Component({
@@ -71,19 +69,19 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
           <img src="https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=600&q=80" class="h-36 w-full object-cover rounded-xl mb-4" alt="consulta" />
           <h3 class="font-bold text-pet-900 mb-1">Consulta Médica - S/ 50</h3>
           <p class="text-sm text-gray-600">Atención integral para perros, gatos y más.</p>
-          <button type="button" (click)="add('c1','Consulta Médica',50)" class="site-button mt-auto w-full">Agregar al carrito</button>
+           <a routerLink="/servicios" class="site-button mt-auto w-full">Ver servicio</a>
         </div>
         <div class="site-card flex flex-col p-5 sm:p-6">
           <img src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80" class="h-36 w-full object-cover rounded-xl mb-4" alt="grooming" />
           <h3 class="font-bold text-pet-900 mb-1">Grooming y Baño - S/ 60</h3>
           <p class="text-sm text-gray-600">Belleza y higiene con amor.</p>
-          <button type="button" (click)="add('g1','Grooming y Baño',60)" class="site-button mt-auto w-full">Agregar al carrito</button>
+           <a routerLink="/servicios" class="site-button mt-auto w-full">Ver servicio</a>
         </div>
         <div class="site-card flex flex-col p-5 sm:p-6">
           <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80" class="h-36 w-full object-cover rounded-xl mb-4" alt="vacunas" />
           <h3 class="font-bold text-pet-900 mb-1">Vacunas - S/ 45</h3>
           <p class="text-sm text-gray-600">Prevención y cuidado seguro.</p>
-          <button type="button" (click)="add('v1','Vacuna',45)" class="site-button mt-auto w-full">Agregar al carrito</button>
+           <a routerLink="/servicios" class="site-button mt-auto w-full">Ver servicio</a>
         </div>
       </div>
       <div class="mt-8 text-center">
@@ -105,7 +103,7 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
             <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-3xl bg-[#0B1B6D] p-6 text-white"><div class="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-sky-400/30"></div><p class="text-xs font-bold uppercase tracking-wider text-sky-300">Selección del mes</p><h3 class="mt-3 text-2xl font-black">Ofertas especiales</h3><span class="mt-5 inline-block text-sm font-bold">Descubrir productos →</span></a>
              <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-2xl bg-[#f8ecd2] p-6 text-[#0B1B6D] transition hover:bg-[#f5e4bf]"><div class="absolute -right-6 -top-8 h-28 w-28 rounded-full bg-[#E0A71A]/15"></div><p class="text-xs font-bold uppercase tracking-wider text-[#725409]">Recién llegados</p><h3 class="mt-3 text-2xl font-extrabold">Nuevos productos</h3><span class="mt-5 inline-block text-sm font-bold">Ver novedades →</span></a>
           </div>
-          <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of featuredProducts; track product.id) { <app-product-card [item]="product" /> }</div>
+           <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of featuredProducts(); track product.id) { <app-product-card [item]="product" /> }</div>
         </div>
       </div>
     </section>
@@ -121,25 +119,13 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
   `,
 })
 export class HomeComponent {
-  private readonly cart = inject(CartService);
-  private readonly notice = inject(NoticeService);
-  readonly featuredProducts = PRODUCTS.filter((product) => product.featured).slice(0, 3);
+  private readonly catalog = inject(PublicProductsService);
+  readonly featuredProducts = computed(() => this.catalog.products().filter((product) => product.stock > 0).slice(0, 3));
+  constructor() { this.catalog.load(); }
   readonly favoriteCategories = [
     { title: 'Alimentos para mascotas', text: 'Opciones para acompañar su nutrición diaria.', filter: 'Alimentos', image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85', alt: 'Alimentos para mascotas' },
     { title: 'Accesorios para paseo', text: 'Paseos cómodos, seguros y llenos de aventura.', filter: 'Accesorios', image: 'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85', alt: 'Perro disfrutando un paseo' },
     { title: 'Descanso y comodidad', text: 'Espacios suaves para recuperar energía.', filter: 'Descanso y dormitorio', image: 'https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85', alt: 'Mascota descansando cómodamente' },
   ];
 
-  add(id: string, nombre: string, precio: number): void {
-    const item = {
-      id,
-      nombre,
-      precio,
-      imagen: '/logo.png',
-      imageAlt: nombre,
-      stock: 99,
-    };
-    this.cart.add(item);
-    this.notice.show('Producto añadido al carrito');
-  }
 }

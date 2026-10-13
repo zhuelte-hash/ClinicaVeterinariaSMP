@@ -14,6 +14,7 @@ import { DatosCliente, MetodoPago, PedidoTemporal } from '../../core/models/purc
 import { LocalPurchaseService } from '../../core/services/local-purchase.service';
 import { VisualSessionService } from '../../core/services/visual-session.service';
 import { CartService } from '../../services/cart.service';
+import { PublicProductsService } from '../../core/services/public-products.service';
 
 type DeliveryOption = 'pickup' | 'delivery';
 type ReceiptOption = 'boleta' | 'factura';
@@ -32,6 +33,8 @@ export class PurchaseCheckoutComponent {
   private readonly purchases = inject(LocalPurchaseService);
   private readonly session = inject(VisualSessionService);
   readonly cart = inject(CartService);
+  readonly catalog = inject(PublicProductsService);
+  constructor() { this.catalog.load(); }
   private readonly proofInput = viewChild<ElementRef<HTMLInputElement>>('proofInput');
 
   readonly items = this.cart.items;
@@ -163,6 +166,8 @@ export class PurchaseCheckoutComponent {
       || !this.proofFile()
       || items.length === 0
       || hasInvalidQuantity
+      || this.catalog.loading()
+      || !!this.catalog.error()
     ) {
       return;
     }

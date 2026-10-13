@@ -1,0 +1,43 @@
+<admin-page-header title="Clientes" description="Cuentas de clientes, mascotas y solicitudes de citas registradas." action="Nuevo cliente" (actionClick)="create()" />
+
+@if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 text-sm font-semibold text-rose-700" role="alert">{{ error() }}</p> }
+
+<div class="mb-5 grid gap-4 sm:grid-cols-3">
+  <div class="admin-card p-4"><p class="text-xs font-bold text-slate-500">CLIENTES REGISTRADOS</p><b class="mt-1 block text-2xl">{{ clients().length }}</b></div>
+  <div class="admin-card p-4"><p class="text-xs font-bold text-slate-500">CON CITAS</p><b class="mt-1 block text-2xl">{{ withAppointments() }}</b></div>
+  <div class="admin-card p-4"><p class="text-xs font-bold text-slate-500">CITAS REGISTRADAS</p><b class="mt-1 block text-2xl">{{ totalAppointments() }}</b></div>
+</div>
+<div class="admin-card mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+  <input class="admin-input sm:max-w-sm" placeholder="Buscar nombre, correo o teléfono" aria-label="Buscar clientes" [ngModel]="query()" (ngModelChange)="query.set($event)">
+  <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" [ngModel]="onlyWithAppointments()" (ngModelChange)="onlyWithAppointments.set($event)"> Solo clientes con citas</label>
+  <button type="button" class="admin-secondary" (click)="load()">Actualizar</button>
+</div>
+
+<div class="admin-card overflow-x-auto">
+  @if (loading()) { <p class="p-10 text-center text-slate-500">Cargando clientes...</p> }
+  @else { <table class="admin-table"><thead><tr><th>Cliente</th><th>Contacto</th><th>Mascotas</th><th>Citas</th><th>Última cita registrada</th><th class="text-right">Acciones</th></tr></thead><tbody>
+    @for (client of filtered(); track client.id) {
+      <tr>
+        <td><div class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal-50 font-bold text-teal-700">{{ client.nombre.charAt(0) }}</span><b class="text-slate-800">{{ client.nombre }}</b></div></td>
+        <td><span class="block">{{ client.correo }}</span><span class="block text-sm text-slate-500">{{ client.telefono || 'Sin teléfono' }}</span></td>
+        <td>{{ client.mascotas }}</td><td>{{ client.citas }}</td>
+        <td>{{ client.ultima_cita ? formatDate(client.ultima_cita) : 'Sin citas' }}</td>
+        <td><div class="flex justify-end gap-2"><button type="button" class="admin-secondary" (click)="edit(client)">Editar</button><button type="button" class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40" [disabled]="client.mascotas > 0 || client.citas > 0 || deletingId() === client.id" [title]="client.mascotas > 0 || client.citas > 0 ? 'No se puede eliminar un cliente con mascotas o citas' : 'Eliminar cliente'" (click)="deleteClient(client)">{{ deletingId() === client.id ? 'Eliminando...' : 'Eliminar' }}</button></div></td>
+      </tr>
+    } @empty { <tr><td colspan="6" class="p-8 text-center text-slate-500">No hay clientes con estos filtros.</td></tr> }
+  </tbody></table> }
+</div>
+<p class="mt-4 text-sm text-slate-600">Las citas se gestionan desde <a routerLink="/admin/citas" class="font-bold text-teal-700 hover:underline">Citas</a>. Los clientes con mascotas o citas conservan su historial y no pueden eliminarse desde aquí.</p>
+
+@if (formOpen()) { <div class="admin-modal" (click)="close()"><form class="admin-modal-panel" #clientForm="ngForm" (ngSubmit)="save()" (click)="$event.stopPropagation()">
+  <h2 class="text-xl font-bold">{{ editing() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+  <p class="mt-1 text-sm text-slate-500">{{ editing() ? 'Actualiza sus datos de contacto.' : 'Crea una cuenta de cliente para registrar sus mascotas y citas.' }}</p>
+  @if (error()) { <p class="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700" role="alert">{{ error() }}</p> }
+  <label class="mt-5 block"><span class="admin-label">Nombre completo</span><input required minlength="2" class="admin-input" name="nombre" [(ngModel)]="form.nombre"></label>
+  <label class="mt-4 block"><span class="admin-label">Correo</span><input required type="email" class="admin-input" name="correo" [(ngModel)]="form.correo"></label>
+  <label class="mt-4 block"><span class="admin-label">Teléfono</span><input type="tel" class="admin-input" name="telefono" [(ngModel)]="form.telefono"></label>
+  <label class="mt-4 block"><span class="admin-label">Dirección</span><input class="admin-input" name="direccion" [(ngModel)]="form.direccion"></label>
+  <label class="mt-4 block"><span class="admin-label">{{ editing() ? 'Nueva contraseña (opcional)' : 'Contraseña temporal' }}</span><input type="password" class="admin-input" name="contrasena" minlength="8" [required]="!editing()" [(ngModel)]="form.contrasena"></label>
+  <p class="mt-2 text-xs text-slate-500">{{ editing() ? 'Déjala vacía para conservar la contraseña actual.' : 'Al menos 8 caracteres.' }}</p>
+  <div class="mt-5 flex justify-end gap-2"><button type="button" class="admin-secondary" (click)="close()">Cancelar</button><button class="admin-primary" [disabled]="saving() || clientForm.invalid">{{ saving() ? 'Guardando...' : (editing() ? 'Guardar cambios' : 'Crear cliente') }}</button></div>
+</form></div> }

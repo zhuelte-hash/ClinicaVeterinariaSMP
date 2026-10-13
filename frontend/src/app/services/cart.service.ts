@@ -54,6 +54,18 @@ export class CartService {
     this.update([]);
   }
 
+  reconcile(products: NewCartItem[]): boolean {
+    const byId = new Map(products.map((item) => [item.id, item]));
+    const updated = this.itemsState().flatMap((item) => {
+      const current = byId.get(item.id);
+      if (!current || current.stock <= 0) return [];
+      return [{ ...current, cantidad: Math.min(item.cantidad, current.stock) }];
+    });
+    const changed = JSON.stringify(updated) !== JSON.stringify(this.itemsState());
+    if (changed) this.update(updated);
+    return changed;
+  }
+
   private update(items: CartItem[]): void {
     this.itemsState.set(items);
     sessionStorage.setItem(CART_KEY, JSON.stringify(items));

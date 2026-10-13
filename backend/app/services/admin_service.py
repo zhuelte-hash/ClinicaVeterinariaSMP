@@ -2,16 +2,18 @@ import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.clinic import CategoriaProducto, Cita, ComprobanteVenta, EstadoPago, OrdenCobro, Producto, Proveedor, Mascota
-from app.models.user import Cajero, Cliente, PermisoRol, TipoUsuario, Veterinario
+from app.models.user import Cajero, Cliente, PermisoRol, TipoUsuario, Usuario, Veterinario
 from app.schemas.admin import (
     AdminAppointmentRead, AdminCatalogOption, AdminProductCatalog, AdminProductCreate,
     AdminProductRead,
+    AdminClientRead,
     AdminProductUpdate,
+    InventoryStockUpdate,
     AdminSaleRead,
     AdminSalesDayRead,
     RolePermissionRead,
@@ -42,7 +44,9 @@ class AdminService:
 
     def update_product(self, product_id: int, data: AdminProductUpdate) -> AdminProductRead:
         product = self.db.get(Producto, product_id)
-        if product is None:
+        if product is None or not product.activo:
+            raise AdminNotFoundError
+        if data.categoria_id is not None and self.db.get(CategoriaProducto, data.categoria_id) is None:
             raise AdminNotFoundError
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(product, field, value)
@@ -79,6 +83,33 @@ class AdminService:
             raise AdminNotFoundError
         product.activo = False
         self.db.commit()
+
+    def update_stock(self, product_id: int, data: InventoryStockUpdate) -> AdminProductRead:
+        product = self.db.scalar(select(Producto).where(Producto.id == product_id, Producto.activo).with_for_update())
+        if product is None:
+            raise AdminNotFoundError
+        product.stock_actual = data.stock_actual
+        self.db.commit()
+        self.db.refresh(product)
+        return self._product_read(product)
+
+    def get_clients(self) -> list[AdminClientRead]:
+        rows = self.db.execute(
+            select(
+                Usuario.id, Usuario.nombre, Usuario.correo,
+                Cliente.telefono, Cliente.direccion,
+                func.count(distinct(Mascota.id)).label("mascotas"),
+                func.count(distinct(Cita.id)).label("citas"),
+                func.max(Cita.fecha_hora_programada).label("ultima_cita"),
+            )
+            .join(Cliente, Cliente.usuario_id == Usuario.id)
+            .outerjoin(Mascota, Mascota.cliente_id == Usuario.id)
+            .outerjoin(Cita, Cita.mascota_id == Mascota.id)
+            .where(Usuario.tipo == TipoUsuario.CLIENTE)
+            .group_by(Usuario.id, Cliente.telefono, Cliente.direccion)
+            .order_by(Usuario.nombre, Usuario.id)
+        ).all()
+        return [AdminClientRead.model_validate(row._mapping) for row in rows]
 
     def get_appointments(
         self, date: datetime.date | None = None, status: str | None = None
@@ -149,6 +180,8 @@ class AdminService:
     def update_role_permission(self, role: TipoUsuario, module: str, data: RolePermissionUpdate) -> RolePermissionRead:
         if module not in PERMISSION_MODULES:
             raise ValueError("Módulo de permiso no válido")
+        if role == TipoUsuario.ADMINISTRADOR and module == "usuarios" and not data.puede_editar:
+            raise ValueError("El administrador debe conservar permiso para editar usuarios y permisos")
         permission = self.db.scalar(select(PermisoRol).where(PermisoRol.rol == role, PermisoRol.modulo == module))
         if permission is None:
             permission = PermisoRol(rol=role, modulo=module)
@@ -158,6 +191,33 @@ class AdminService:
         self.db.commit()
         self.db.refresh(permission)
         return RolePermissionRead.model_validate(permission)
+
+    def apply_recommended_permissions(self, role: TipoUsuario | None = None) -> list[RolePermissionRead]:
+        """Reemplaza en una transacción los permisos administrativos seleccionados."""
+        roles = (role,) if role is not None else tuple(TipoUsuario)
+        existing = {(item.rol, item.modulo): item for item in self.db.scalars(
+            select(PermisoRol).where(PermisoRol.rol.in_(roles)).with_for_update()
+        ).all()}
+        result = []
+        for current_role in roles:
+            admin = current_role == TipoUsuario.ADMINISTRADOR
+            for module in PERMISSION_MODULES:
+                permission = existing.get((current_role, module))
+                if permission is None:
+                    permission = PermisoRol(rol=current_role, modulo=module)
+                    self.db.add(permission)
+                permission.puede_ver = admin
+                permission.puede_crear = admin
+                permission.puede_editar = admin
+                permission.puede_eliminar = admin
+                permission.puede_aprobar = admin
+                result.append(permission)
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise AdminConflictError("Los permisos cambiaron al mismo tiempo. Intenta de nuevo")
+        return [RolePermissionRead.model_validate(item) for item in result]
 
     @staticmethod
     def _product_read(product: Producto) -> AdminProductRead:

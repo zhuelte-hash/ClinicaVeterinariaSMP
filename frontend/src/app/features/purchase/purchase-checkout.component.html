@@ -11,6 +11,7 @@
         <p class="text-xs font-black uppercase tracking-[0.22em] text-[#1A98A2]">Compra segura y coordinada</p>
         <h1 class="mt-3 text-3xl font-black tracking-tight text-[#1A1E27] sm:text-4xl">Finaliza tu pedido</h1>
         <p class="mt-3 text-slate-600">Completa tus datos y envía tu comprobante para que caja valide el pago.</p>
+        @if (catalog.error()) { <p class="mt-3 text-rose-700">No se pudo verificar precio y stock. <button type="button" (click)="catalog.load()" class="font-bold underline">Reintentar</button></p> }
       </div>
 
       <form [formGroup]="checkoutForm" (ngSubmit)="submitOrder()" novalidate class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_370px]">
@@ -190,7 +191,7 @@
             <div class="flex justify-between border-t border-dashed border-slate-200 pt-4 text-lg"><dt class="font-black text-[#1A1E27]">Total</dt><dd class="font-black text-[#521B32]">S/ {{ total().toFixed(2) }}</dd></div>
           </dl>
 
-          <button type="submit" class="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[#1A1E27] px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#1A98A2]">
+           <button type="submit" [disabled]="catalog.loading() || !!catalog.error()" class="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[#1A1E27] px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#1A98A2] disabled:opacity-50">
             Confirmar y enviar comprobante
           </button>
           <p class="mt-4 text-center text-xs leading-5 text-slate-500">No se realizará ningún cobro automático. Caja validará el comprobante posteriormente.</p>

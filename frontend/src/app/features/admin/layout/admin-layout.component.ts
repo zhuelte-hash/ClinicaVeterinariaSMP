@@ -23,7 +23,8 @@ export class AdminLayoutComponent {
     { label: 'Inventario', path: 'inventario', icon: 'stock' }, { label: 'Categorías', path: 'categorias', icon: 'tag' },
     { label: 'Citas', path: 'citas', icon: 'calendar' }, { label: 'Ventas', path: 'ventas', icon: 'sale' },
     { label: 'Notificaciones', path: 'notificaciones', icon: 'bell' },
-    { label: 'Usuarios', path: 'usuarios', icon: 'users' }, { label: 'Configuración', path: 'configuracion', icon: 'settings' },
+    { label: 'Usuarios', path: 'usuarios', icon: 'users' }, { label: 'Clientes', path: 'clientes', icon: 'users' },
+    { label: 'Configuración', path: 'configuracion', icon: 'settings' },
   ];
 
   constructor(readonly auth: AuthService, private readonly router: Router, readonly data: AdminDataService) {}

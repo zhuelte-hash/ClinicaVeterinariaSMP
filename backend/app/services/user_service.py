@@ -31,8 +31,11 @@ class UserService:
         except ValueError:
             return False
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Usuario]:
-        statement = select(Usuario).order_by(Usuario.id).offset(skip).limit(limit)
+    def get_all(self, skip: int = 0, limit: int = 100, *, solo_personal: bool = False) -> list[Usuario]:
+        statement = select(Usuario)
+        if solo_personal:
+            statement = statement.where(Usuario.tipo != TipoUsuario.CLIENTE)
+        statement = statement.order_by(Usuario.id).offset(skip).limit(limit)
         return list(self.db.scalars(statement).all())
 
     def get_clients(self, search: str | None = None) -> list[Usuario]:

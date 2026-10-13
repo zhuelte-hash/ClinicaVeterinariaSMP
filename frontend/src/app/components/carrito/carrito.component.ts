@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { NoticeService } from '../../core/services/notice.service';
 import { CartService } from '../../services/cart.service';
+import { PublicProductsService } from '../../core/services/public-products.service';
 
 @Component({
   selector: 'app-carrito',
@@ -70,9 +71,12 @@ import { CartService } from '../../services/cart.service';
 })
 export class CarritoComponent {
   readonly cart = inject(CartService);
+  readonly catalog = inject(PublicProductsService);
   private readonly auth = inject(AuthService);
   private readonly notice = inject(NoticeService);
   private readonly router = inject(Router);
+
+  constructor() { this.catalog.load(); }
 
   continuePurchase(): void {
     if (this.cart.items().length === 0) return;

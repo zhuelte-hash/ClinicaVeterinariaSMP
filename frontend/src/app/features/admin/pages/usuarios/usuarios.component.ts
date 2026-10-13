@@ -37,16 +37,29 @@ export class UsuariosComponent {
   readonly permissions = signal<RolePermission[]>([]);
   readonly permissionsLoading = signal(true);
   readonly permissionSaving = signal('');
+  readonly permissionError = signal('');
+  readonly permissionMessage = signal('');
   readonly selectedPermissionRole = signal<Role>('administrador');
   readonly permissionModules = [
-    { key: 'productos', label: 'Productos e inventario' }, { key: 'ventas', label: 'Ventas' },
-    { key: 'usuarios', label: 'Usuarios' }, { key: 'citas', label: 'Citas' },
-    { key: 'mascotas', label: 'Mascotas' }, { key: 'historias_clinicas', label: 'Historias clínicas' },
+    { key: 'productos', label: 'Productos', description: 'Catálogo, precios y datos de los productos.' },
+    { key: 'inventario', label: 'Inventario', description: 'Existencias y ajustes de stock.' },
+    { key: 'ventas', label: 'Ventas', description: 'Consulta y gestión de ventas.' },
+    { key: 'usuarios', label: 'Usuarios', description: 'Cuentas y permisos del personal.' },
+    { key: 'citas', label: 'Citas', description: 'Agenda y solicitudes de citas.' },
+    { key: 'mascotas', label: 'Mascotas', description: 'Datos de los pacientes.' },
+    { key: 'historias_clinicas', label: 'Historias clínicas', description: 'Información de atención médica.' },
   ];
   readonly permissionRoles: { key: Role; label: string }[] = [
     { key: 'administrador', label: 'Administrador' }, { key: 'cajero', label: 'Cajero' },
     { key: 'veterinario', label: 'Veterinario' }, { key: 'cliente', label: 'Cliente' },
   ];
+  readonly permissionActions: { field: keyof Pick<RolePermission, 'puede_crear' | 'puede_editar' | 'puede_eliminar' | 'puede_aprobar'>; label: string; description: string }[] = [
+    { field: 'puede_crear', label: 'Crear', description: 'Agregar registros nuevos' },
+    { field: 'puede_editar', label: 'Editar', description: 'Modificar registros existentes' },
+    { field: 'puede_eliminar', label: 'Eliminar', description: 'Quitar o desactivar registros' },
+    { field: 'puede_aprobar', label: 'Aprobar', description: 'Validar acciones cuando el módulo lo permita' },
+  ];
+  readonly enabledModules = computed(() => this.permissions().filter((item) => item.rol === this.selectedPermissionRole() && item.puede_ver).length);
   readonly filteredUsers = computed(() => {
     const query = this.query().trim().toLowerCase();
     return this.users().filter((user) => !query || `${user.nombre} ${user.correo} ${user.tipo}`.toLowerCase().includes(query));
@@ -131,9 +144,44 @@ export class UsuariosComponent {
 
   loadPermissions(): void {
     this.permissionsLoading.set(true);
+    this.permissionError.set('');
     this.permissionsApi.getPermissions().pipe(finalize(() => this.permissionsLoading.set(false))).subscribe({
       next: (permissions) => this.permissions.set(permissions),
-      error: (error: unknown) => this.error.set(this.errorText(error)),
+      error: (error: unknown) => this.permissionError.set(this.errorText(error)),
+    });
+  }
+
+  selectPermissionRole(role: Role): void {
+    this.selectedPermissionRole.set(role);
+    this.permissionMessage.set('');
+    this.permissionError.set('');
+  }
+
+  permissionRoleDescription(): string {
+    return {
+      administrador: 'Gestiona la configuración general de la clínica.',
+      cajero: 'Atiende ventas y cobros en caja.',
+      veterinario: 'Gestiona citas e historias clínicas.',
+      cliente: 'Consulta sus datos y solicitudes desde el portal.',
+    }[this.selectedPermissionRole()];
+  }
+
+  applyRecommendedPermissions(role?: Role): void {
+    if (this.permissionSaving() || this.permissionsLoading()) return;
+    this.permissionError.set('');
+    this.permissionMessage.set('');
+    this.permissionSaving.set('perfil');
+    this.permissionsApi.applyRecommendedPermissions(role).pipe(
+      finalize(() => this.permissionSaving.set('')),
+    ).subscribe({
+      next: (updated) => {
+        const changed = new Map(updated.map((item) => [`${item.rol}:${item.modulo}`, item]));
+        this.permissions.update((items) => items.map((item) => changed.get(`${item.rol}:${item.modulo}`) ?? item));
+        this.permissionMessage.set(role
+          ? `Configuración recomendada aplicada a ${this.roleLabel(role)}.`
+          : 'Configuración recomendada aplicada a todos los roles.');
+      },
+      error: (error: unknown) => this.permissionError.set(this.errorText(error)),
     });
   }
 
@@ -142,14 +190,19 @@ export class UsuariosComponent {
   updatePermission(role: Role, module: string, field: keyof Pick<RolePermission, 'puede_ver' | 'puede_crear' | 'puede_editar' | 'puede_eliminar' | 'puede_aprobar'>, checked: boolean): void {
     const current = this.permission(role, module);
     if (!current || this.permissionSaving()) return;
+    this.permissionError.set('');
+    this.permissionMessage.set('');
     const next = { puede_ver: current.puede_ver, puede_crear: current.puede_crear, puede_editar: current.puede_editar, puede_eliminar: current.puede_eliminar, puede_aprobar: current.puede_aprobar, [field]: checked };
     if (checked && field !== 'puede_ver') next.puede_ver = true;
     if (!next.puede_ver) { next.puede_crear = false; next.puede_editar = false; next.puede_eliminar = false; next.puede_aprobar = false; }
     const key = `${role}:${module}`;
     this.permissionSaving.set(key);
     this.permissionsApi.updatePermission(role, module, next).pipe(finalize(() => this.permissionSaving.set(''))).subscribe({
-      next: (updated) => this.permissions.update((items) => items.map((item) => item.rol === role && item.modulo === module ? updated : item)),
-      error: (error: unknown) => this.error.set(this.errorText(error)),
+      next: (updated) => {
+        this.permissions.update((items) => items.map((item) => item.rol === role && item.modulo === module ? updated : item));
+        this.permissionMessage.set(`Cambios guardados en ${this.permissionModules.find((item) => item.key === module)?.label ?? module}.`);
+      },
+      error: (error: unknown) => this.permissionError.set(this.errorText(error)),
     });
   }
 

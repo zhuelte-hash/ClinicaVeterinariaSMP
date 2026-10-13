@@ -148,3 +148,110 @@ def test_sales_api_routes_and_admin_role() -> None:
         assert client.post("/api/admin/ventas/1/anular").status_code == 403
     finally:
         app.dependency_overrides.pop(get_current_active_user, None)
+
+
+def test_catalog_is_public_and_inventory_requires_login() -> None:
+    from types import SimpleNamespace
+
+    class FakeSession:
+        def scalars(self, statement):
+            assert "productos.activo" in str(statement)
+            return SimpleNamespace(all=lambda: [SimpleNamespace(
+                id=42, sku="WEB-ALI-01", nombre="Alimento", precio_venta=42.90,
+                stock_actual=3, stock_minimo=2, activo=True, imagen_url="/logo.png",
+                categoria_id=1, categoria=SimpleNamespace(nombre="Alimentos"),
+            )])
+
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    try:
+        response = client.get("/catalogo/productos")
+        assert response.status_code == 200
+        assert response.json()[0]["sku"] == "WEB-ALI-01"
+        assert client.get("/admin/inventario").status_code == 401
+        assert client.patch("/admin/inventario/42", json={"stock_actual": 0}).status_code == 401
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_non_admin_cannot_enter_admin_routes_even_with_enabled_matrix() -> None:
+    from types import SimpleNamespace
+
+    cashier = Usuario(id=10, nombre="Caja", correo="caja@example.com",
+                      contrasena="hash", tipo=TipoUsuario.CAJERO)
+    app.dependency_overrides[get_current_active_user] = lambda: cashier
+    app.dependency_overrides[get_db] = lambda: SimpleNamespace(scalar=lambda _: SimpleNamespace(puede_ver=True, puede_editar=True))
+    try:
+        assert client.get("/admin/productos").status_code == 403
+        assert client.get("/admin/inventario").status_code == 403
+        assert client.get("/admin/clientes").status_code == 403
+        assert client.get("/usuarios").status_code == 403
+        assert client.post("/admin/permisos/recomendados").status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_current_active_user, None)
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_recommended_roles_leave_administration_to_admin_only() -> None:
+    from app.services.admin_service import AdminService, PERMISSION_MODULES
+
+    class FakeSession:
+        def __init__(self):
+            self.records = []
+
+        def scalars(self, _statement):
+            return self
+
+        def all(self):
+            return self.records
+
+        def add(self, record):
+            self.records.append(record)
+
+        def commit(self):
+            pass
+
+    db = FakeSession()
+    permissions = AdminService(db).apply_recommended_permissions()
+    assert len(permissions) == len(PERMISSION_MODULES) * len(TipoUsuario)
+    assert all(permission.puede_editar for permission in permissions if permission.rol == TipoUsuario.ADMINISTRADOR)
+    assert all(not permission.puede_ver for permission in permissions if permission.rol != TipoUsuario.ADMINISTRADOR)
+
+
+def test_staff_listing_filters_clients_before_pagination() -> None:
+    from app.services.user_service import UserService
+
+    class FakeSession:
+        def scalars(self, statement):
+            self.statement = str(statement)
+            return self
+
+        def all(self):
+            return []
+
+    db = FakeSession()
+    assert UserService(db).get_all(solo_personal=True) == []
+    assert "usuarios.tipo !=" in db.statement
+
+
+def test_admin_clients_summary_exposes_appointment_counts() -> None:
+    from types import SimpleNamespace
+    from app.services.admin_service import AdminService
+
+    admin = Usuario(id=9, nombre="Admin", correo="admin@example.com",
+                    contrasena="hash", tipo=TipoUsuario.ADMINISTRADOR)
+    app.dependency_overrides[get_current_active_user] = lambda: admin
+    app.dependency_overrides[get_db] = lambda: SimpleNamespace(scalar=lambda _: None)
+    original = AdminService.get_clients
+    AdminService.get_clients = lambda self: [SimpleNamespace(
+        id=3, nombre="María", correo="maria@example.com", telefono="987654321",
+        direccion=None, mascotas=2, citas=4, ultima_cita=None,
+    )]
+    try:
+        response = client.get("/admin/clientes")
+        assert response.status_code == 200
+        assert response.json()[0]["mascotas"] == 2
+        assert response.json()[0]["citas"] == 4
+    finally:
+        AdminService.get_clients = original
+        app.dependency_overrides.pop(get_current_active_user, None)
+        app.dependency_overrides.pop(get_db, None)

@@ -20,11 +20,16 @@ class AdminProductRead(BaseModel):
 
 
 class AdminProductUpdate(BaseModel):
+    categoria_id: int | None = None
     sku: str | None = Field(default=None, min_length=2, max_length=50)
     nombre: str | None = Field(default=None, min_length=2, max_length=150)
     precio_venta: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     stock_minimo: int | None = Field(default=None, ge=0)
     imagen_url: str | None = Field(default=None, min_length=1, max_length=500)
+
+
+class InventoryStockUpdate(BaseModel):
+    stock_actual: int = Field(ge=0)
 
 
 class AdminProductCreate(BaseModel):
@@ -46,6 +51,17 @@ class AdminCatalogOption(BaseModel):
 class AdminProductCatalog(BaseModel):
     categorias: list[AdminCatalogOption]
     proveedores: list[AdminCatalogOption]
+
+
+class AdminClientRead(BaseModel):
+    id: int
+    nombre: str
+    correo: str
+    telefono: str | None
+    direccion: str | None
+    mascotas: int
+    citas: int
+    ultima_cita: datetime.datetime | None
 
 
 class AdminAppointmentRead(BaseModel):

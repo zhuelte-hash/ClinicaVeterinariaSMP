@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import TipoUsuario, Usuario
 from app.schemas.admin import (
-    AdminAppointmentRead, AdminProductCatalog, AdminProductCreate, AdminProductRead, AdminProductUpdate, AdminSalesDayRead,
+    AdminAppointmentRead, AdminClientRead, AdminProductCatalog, AdminProductCreate, AdminProductRead, AdminProductUpdate, AdminSalesDayRead,
     RolePermissionRead, RolePermissionUpdate,
+    InventoryStockUpdate,
 )
 from app.security import get_current_admin_user, require_permission
 from app.services.admin_service import AdminConflictError, AdminNotFoundError, AdminService
@@ -78,6 +79,24 @@ def deactivate_product(product_id: int, db: DbSession, _user: Annotated[Usuario,
         raise HTTPException(status_code=404, detail="Producto no encontrado") from exc
 
 
+@router.get("/inventario", response_model=list[AdminProductRead])
+def get_inventory(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("inventario"))]):
+    return AdminService(db).get_products()
+
+
+@router.patch("/inventario/{product_id}", response_model=AdminProductRead)
+def update_inventory(product_id: int, data: InventoryStockUpdate, db: DbSession, _user: Annotated[Usuario, Depends(require_permission("inventario", "editar"))]):
+    try:
+        return AdminService(db).update_stock(product_id, data)
+    except AdminNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Producto no encontrado") from exc
+
+
+@router.get("/clientes", response_model=list[AdminClientRead])
+def get_clients(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("usuarios"))]):
+    return AdminService(db).get_clients()
+
+
 @router.get("/citas", response_model=list[AdminAppointmentRead], dependencies=[Depends(get_current_admin_user)])
 def get_appointments(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("citas"))], fecha: datetime.date | None = None, estado: str | None = Query(default=None, max_length=50)):
     return AdminService(db).get_appointments(fecha, estado)
@@ -91,6 +110,22 @@ def get_sales_day(db: DbSession, _user: Annotated[Usuario, Depends(require_permi
 @router.get("/permisos", response_model=list[RolePermissionRead], dependencies=[Depends(get_current_admin_user), Depends(require_permission("usuarios", "editar"))])
 def get_permissions(db: DbSession):
     return AdminService(db).get_role_permissions()
+
+
+@router.post("/permisos/recomendados", response_model=list[RolePermissionRead], dependencies=[Depends(get_current_admin_user), Depends(require_permission("usuarios", "editar"))])
+def apply_all_recommended_permissions(db: DbSession):
+    try:
+        return AdminService(db).apply_recommended_permissions()
+    except AdminConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/permisos/{role}/recomendados", response_model=list[RolePermissionRead], dependencies=[Depends(get_current_admin_user), Depends(require_permission("usuarios", "editar"))])
+def apply_recommended_permissions(role: TipoUsuario, db: DbSession):
+    try:
+        return AdminService(db).apply_recommended_permissions(role)
+    except AdminConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.put("/permisos/{role}/{module}", response_model=RolePermissionRead, dependencies=[Depends(get_current_admin_user), Depends(require_permission("usuarios", "editar"))])

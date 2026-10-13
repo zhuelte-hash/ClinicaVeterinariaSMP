@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { PHARMACY_PRODUCTS } from '../../core/data/productos.mock';
-import { PharmacyCategory, PharmacyPresentation, PharmacySpecies } from '../../core/models/producto.model';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { PublicProductsService } from '../../core/services/public-products.service';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 
 type SortOption = 'Recomendados' | 'Menor precio' | 'Mayor precio' | 'Nombre A-Z';
@@ -21,31 +20,31 @@ type SortOption = 'Recomendados' | 'Menor precio' | 'Mayor precio' | 'Nombre A-Z
         <aside class="rounded-3xl border border-slate-200 bg-white p-6 lg:block" [class.hidden]="!mobileFiltersOpen()">
           <div class="flex items-center justify-between"><h2 class="text-xl font-extrabold text-[#0B1B6D]">Filtrar por</h2><button type="button" (click)="clearFilters()" class="text-xs font-bold text-sky-600">Limpiar</button></div>
           <div class="mt-7 space-y-7">
-            <div><h3 class="mb-3 text-sm font-extrabold text-slate-800">Categoría</h3><div class="space-y-2">@for (category of categories; track category) { <button type="button" (click)="categoryFilter.set(categoryFilter() === category ? '' : category)" class="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-sky-50" [class.bg-sky-50]="categoryFilter() === category" [class.font-bold]="categoryFilter() === category" [class.text-sky-700]="categoryFilter() === category">{{ category }}</button> }</div></div>
-            <div><h3 class="mb-3 text-sm font-extrabold text-slate-800">Presentación</h3><div class="flex flex-wrap gap-2">@for (item of presentations; track item) { <button type="button" (click)="presentationFilter.set(presentationFilter() === item ? '' : item)" class="rounded-full border px-3 py-1.5 text-xs" [class.border-sky-500]="presentationFilter() === item" [class.bg-sky-50]="presentationFilter() === item">{{ item }}</button> }</div></div>
-            <div><h3 class="mb-3 text-sm font-extrabold text-slate-800">Especie</h3><div class="space-y-2">@for (species of speciesOptions; track species) { <button type="button" (click)="speciesFilter.set(speciesFilter() === species ? '' : species)" class="block w-full rounded-xl px-3 py-2 text-left text-sm" [class.bg-sky-50]="speciesFilter() === species" [class.font-bold]="speciesFilter() === species">{{ species }}</button> }</div></div>
+             <div><h3 class="mb-3 text-sm font-extrabold text-slate-800">Categoría</h3><div class="space-y-2">@for (category of categories; track category) { <button type="button" (click)="categoryFilter.set(categoryFilter() === category ? '' : category)" class="block w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-sky-50" [class.bg-sky-50]="categoryFilter() === category" [class.font-bold]="categoryFilter() === category" [class.text-sky-700]="categoryFilter() === category">{{ category }}</button> }</div></div>
           </div>
         </aside>
-        <div><div class="mb-5 flex items-center justify-between"><p class="text-sm text-slate-500">{{ filteredProducts().length }} resultados</p></div>
-          @if (filteredProducts().length) { <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" /> }</div> }
-          @else { <div class="rounded-3xl border border-dashed border-slate-300 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No hay resultados con estos filtros</p><button type="button" (click)="clearFilters()" class="mt-4 font-bold text-sky-600">Limpiar filtros</button></div> }
+         <div><div class="mb-5 flex items-center justify-between"><p class="text-sm text-slate-500">{{ filteredProducts().length }} resultados</p></div>
+           @if (catalog.loading()) { <p class="py-10 text-center">Cargando productos...</p> }
+           @else if (catalog.error()) { <p class="py-10 text-center text-rose-700">{{ catalog.error() }} <button type="button" (click)="catalog.load()" class="font-bold underline">Reintentar</button></p> }
+           @else if (filteredProducts().length) { <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" /> }</div> }
+           @else { <div class="rounded-3xl border border-dashed border-slate-300 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No hay resultados con estos filtros</p><button type="button" (click)="clearFilters()" class="mt-4 font-bold text-sky-600">Limpiar filtros</button></div> }
         </div>
       </div>
     </section>
   `,
 })
 export class PharmacyPageComponent {
-  readonly categories: PharmacyCategory[] = ['Medicamentos veterinarios', 'Alimento medicado', 'Higiene y cuidado', 'Suplementos'];
-  readonly presentations: PharmacyPresentation[] = ['Tableta', 'Gotas', 'Jarabe', 'Crema', 'Lata', 'Polvo'];
-  readonly speciesOptions: PharmacySpecies[] = ['Perros', 'Gatos', 'Uso general'];
+  readonly catalog = inject(PublicProductsService);
+  readonly categories = ['Farmacia', 'Higiene', 'Medicamentos veterinarios', 'Alimento medicado', 'Higiene y cuidado', 'Suplementos'];
   readonly sortOptions: SortOption[] = ['Recomendados', 'Menor precio', 'Mayor precio', 'Nombre A-Z'];
-  readonly search = signal(''); readonly categoryFilter = signal<PharmacyCategory | ''>(''); readonly presentationFilter = signal<PharmacyPresentation | ''>(''); readonly speciesFilter = signal<PharmacySpecies | ''>(''); readonly sort = signal<SortOption>('Recomendados'); readonly mobileFiltersOpen = signal(false);
+  readonly search = signal(''); readonly categoryFilter = signal(''); readonly sort = signal<SortOption>('Recomendados'); readonly mobileFiltersOpen = signal(false);
   readonly filteredProducts = computed(() => {
     const term = this.search().trim().toLocaleLowerCase('es');
-    const products = PHARMACY_PRODUCTS.filter((product) => (!this.categoryFilter() || product.category === this.categoryFilter()) && (!this.presentationFilter() || product.presentation === this.presentationFilter()) && (!this.speciesFilter() || product.species === this.speciesFilter()) && (!term || `${product.name} ${product.category} ${product.presentation}`.toLocaleLowerCase('es').includes(term)));
-    return [...products].sort((a, b) => this.sort() === 'Menor precio' ? a.price - b.price : this.sort() === 'Mayor precio' ? b.price - a.price : this.sort() === 'Nombre A-Z' ? a.name.localeCompare(b.name, 'es') : Number(Boolean(b.badge)) - Number(Boolean(a.badge)));
+    const products = this.catalog.products().filter((product) => this.categories.includes(product.category) && (!this.categoryFilter() || product.category === this.categoryFilter()) && (!term || `${product.name} ${product.category}`.toLocaleLowerCase('es').includes(term)));
+    return [...products].sort((a, b) => this.sort() === 'Menor precio' ? a.price - b.price : this.sort() === 'Mayor precio' ? b.price - a.price : this.sort() === 'Nombre A-Z' ? a.name.localeCompare(b.name, 'es') : 0);
   });
+  constructor() { this.catalog.load(); }
   setSearch(event: Event): void { this.search.set((event.target as HTMLInputElement).value); }
   setSort(event: Event): void { this.sort.set((event.target as HTMLSelectElement).value as SortOption); }
-  clearFilters(): void { this.categoryFilter.set(''); this.presentationFilter.set(''); this.speciesFilter.set(''); this.search.set(''); }
+  clearFilters(): void { this.categoryFilter.set(''); this.search.set(''); }
 }
