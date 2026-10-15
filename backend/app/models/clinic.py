@@ -747,6 +747,10 @@ class Caja(Base):
         Numeric(12, 2), server_default=text("0"), nullable=False
     )
     estado_caja: Mapped[str] = mapped_column(String(20), nullable=False)
+    fecha_apertura: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    fecha_cierre: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    efectivo_contado: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    diferencia: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
 
     cajero: Mapped["Cajero"] = relationship(back_populates="cajas")
     ordenes_cobro: Mapped[list["OrdenCobro"]] = relationship(back_populates="caja")
@@ -796,6 +800,10 @@ class OrdenCobro(Base):
         estado_pago_db, server_default=text("'pendiente'"), nullable=False
     )
     medio_pago: Mapped[str | None] = mapped_column(String(30))
+    pagos: Mapped[list[dict] | None] = mapped_column(JSON)
+    efectivo_recibido: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    vuelto: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
+    motivo_rechazo: Mapped[str | None] = mapped_column(String(500))
 
     cajero: Mapped["Cajero"] = relationship(back_populates="ordenes_cobro")
     cliente: Mapped["Cliente"] = relationship(back_populates="ordenes_cobro")

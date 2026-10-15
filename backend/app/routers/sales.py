@@ -9,7 +9,7 @@ from app.models.user import TipoUsuario, Usuario
 from app.schemas.cashier import BoletaRead, VentaCreate
 from app.security import get_current_active_user, get_current_admin_user
 from app.services.cashier_service import (CashierService, CajaNoAbiertaError,
-    ClienteNoEncontradoError, ProductoNoDisponibleError, StockInsuficienteError, VentaDuplicadaError)
+    ClienteNoEncontradoError, ProductoNoDisponibleError, StockInsuficienteError, VentaDuplicadaError, VentaInvalidaError)
 from app.services.sales_service import SalesService
 
 router = APIRouter(tags=["Ventas"])
@@ -33,6 +33,8 @@ def create(data: VentaCreate, db: Db, user: Annotated[Usuario, Depends(get_curre
         raise HTTPException(409, "Stock insuficiente") from exc
     except VentaDuplicadaError as exc:
         raise HTTPException(409, "Clave de venta ya utilizada con otros datos") from exc
+    except VentaInvalidaError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @router.get("/api/admin/ventas/resumen")

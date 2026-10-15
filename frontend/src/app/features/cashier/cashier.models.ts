@@ -4,6 +4,10 @@ export interface CashRegister {
   fondo_inicial: string;
   total_ingresos_validados: string;
   estado_caja: 'abierta' | 'cerrada';
+  fecha_apertura: string;
+  fecha_cierre: string | null;
+  efectivo_contado: string | null;
+  diferencia: string | null;
 }
 
 export interface CashierOrder {
@@ -18,6 +22,9 @@ export interface CashierSummary {
   ordenes_pendientes: number;
   ordenes_validadas: number;
   ordenes_recientes: CashierOrder[];
+  ingresos_efectivo: string;
+  ingresos_digitales: string;
+  efectivo_esperado: string;
 }
 
 export interface CashierCategory {
@@ -76,4 +83,20 @@ export interface Receipt {
   descuento: string;
   estado: 'PAGADA' | 'ANULADA';
   detalles: ReceiptDetail[];
+  pagos: { medio: string; monto: string }[];
+  efectivo_recibido: string | null;
+  vuelto: string;
+  proceso_atencion_id: number | null;
+}
+
+export interface CashierPendingPayment extends CashierOrder {
+  captura_imagen: string | null;
+  codigo_operacion: string | null;
+}
+
+export interface CashierAttention {
+  id: number;
+  mascota_nombre: string;
+  servicio_nombre: string;
+  cliente_id: number;
 }

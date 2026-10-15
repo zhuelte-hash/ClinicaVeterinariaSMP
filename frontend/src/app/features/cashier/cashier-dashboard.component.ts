@@ -1,9 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { CashierApiService } from './cashier-api.service';
-import { CashierOrder, CashierSummary } from './cashier.models';
+import { CashierOrder, CashierSummary, CashRegister, CashierPendingPayment } from './cashier.models';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-cashier-dashboard',
@@ -20,7 +21,7 @@ import { CashierOrder, CashierSummary } from './cashier.models';
 
       <div class="grid gap-5 md:grid-cols-3">
         <article class="metric-card"><p class="metric-label">Estado del turno</p><p class="mt-3 text-2xl font-black" [class.text-emerald-600]="register()" [class.text-slate-500]="!register()">{{ register() ? 'Caja abierta' : 'Caja cerrada' }}</p><span class="mt-4 inline-flex rounded-full px-3 py-1 text-xs font-bold" [class.bg-emerald-100]="register()" [class.text-emerald-700]="register()" [class.bg-slate-100]="!register()">{{ register() ? 'Operando' : 'Sin turno activo' }}</span></article>
-        <article class="metric-card"><p class="metric-label">Ingresos validados</p><p class="mt-3 text-3xl font-black text-[#111827]">S/ {{ money(register()?.total_ingresos_validados) }}</p><p class="mt-3 text-xs text-slate-500">{{ summary()?.ordenes_validadas ?? 0 }} órdenes confirmadas</p></article>
+        <article class="metric-card"><p class="metric-label">Ingresos del turno</p><p class="mt-3 text-3xl font-black text-[#111827]">S/ {{ money(register()?.total_ingresos_validados) }}</p><p class="mt-3 text-xs text-slate-500">Efectivo S/ {{ money(summary()?.ingresos_efectivo) }} · Digital S/ {{ money(summary()?.ingresos_digitales) }}</p></article>
         <article class="metric-card"><p class="metric-label">Pagos por revisar</p><p class="mt-3 text-3xl font-black text-amber-600">{{ summary()?.ordenes_pendientes ?? 0 }}</p><p class="mt-3 text-xs text-slate-500">Comprobantes pendientes</p></article>
       </div>
 
@@ -31,10 +32,11 @@ import { CashierOrder, CashierSummary } from './cashier.models';
             <h3 class="mt-2 text-xl font-black text-[#111827]">Caja en operación</h3>
             <div class="mt-6 space-y-3 rounded-2xl bg-slate-50 p-5 text-sm">
               <div class="flex justify-between"><span class="text-slate-500">Fondo inicial</span><b>S/ {{ money(current.fondo_inicial) }}</b></div>
-              <div class="flex justify-between"><span class="text-slate-500">Ingresos validados</span><b>S/ {{ money(current.total_ingresos_validados) }}</b></div>
-              <div class="border-t border-slate-200 pt-3 flex justify-between text-base"><span>Total esperado</span><b class="text-[#168ba1]">S/ {{ expectedTotal() }}</b></div>
+              <div class="flex justify-between"><span class="text-slate-500">Ventas en efectivo</span><b>S/ {{ money(summary()?.ingresos_efectivo) }}</b></div>
+              <div class="flex justify-between"><span class="text-slate-500">Ventas digitales</span><b>S/ {{ money(summary()?.ingresos_digitales) }}</b></div>
+              <div class="border-t border-slate-200 pt-3 flex justify-between text-base"><span>Efectivo esperado</span><b class="text-[#168ba1]">S/ {{ expectedTotal() }}</b></div>
             </div>
-            <button (click)="closeRegister()" [disabled]="actionLoading()" class="mt-6 w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Cerrar caja</button>
+            <form [formGroup]="closeForm" (ngSubmit)="closeRegister()" class="mt-5 grid gap-3"><label class="text-sm font-bold">Efectivo contado (S/)<input type="number" step="0.01" min="0" formControlName="efectivoContado" class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3"></label><p class="text-xs text-slate-500">Diferencia estimada: S/ {{ difference() }}</p><button type="submit" [disabled]="actionLoading() || closeForm.invalid" class="w-full rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50">Cerrar y arquear caja</button></form>
           } @else {
             <p class="text-xs font-bold uppercase tracking-[.18em] text-amber-600">Inicio de turno</p>
             <h3 class="mt-2 text-xl font-black text-[#111827]">Abrir una caja</h3>
@@ -57,6 +59,9 @@ import { CashierOrder, CashierSummary } from './cashier.models';
           }
         </article>
       </div>
+      <article class="mt-6 rounded-3xl border border-slate-200 bg-white p-6"><h3 class="text-xl font-black">Pagos por revisar</h3>@for (order of pending(); track order.id) { <div class="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3"><span>{{ order.codigo_orden }} · S/ {{ money(order.monto_total) }} · Operación {{ order.codigo_operacion || 'sin comprobante' }}</span><div class="flex gap-3">@if (order.captura_imagen) { <a [href]="receiptUrl(order.captura_imagen)" target="_blank" rel="noopener" class="font-bold text-[#168ba1]">Ver comprobante</a> }<button type="button" (click)="rejectPayment(order)" [disabled]="actionLoading() || !register()" class="rounded-xl border border-rose-200 px-4 py-2 font-bold text-rose-700 disabled:opacity-40">Rechazar</button><button type="button" (click)="validatePayment(order)" [disabled]="actionLoading() || !register() || !order.captura_imagen" class="rounded-xl bg-[#168ba1] px-4 py-2 font-bold text-white disabled:opacity-40">Validar pago</button></div></div> } @empty { <p class="mt-3 text-sm text-slate-500">No hay pagos pendientes asignados.</p> }</article>
+      @if (lastClose(); as closed) { <p class="mt-4 rounded-xl bg-slate-100 p-4 font-bold">Turno #{{ closed.id }} cerrado. Efectivo contado S/ {{ money(closed.efectivo_contado ?? undefined) }} · Diferencia S/ {{ money(closed.diferencia ?? undefined) }}</p> }
+      <section class="mt-6 rounded-3xl border border-slate-200 bg-white p-6"><h3 class="text-xl font-black">Últimos arqueos</h3>@for (closed of closedRegisters(); track closed.id) {<div class="mt-3 flex flex-wrap justify-between gap-2 border-t pt-3 text-sm"><span>Turno #{{ closed.id }} · {{ closed.fecha_cierre ? formatDate(closed.fecha_cierre) : 'Fecha no registrada' }}</span><span>Contado S/ {{ money(closed.efectivo_contado ?? undefined) }} · Diferencia S/ {{ money(closed.diferencia ?? undefined) }}</span></div>} @empty {<p class="mt-3 text-sm text-slate-500">No hay cierres registrados.</p>}</section>
     </section>
   `,
   styles: [`
@@ -72,13 +77,16 @@ export class CashierDashboardComponent {
   readonly loading = signal(false);
   readonly actionLoading = signal(false);
   readonly errorMessage = signal('');
+  readonly pending = signal<CashierPendingPayment[]>([]);
+  readonly lastClose = signal<CashierSummary['caja']>(null);
+  readonly closedRegisters = signal<CashRegister[]>([]);
   readonly register = computed(() => this.summary()?.caja ?? null);
   readonly expectedTotal = computed(() => {
     const register = this.register();
-    return register
-      ? (Number(register.fondo_inicial) + Number(register.total_ingresos_validados)).toFixed(2)
-      : '0.00';
+    return register ? Number(this.summary()?.efectivo_esperado ?? 0).toFixed(2) : '0.00';
   });
+  readonly closeForm = this.formBuilder.nonNullable.group({ efectivoContado: [0, [Validators.required, Validators.min(0)]] });
+  difference(): string { return (Number(this.closeForm.controls.efectivoContado.value) - Number(this.summary()?.efectivo_esperado ?? 0)).toFixed(2); }
   readonly openForm = this.formBuilder.nonNullable.group({
     fondoInicial: [100, [Validators.required, Validators.min(0)]],
   });
@@ -90,8 +98,8 @@ export class CashierDashboardComponent {
   loadSummary(): void {
     this.loading.set(true);
     this.errorMessage.set('');
-    this.api.getSummary().pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (summary) => this.summary.set(summary),
+    forkJoin({ summary: this.api.getSummary(), pending: this.api.getPendingPayments(), closed: this.api.getClosedRegisters() }).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: ({ summary, pending, closed }) => { this.summary.set(summary); this.pending.set(pending); this.closedRegisters.set(closed); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
@@ -112,18 +120,37 @@ export class CashierDashboardComponent {
   }
 
   closeRegister(): void {
-    if (!window.confirm('¿Confirmas el cierre de la caja actual?')) return;
+    if (this.closeForm.invalid || !window.confirm(`¿Cerrar caja con diferencia de S/ ${this.difference()}?`)) return;
     this.actionLoading.set(true);
     this.errorMessage.set('');
-    this.api.closeRegister().pipe(finalize(() => this.actionLoading.set(false))).subscribe({
-      next: () => this.loadSummary(),
+    this.api.closeRegister(this.closeForm.controls.efectivoContado.value).pipe(finalize(() => this.actionLoading.set(false))).subscribe({
+      next: (closed) => { this.lastClose.set(closed); this.loadSummary(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  validatePayment(order: CashierOrder): void {
+    if (!window.confirm(`¿Validar el pago de ${order.codigo_orden}?`)) return;
+    this.actionLoading.set(true);
+    this.api.validatePayment(order.id).pipe(finalize(() => this.actionLoading.set(false))).subscribe({
+      next: () => this.loadSummary(), error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  rejectPayment(order: CashierOrder): void {
+    const reason = window.prompt(`Motivo de rechazo para ${order.codigo_orden}:`);
+    if (!reason?.trim() || reason.trim().length < 3) return;
+    this.actionLoading.set(true);
+    this.api.rejectPayment(order.id, reason.trim()).pipe(finalize(() => this.actionLoading.set(false))).subscribe({
+      next: () => this.loadSummary(), error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
 
   money(value: string | undefined): string {
     return Number(value ?? 0).toFixed(2);
   }
+  formatDate(value: string): string { return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value)); }
+  receiptUrl(path: string): string { return path.startsWith('/') ? `${environment.apiUrl}${path}` : path; }
 
   statusLabel(order: CashierOrder): string {
     const labels: Record<CashierOrder['estado_pago'], string> = {

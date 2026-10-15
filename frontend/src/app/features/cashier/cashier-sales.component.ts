@@ -5,8 +5,10 @@ import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { CashierApiService } from './cashier-api.service';
 import {
+  CashierAttention,
   CashierCategory,
   CashierClient,
+  CashierOrder,
   CashierProduct,
   CashierService,
   Receipt,
@@ -77,13 +79,21 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
           </div>
 
           <div class="space-y-5 border-t border-slate-100 p-5">
-            <label class="grid gap-2 text-sm font-bold">Cliente<select [ngModel]="selectedClientId()" (ngModelChange)="selectedClientId.set(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Selecciona un cliente</option>@for (client of clients(); track client.id) {<option [ngValue]="client.id">{{ client.nombre }} · {{ client.correo }}</option>}</select></label>
+            <label class="grid gap-2 text-sm font-bold">Buscar cliente<input [ngModel]="clientSearch()" (ngModelChange)="searchClients($event)" placeholder="Nombre o correo" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
+            <label class="grid gap-2 text-sm font-bold">Cliente<select [ngModel]="selectedClientId()" (ngModelChange)="selectClient(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Venta sin cliente</option>@for (client of clients(); track client.id) {<option [ngValue]="client.id">{{ client.nombre }} · {{ client.correo }}</option>}</select></label>
+            @if (selectedClientId()) { <label class="grid gap-2 text-sm font-bold">Atención asociada (opcional)<select [ngModel]="attentionId()" (ngModelChange)="attentionId.set(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Sin atención</option>@for (attention of attentions(); track attention.id) { <option [ngValue]="attention.id">#{{ attention.id }} · {{ attention.mascota_nombre }} · {{ attention.servicio_nombre }}</option> }</select></label> }
             <div><p class="mb-2 text-sm font-bold">Método de pago</p><div class="grid grid-cols-2 gap-2">@for (method of paymentMethods; track method.value) {<button (click)="paymentMethod.set(method.value)" class="payment-button" [class.payment-active]="paymentMethod() === method.value">{{ method.label }}</button>}</div></div>
-            <div class="rounded-2xl bg-[#111827] p-4 text-white shadow-lg"><div class="flex justify-between text-sm text-slate-300"><span>Subtotal</span><span>S/ {{ subtotalWithoutTax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>IGV (18%)</span><span>S/ {{ tax() }}</span></div><div class="mt-3 flex justify-between border-t border-white/15 pt-3 text-xl font-black"><span>Total</span><span class="text-[#56c4d8]">S/ {{ total() }}</span></div></div>
+            <label class="grid gap-2 text-sm font-bold">Descuento (S/)<input type="number" min="0" step="0.01" [ngModel]="discount()" (ngModelChange)="discount.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
+            <label class="grid gap-2 text-sm font-bold">Segundo medio de pago (opcional)<select [ngModel]="secondMethod()" (ngModelChange)="secondMethod.set($event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"><option value="">Pago único</option>@for (method of paymentMethods; track method.value) { @if (method.value !== paymentMethod()) { <option [value]="method.value">{{ method.label }}</option> } }</select></label>
+            @if (secondMethod()) { <label class="grid gap-2 text-sm font-bold">Importe segundo medio (S/)<input type="number" min="0.01" step="0.01" [ngModel]="secondAmount()" (ngModelChange)="secondAmount.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label><p class="text-xs text-slate-500">Primer medio: S/ {{ primaryAmount() }}</p> }
+            @if (cashAmount() > 0) { <label class="grid gap-2 text-sm font-bold">Efectivo recibido (S/)<input type="number" min="0" step="0.01" [ngModel]="cashReceived()" (ngModelChange)="cashReceived.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label><p class="text-sm font-bold">Vuelto: S/ {{ change() }}</p> }
+            <div class="rounded-2xl bg-[#111827] p-4 text-white shadow-lg"><div class="flex justify-between text-sm text-slate-300"><span>Subtotal tras descuento</span><span>S/ {{ subtotalWithoutTax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>IGV (18%)</span><span>S/ {{ tax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>Descuento</span><span>− S/ {{ discount().toFixed(2) }}</span></div><div class="mt-3 flex justify-between border-t border-white/15 pt-3 text-xl font-black"><span>Total</span><span class="text-[#56c4d8]">S/ {{ total() }}</span></div></div>
             <button (click)="charge()" [disabled]="!canCharge() || charging()" class="w-full rounded-xl bg-[#56c4d8] px-5 py-3.5 font-black text-[#111827] transition hover:bg-[#111827] hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{{ charging() ? 'Procesando...' : 'Cobrar y generar boleta' }}</button>
+            <p class="text-xs text-slate-500">Total tras descuento: S/ {{ total() }} · IGV incluido: S/ {{ tax() }}</p>
           </div>
         </aside>
       </div>
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><h3 class="text-xl font-black">Últimas ventas · reimpresión</h3><div class="mt-3 max-h-64 overflow-y-auto">@for (order of history(); track order.id) {<div class="flex items-center justify-between gap-3 border-t py-2 text-sm"><span>{{ order.codigo_orden }} · S/ {{ money(order.monto_total) }}</span><button type="button" (click)="reopenReceipt(order)" class="font-bold text-[#168ba1]">Ver boleta</button></div>} @empty {<p class="text-sm text-slate-500">Aún no hay ventas.</p>}</div></section>
     </section>
 
     @if (receipt(); as currentReceipt) {
@@ -117,17 +127,26 @@ export class CashierSalesComponent {
   readonly services = signal<CashierService[]>([]);
   readonly categories = signal<CashierCategory[]>([]);
   readonly clients = signal<CashierClient[]>([]);
+  readonly clientSearch = signal('');
+  readonly attentions = signal<CashierAttention[]>([]);
+  readonly attentionId = signal(0);
+  private clientRequest = 0;
   readonly cart = signal<SaleCartItem[]>([]);
   readonly catalogMode = signal<'products' | 'services'>('products');
   readonly search = signal('');
   readonly selectedCategory = signal<number | null>(null);
   readonly selectedClientId = signal(0);
   readonly paymentMethod = signal<PaymentMethod>('efectivo');
+  readonly secondMethod = signal<PaymentMethod | ''>('');
+  readonly secondAmount = signal(0);
+  readonly discount = signal(0);
+  readonly cashReceived = signal(0);
   readonly registerOpen = signal(false);
   readonly loading = signal(true);
   readonly charging = signal(false);
   readonly errorMessage = signal('');
   readonly receipt = signal<Receipt | null>(null);
+  readonly history = signal<CashierOrder[]>([]);
   private pendingSale: { payload: string; key: string } | null = null;
   readonly paymentMethods: { value: PaymentMethod; label: string }[] = [
     { value: 'efectivo', label: 'Efectivo' }, { value: 'yape', label: 'Yape' },
@@ -148,25 +167,54 @@ export class CashierSalesComponent {
   });
   readonly cartCount = computed(() => this.cart().reduce((sum, item) => sum + item.quantity, 0));
   readonly totalValue = computed(() => this.cart().reduce((sum, item) => sum + item.price * item.quantity, 0));
-  readonly total = computed(() => this.totalValue().toFixed(2));
-  readonly subtotalWithoutTax = computed(() => (this.totalValue() / 1.18).toFixed(2));
-  readonly tax = computed(() => (this.totalValue() - this.totalValue() / 1.18).toFixed(2));
-  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0);
+  readonly total = computed(() => (this.totalValue() - this.discount()).toFixed(2));
+  readonly subtotalWithoutTax = computed(() => (Number(this.total()) / 1.18).toFixed(2));
+  readonly tax = computed(() => (Number(this.total()) - Number(this.subtotalWithoutTax())).toFixed(2));
+  readonly primaryAmount = computed(() => (Number(this.total()) - this.secondAmount()).toFixed(2));
+  readonly cashAmount = computed(() => (this.paymentMethod() === 'efectivo' ? Number(this.secondMethod() ? this.primaryAmount() : this.total()) : 0) + (this.secondMethod() === 'efectivo' ? this.secondAmount() : 0));
+  readonly change = computed(() => Math.max(0, this.cashReceived() - this.cashAmount()).toFixed(2));
+  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0 && Number.isFinite(this.discount())
+    && this.discount() >= 0 && Number(this.total()) > 0 && Number.isFinite(this.secondAmount()) && this.secondAmount() >= 0
+    && (!this.secondMethod() || (this.secondMethod() !== this.paymentMethod() && this.secondAmount() > 0 && Number(this.primaryAmount()) > 0))
+    && (this.cashAmount() === 0 || this.cashReceived() >= this.cashAmount()));
 
   constructor() { this.loadData(); }
 
   loadData(): void {
     this.loading.set(true);
     this.errorMessage.set('');
-    forkJoin({ products: this.api.getProducts(), services: this.api.getServices(), categories: this.api.getCategories(), clients: this.api.getClients(), summary: this.api.getSummary() })
+    forkJoin({ products: this.api.getProducts(), services: this.api.getServices(), categories: this.api.getCategories(), clients: this.api.getClients(this.clientSearch()), summary: this.api.getSummary(), history: this.api.getSales() })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ products, services, categories, clients, summary }) => {
+        next: ({ products, services, categories, clients, summary, history }) => {
           this.products.set(products); this.services.set(services); this.categories.set(categories);
-          this.clients.set(clients); this.registerOpen.set(summary.caja !== null);
+          this.clients.set(clients); this.history.set(history); this.registerOpen.set(summary.caja !== null);
         },
         error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
       });
+  }
+
+  searchClients(query: string): void {
+    this.clientSearch.set(query);
+    const request = ++this.clientRequest;
+    this.api.getClients(query).subscribe({ next: (clients) => {
+      if (request !== this.clientRequest) return;
+      const selected = this.clients().find((client) => client.id === this.selectedClientId());
+      this.clients.set(selected && !clients.some((client) => client.id === selected.id) ? [selected, ...clients] : clients);
+    }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+  }
+
+  selectClient(id: number): void {
+    this.selectedClientId.set(id);
+    this.attentionId.set(0);
+    this.attentions.set([]);
+    if (id) this.api.getAttentions(id).subscribe({ next: (items) => {
+      if (this.selectedClientId() === id) this.attentions.set(items);
+    }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+  }
+
+  reopenReceipt(order: CashierOrder): void {
+    this.api.getReceipt(order.id).subscribe({ next: (receipt) => this.receipt.set(receipt), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
   addProduct(product: CashierProduct): void {
@@ -205,9 +253,14 @@ export class CashierSalesComponent {
     if (!this.canCharge()) return;
     this.charging.set(true);
     this.errorMessage.set('');
+    const payments: { medio: PaymentMethod; monto: number }[] = [{ medio: this.paymentMethod(), monto: Number(this.secondMethod() ? this.primaryAmount() : this.total()) }];
+    if (this.secondMethod()) payments.push({ medio: this.secondMethod() as PaymentMethod, monto: this.secondAmount() });
     const sale = {
       cliente_id: this.selectedClientId() || null,
       medio_pago: this.paymentMethod(),
+      descuento: this.discount(), pagos: payments,
+      efectivo_recibido: this.cashAmount() > 0 ? this.cashReceived() : undefined,
+      proceso_atencion_id: this.attentionId() || null,
       items: this.cart().map((item) => item.type === 'product'
         ? { producto_id: item.id, cantidad: item.quantity }
         : { servicio_id: item.id, cantidad: item.quantity }),
@@ -215,12 +268,33 @@ export class CashierSalesComponent {
     const payload = JSON.stringify(sale);
     if (this.pendingSale?.payload !== payload) this.pendingSale = { payload, key: crypto.randomUUID() };
     this.api.createSale({ ...sale, clave_idempotencia: this.pendingSale.key }).pipe(finalize(() => this.charging.set(false))).subscribe({
-      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.loadData(); },
+      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.discount.set(0); this.secondMethod.set(''); this.secondAmount.set(0); this.cashReceived.set(0); this.attentionId.set(0); this.loadData(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
 
-  printReceipt(): void { window.print(); }
+  printReceipt(): void {
+    const receipt = this.receipt();
+    const page = document.querySelector('.print-receipt');
+    if (!receipt || !page) return;
+    page.querySelector('.cashier-extra-print')?.remove();
+    const details = document.createElement('div');
+    details.className = 'cashier-extra-print mt-4 border-t border-dashed pt-3 text-right';
+    const lines = [
+      `Descuento: S/ ${this.money(receipt.descuento)}`,
+      ...receipt.pagos.map((payment) => `${this.paymentLabel(payment.medio)}: S/ ${this.money(payment.monto)}`),
+      ...(receipt.proceso_atencion_id ? [`Atención #${receipt.proceso_atencion_id}`] : []),
+      ...(receipt.efectivo_recibido ? [`Recibido: S/ ${this.money(receipt.efectivo_recibido)} · Vuelto: S/ ${this.money(receipt.vuelto)}`] : []),
+    ];
+    for (const line of lines) {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = line;
+      details.append(paragraph);
+    }
+    page.append(details);
+    window.addEventListener('afterprint', () => details.remove(), { once: true });
+    window.print();
+  }
   formatDate(value: string): string { return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value)); }
   paymentLabel(value: string): string { return this.paymentMethods.find((method) => method.value === value)?.label ?? value; }
   private errorText(error: unknown): string { return error instanceof HttpErrorResponse && typeof error.error?.detail === 'string' ? error.error.detail : 'No se pudo completar la operación.'; }

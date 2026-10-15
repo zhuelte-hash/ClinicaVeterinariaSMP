@@ -8,13 +8,16 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.clinic import (
     Caja,
+    Cita,
     CategoriaProducto,
     ComprobanteVenta,
     DetalleOrdenCobro,
     EstadoPago,
     OrdenCobro,
     Producto,
+    ProcesoAtencion,
     Servicio,
+    Mascota,
 )
 from app.models.user import Cajero, Cliente, TipoUsuario, Usuario
 from app.schemas.cashier import (
@@ -23,6 +26,7 @@ from app.schemas.cashier import (
     CajaAbrir,
     CajaResumen,
     ClienteCajaRead,
+    PagoCreate,
     VentaCreate,
 )
 
@@ -55,6 +59,10 @@ class VentaDuplicadaError(Exception):
     pass
 
 
+class VentaInvalidaError(Exception):
+    pass
+
+
 class CashierService:
     def __init__(self, db: Session):
         self.db = db
@@ -67,16 +75,22 @@ class CashierService:
         )
         return self.db.scalar(statement)
 
+    def get_closed_registers(self, cashier_id: int) -> list[Caja]:
+        return list(self.db.scalars(select(Caja).where(
+            Caja.cajero_id == cashier_id, Caja.estado_caja == "cerrada"
+        ).order_by(Caja.id.desc()).limit(20)).all())
+
     def get_summary(self, cashier_id: int) -> CajaResumen:
+        register = self.get_open_register(cashier_id)
         pending = self.db.scalar(
             select(func.count(OrdenCobro.id)).where(
-                OrdenCobro.cajero_id == cashier_id,
+                OrdenCobro.caja_id == register.id if register else False,
                 OrdenCobro.estado_pago == EstadoPago.PAGO_ENVIADO,
             )
         ) or 0
         validated = self.db.scalar(
             select(func.count(OrdenCobro.id)).where(
-                OrdenCobro.cajero_id == cashier_id,
+                OrdenCobro.caja_id == register.id if register else False,
                 OrdenCobro.estado_pago == EstadoPago.VALIDADO_CONFIRMADO,
             )
         ) or 0
@@ -88,12 +102,33 @@ class CashierService:
                 .limit(8)
             ).all()
         )
+        cash, digital = self._payment_totals(register.id) if register else (Decimal("0.00"), Decimal("0.00"))
         return CajaResumen(
-            caja=self.get_open_register(cashier_id),
+            caja=register,
             ordenes_pendientes=pending,
             ordenes_validadas=validated,
             ordenes_recientes=recent,
+            ingresos_efectivo=cash,
+            ingresos_digitales=digital,
+            efectivo_esperado=(register.fondo_inicial + cash) if register else Decimal("0.00"),
         )
+
+    def _payment_totals(self, register_id: int) -> tuple[Decimal, Decimal]:
+        orders = self.db.scalars(select(OrdenCobro).where(
+            OrdenCobro.caja_id == register_id,
+            OrdenCobro.estado_pago == EstadoPago.VALIDADO_CONFIRMADO,
+        )).all()
+        cash = Decimal("0.00")
+        digital = Decimal("0.00")
+        for order in orders:
+            payments = order.pagos or [{"medio": order.medio_pago, "monto": str(order.monto_total)}]
+            for payment in payments:
+                amount = Decimal(str(payment["monto"]))
+                if payment["medio"] == "efectivo":
+                    cash += amount
+                else:
+                    digital += amount
+        return cash, digital
 
     def open_register(self, cashier: Usuario, data: CajaAbrir) -> Caja:
         if self.get_open_register(cashier.id) is not None:
@@ -113,10 +148,21 @@ class CashierService:
         self.db.refresh(register)
         return register
 
-    def close_register(self, cashier_id: int) -> Caja:
-        register = self.get_open_register(cashier_id)
+    def close_register(self, cashier_id: int, counted: Decimal) -> Caja:
+        register = self.db.scalar(select(Caja).where(
+            Caja.cajero_id == cashier_id, Caja.estado_caja == "abierta"
+        ).with_for_update())
         if register is None:
             raise CajaNoAbiertaError
+        if self.db.scalar(select(OrdenCobro.id).where(
+            OrdenCobro.caja_id == register.id,
+            OrdenCobro.estado_pago == EstadoPago.PAGO_ENVIADO,
+        ).limit(1)) is not None:
+            raise VentaInvalidaError("Revisa los pagos pendientes antes de cerrar la caja")
+        cash, _ = self._payment_totals(register.id)
+        register.efectivo_contado = counted
+        register.diferencia = counted - register.fondo_inicial - cash
+        register.fecha_cierre = datetime.datetime.now(datetime.timezone.utc)
         register.estado_caja = "cerrada"
         self.db.commit()
         self.db.refresh(register)
@@ -169,6 +215,75 @@ class CashierService:
             )
         return list(self.db.scalars(statement.order_by(Servicio.nombre)).all())
 
+    def get_attentions(self, client_id: int) -> list[dict]:
+        rows = self.db.execute(select(ProcesoAtencion, Mascota, Servicio)
+            .join(Mascota, ProcesoAtencion.mascota_id == Mascota.id)
+            .join(Cita, ProcesoAtencion.cita_id == Cita.id)
+            .join(Servicio, Cita.servicio_id == Servicio.id)
+            .where(Mascota.cliente_id == client_id)
+            .order_by(ProcesoAtencion.id.desc()).limit(50)).all()
+        return [{"id": process.id, "mascota_nombre": pet.nombre,
+                 "servicio_nombre": service.nombre, "cliente_id": pet.cliente_id}
+                for process, pet, service in rows]
+
+    def get_sales(self, cashier_id: int, limit: int = 30) -> list[dict]:
+        orders = self.db.scalars(select(OrdenCobro).where(OrdenCobro.cajero_id == cashier_id)
+            .order_by(OrdenCobro.id.desc()).limit(limit)).all()
+        return [{"id": order.id, "codigo_orden": order.codigo_orden,
+                 "monto_total": order.monto_total, "estado_pago": order.estado_pago,
+                 "medio_pago": order.medio_pago} for order in orders]
+
+    def get_pending(self, cashier_id: int) -> list[dict]:
+        register = self.get_open_register(cashier_id)
+        if register is None:
+            return []
+        orders = self.db.scalars(select(OrdenCobro).where(
+            OrdenCobro.caja_id == register.id, OrdenCobro.estado_pago == EstadoPago.PAGO_ENVIADO
+        ).options(selectinload(OrdenCobro.comprobante_pago_whatsapp)).order_by(OrdenCobro.id.desc())).all()
+        return [{"id": order.id, "codigo_orden": order.codigo_orden,
+                 "monto_total": order.monto_total, "estado_pago": order.estado_pago,
+                 "medio_pago": order.medio_pago,
+                 "captura_imagen": order.comprobante_pago_whatsapp.captura_imagen if order.comprobante_pago_whatsapp else None,
+                 "codigo_operacion": order.comprobante_pago_whatsapp.codigo_operacion if order.comprobante_pago_whatsapp else None}
+                for order in orders]
+
+    def validate_pending(self, cashier_id: int, order_id: int) -> None:
+        register = self.db.scalar(select(Caja).where(
+            Caja.cajero_id == cashier_id, Caja.estado_caja == "abierta"
+        ).with_for_update())
+        if register is None:
+            raise CajaNoAbiertaError
+        order = self.db.scalar(select(OrdenCobro).where(
+            OrdenCobro.id == order_id, OrdenCobro.cajero_id == cashier_id,
+            OrdenCobro.caja_id == register.id,
+        ).with_for_update())
+        if order is None or order.estado_pago != EstadoPago.PAGO_ENVIADO:
+            raise VentaInvalidaError("La orden no tiene un pago por validar")
+        if order.comprobante_pago_whatsapp is None:
+            raise VentaInvalidaError("Esta orden no tiene comprobante para revisar")
+        if order.comprobante_venta is None:
+            self.db.add(ComprobanteVenta(orden_cobro_id=order.id,
+                        serie_correlativo=f"B001-{order.id:08d}", total_pagar=order.monto_total))
+        order.estado_pago = EstadoPago.VALIDADO_CONFIRMADO
+        register.total_ingresos_validados += order.monto_total
+        self.db.commit()
+
+    def reject_pending(self, cashier_id: int, order_id: int, reason: str) -> None:
+        register = self.db.scalar(select(Caja).where(
+            Caja.cajero_id == cashier_id, Caja.estado_caja == "abierta"
+        ).with_for_update())
+        if register is None:
+            raise CajaNoAbiertaError
+        order = self.db.scalar(select(OrdenCobro).where(
+            OrdenCobro.id == order_id, OrdenCobro.cajero_id == cashier_id,
+            OrdenCobro.caja_id == register.id,
+        ).with_for_update())
+        if order is None or order.estado_pago != EstadoPago.PAGO_ENVIADO:
+            raise VentaInvalidaError("La orden no tiene un pago por rechazar")
+        order.estado_pago = EstadoPago.ANULADO
+        order.motivo_rechazo = reason.strip()
+        self.db.commit()
+
     def create_sale(self, cashier: Usuario, data: VentaCreate) -> BoletaRead:
         try:
             return self._create_sale(cashier, data)
@@ -198,6 +313,15 @@ class CashierService:
         client = self.db.get(Cliente, data.cliente_id) if data.cliente_id is not None else None
         if data.cliente_id is not None and client is None:
             raise ClienteNoEncontradoError
+        if data.proceso_atencion_id is not None:
+            process = self.db.get(ProcesoAtencion, data.proceso_atencion_id)
+            if (client is None or process is None or process.mascota.cliente_id != client.usuario_id):
+                raise VentaInvalidaError("La atención no pertenece al cliente seleccionado")
+            if self.db.scalar(select(OrdenCobro.id).where(
+                OrdenCobro.proceso_atencion_id == process.id,
+                OrdenCobro.estado_pago == EstadoPago.VALIDADO_CONFIRMADO,
+            ).limit(1)) is not None:
+                raise VentaInvalidaError("Esta atención ya tiene una venta pagada")
 
         quantities: dict[int, int] = {}
         service_quantities: dict[int, int] = {}
@@ -262,6 +386,20 @@ class CashierService:
                 )
             )
 
+        if data.descuento > total:
+            raise VentaInvalidaError("El descuento supera el importe de la venta")
+        total = (total - data.descuento).quantize(Decimal("0.01"))
+        if total <= 0:
+            raise VentaInvalidaError("El total de la venta debe ser mayor que cero")
+        payments = data.pagos or [PagoCreate(medio=data.medio_pago, monto=total)]
+        if sum((payment.monto for payment in payments), Decimal("0.00")) != total:
+            raise VentaInvalidaError("La suma de los pagos debe coincidir con el total")
+        cash_amount = sum((payment.monto for payment in payments if payment.medio == "efectivo"), Decimal("0.00"))
+        if data.efectivo_recibido is not None and cash_amount == 0:
+            raise VentaInvalidaError("El efectivo recibido requiere un pago en efectivo")
+        if data.efectivo_recibido is not None and data.efectivo_recibido < cash_amount:
+            raise VentaInvalidaError("El efectivo recibido no alcanza para el cobro")
+        change = (data.efectivo_recibido - cash_amount) if data.efectivo_recibido is not None else Decimal("0.00")
         code = (
             f"VTA-{datetime.datetime.now(datetime.timezone.utc):%Y%m%d%H%M%S}-"
             f"{secrets.token_hex(2).upper()}"
@@ -270,14 +408,18 @@ class CashierService:
             codigo_orden=code,
             cajero_id=cashier.id,
             cliente_id=client.usuario_id if client else None,
+            proceso_atencion_id=data.proceso_atencion_id,
             caja_id=register.id,
             monto_total=total,
             subtotal=(total / Decimal("1.18")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
             impuesto=total - (total / Decimal("1.18")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
-            descuento=Decimal("0.00"),
+            descuento=data.descuento,
             clave_idempotencia=data.clave_idempotencia,
             estado_pago=EstadoPago.VALIDADO_CONFIRMADO,
             medio_pago=data.medio_pago,
+            pagos=[{"medio": payment.medio, "monto": str(payment.monto)} for payment in payments],
+            efectivo_recibido=data.efectivo_recibido,
+            vuelto=change,
             detalles=details,
         )
         self.db.add(order)
@@ -308,7 +450,12 @@ class CashierService:
         existing = {(item.producto_id, item.servicio_id): item.cantidad for item in order.detalles}
         if (order.cajero_id != cashier.id or order.cliente_id != data.cliente_id
                 or order.medio_pago != data.medio_pago or existing != requested
-                or order.estado_pago != EstadoPago.VALIDADO_CONFIRMADO):
+                or order.estado_pago != EstadoPago.VALIDADO_CONFIRMADO
+                or order.descuento != data.descuento
+                or order.proceso_atencion_id != data.proceso_atencion_id
+                or order.efectivo_recibido != data.efectivo_recibido
+                or (data.pagos is not None and order.pagos != [
+                    {"medio": p.medio, "monto": str(p.monto)} for p in data.pagos])):
             raise VentaDuplicadaError
         return self.get_receipt(cashier.id, order.id)
 
@@ -345,6 +492,10 @@ class CashierService:
             descuento=order.descuento,
             estado="ANULADA" if order.estado_pago == EstadoPago.ANULADO else "PAGADA",
             total=order.monto_total,
+            pagos=order.pagos or [{"medio": order.medio_pago, "monto": order.monto_total}],
+            efectivo_recibido=order.efectivo_recibido,
+            vuelto=order.vuelto,
+            proceso_atencion_id=order.proceso_atencion_id,
             detalles=[
                 BoletaDetalleRead(
                     producto_id=detail.producto_id,

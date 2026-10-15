@@ -8,6 +8,7 @@ from app.models.user import Usuario
 from app.schemas.cashier import (
     BoletaRead,
     CajaAbrir,
+    CajaCerrar,
     CajaRead,
     CajaResumen,
     CategoriaCajaRead,
@@ -15,6 +16,10 @@ from app.schemas.cashier import (
     ProductoCajaRead,
     ServicioCajaRead,
     VentaCreate,
+    AtencionCajaRead,
+    OrdenCajaRead,
+    PagoPendienteRead,
+    PagoRechazar,
 )
 from app.security import get_current_cashier_user
 from app.services.cashier_service import (
@@ -26,6 +31,7 @@ from app.services.cashier_service import (
     StockInsuficienteError,
     VentaNoEncontradaError,
     VentaDuplicadaError,
+    VentaInvalidaError,
 )
 
 router = APIRouter(prefix="/caja", tags=["Caja"])
@@ -48,11 +54,18 @@ def open_register(data: CajaAbrir, db: DbSession, cashier: CurrentCashier):
 
 
 @router.post("/cerrar", response_model=CajaRead)
-def close_register(db: DbSession, cashier: CurrentCashier):
+def close_register(data: CajaCerrar, db: DbSession, cashier: CurrentCashier):
     try:
-        return CashierService(db).close_register(cashier.id)
+        return CashierService(db).close_register(cashier.id, data.efectivo_contado)
     except CajaNoAbiertaError as exc:
         raise HTTPException(status_code=409, detail="No tienes una caja abierta") from exc
+    except VentaInvalidaError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/cierres", response_model=list[CajaRead])
+def get_closed_registers(db: DbSession, cashier: CurrentCashier):
+    return CashierService(db).get_closed_registers(cashier.id)
 
 
 @router.get("/categorias", response_model=list[CategoriaCajaRead])
@@ -88,6 +101,41 @@ def get_services(
     return CashierService(db).get_services(q)
 
 
+@router.get("/atenciones", response_model=list[AtencionCajaRead])
+def get_attentions(db: DbSession, _cashier: CurrentCashier, cliente_id: int):
+    return CashierService(db).get_attentions(cliente_id)
+
+
+@router.get("/ventas", response_model=list[OrdenCajaRead])
+def get_sales(db: DbSession, cashier: CurrentCashier):
+    return CashierService(db).get_sales(cashier.id)
+
+
+@router.get("/pagos-pendientes", response_model=list[PagoPendienteRead])
+def get_pending(db: DbSession, cashier: CurrentCashier):
+    return CashierService(db).get_pending(cashier.id)
+
+
+@router.post("/ventas/{order_id}/validar", status_code=status.HTTP_204_NO_CONTENT)
+def validate_pending(order_id: int, db: DbSession, cashier: CurrentCashier):
+    try:
+        CashierService(db).validate_pending(cashier.id, order_id)
+    except CajaNoAbiertaError as exc:
+        raise HTTPException(status_code=409, detail="La caja de esta orden debe estar abierta") from exc
+    except VentaInvalidaError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/ventas/{order_id}/rechazar", status_code=status.HTTP_204_NO_CONTENT)
+def reject_pending(order_id: int, data: PagoRechazar, db: DbSession, cashier: CurrentCashier):
+    try:
+        CashierService(db).reject_pending(cashier.id, order_id, data.motivo)
+    except CajaNoAbiertaError as exc:
+        raise HTTPException(status_code=409, detail="La caja de esta orden debe estar abierta") from exc
+    except VentaInvalidaError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post("/ventas", response_model=BoletaRead, status_code=status.HTTP_201_CREATED)
 def create_sale(data: VentaCreate, db: DbSession, cashier: CurrentCashier):
     try:
@@ -102,6 +150,8 @@ def create_sale(data: VentaCreate, db: DbSession, cashier: CurrentCashier):
         raise HTTPException(status_code=409, detail="Stock insuficiente") from exc
     except VentaDuplicadaError as exc:
         raise HTTPException(status_code=409, detail="Clave de venta ya utilizada o venta duplicada") from exc
+    except VentaInvalidaError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/ventas/{order_id}/boleta", response_model=BoletaRead)
