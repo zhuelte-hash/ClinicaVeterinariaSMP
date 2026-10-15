@@ -104,6 +104,85 @@ button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid rgb(86 196 216 / 45%); outline-offset: 3px; }
 
+/* Visual language of the local veterinarian panel reference. */
+.vet-app {
+  --vet-bg: #f2f5f7;
+  --vet-surface: #fff;
+  --vet-ink: #233748;
+  --vet-muted: #637888;
+  --vet-line: #dfe7ed;
+  --vet-teal: #087f83;
+  --vet-nav: #172f40;
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+  color: var(--vet-ink);
+  background: var(--vet-bg);
+}
+.vet-app .page-shell > main { max-width: 1400px; margin: 0 auto; }
+.vet-app .rounded-3xl,
+.vet-app .rounded-2xl { border-radius: 10px; }
+.vet-app .shadow-xl,
+.vet-app .shadow-2xl,
+.vet-app .shadow-sm { box-shadow: 0 2px 8px rgb(35 55 72 / 4%); }
+.vet-app .border-slate-200,
+.vet-app .border-slate-100 { border-color: var(--vet-line); }
+.vet-app .text-slate-500,
+.vet-app .text-slate-600 { color: var(--vet-muted); }
+.vet-app .bg-slate-50 { background-color: #f7f9fa; }
+.vet-app .nav-link span:first-child { display: none; }
+.vet-app .nav-link { border-radius: 7px; }
+.vet-app button.rounded-xl,
+.vet-app a.rounded-xl,
+.vet-app input.rounded-xl,
+.vet-app select.rounded-xl,
+.vet-app textarea.rounded-xl { border-radius: 7px; }
+.vet-app .module-hero,
+.vet-app .home-welcome {
+  background: var(--vet-surface) !important;
+  border: 1px solid var(--vet-line);
+  box-shadow: 0 2px 8px rgb(35 55 72 / 4%);
+  color: var(--vet-ink) !important;
+}
+.vet-app .module-hero .text-white,
+.vet-app .home-welcome .text-white { color: var(--vet-ink) !important; }
+.vet-app .module-hero .text-slate-200,
+.vet-app .home-welcome .text-slate-200 { color: var(--vet-muted) !important; }
+.vet-app .module-hero [class*="text-[#83e7d9]"],
+.vet-app .home-welcome [class*="text-[#8ce9dc]"] { color: var(--vet-teal) !important; }
+.vet-app .module-hero .hero-pet,
+.vet-app .module-hero .hero-orbit { display: none; }
+.vet-app app-veterinarian-clients section:first-child,
+.vet-app app-veterinarian-new-attention section:first-child,
+.vet-app app-veterinarian-pet-history > div > header:first-child {
+  background: var(--vet-surface) !important;
+  border: 1px solid var(--vet-line);
+  box-shadow: 0 2px 8px rgb(35 55 72 / 4%);
+  color: var(--vet-ink) !important;
+}
+.vet-app app-veterinarian-clients section:first-child .text-white,
+.vet-app app-veterinarian-new-attention section:first-child .text-white,
+.vet-app app-veterinarian-pet-history > div > header:first-child .text-white { color: var(--vet-ink) !important; }
+.vet-app app-veterinarian-clients section:first-child .text-slate-200,
+.vet-app app-veterinarian-new-attention section:first-child .text-slate-200,
+.vet-app app-veterinarian-pet-history > div > header:first-child .text-slate-200 { color: var(--vet-muted) !important; }
+.vet-app .stat-card,
+.vet-app .metric-card { border-radius: 10px; box-shadow: 0 2px 8px rgb(35 55 72 / 4%); }
+.vet-app .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgb(35 55 72 / 8%); }
+.vet-app .home-dashboard > section > article,
+.vet-app .module-shell article { border-radius: 10px; }
+.vet-app .home-dashboard h1,
+.vet-app .module-shell h2,
+.vet-app .module-shell h3 { color: var(--vet-ink); }
+.vet-app .home-dashboard input,
+.vet-app .home-dashboard select,
+.vet-app .module-shell input,
+.vet-app .module-shell select,
+.vet-app .module-shell textarea { border-color: var(--vet-line); border-radius: 7px; }
+.vet-app .home-dashboard input:focus,
+.vet-app .home-dashboard select:focus,
+.vet-app .module-shell input:focus,
+.vet-app .module-shell select:focus,
+.vet-app .module-shell textarea:focus { border-color: var(--vet-teal); box-shadow: 0 0 0 3px rgb(8 127 131 / 12%); }
+
 .admin-app {
   min-height: 100dvh;
   color: var(--admin-text);

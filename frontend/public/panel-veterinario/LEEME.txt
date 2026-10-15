@@ -1,0 +1,43 @@
+PANEL VETERINARIO - VERSION FUNCIONAL LOCAL
+
+COMO ABRIRLO EN WINDOWS
+1. Extrae todo el ZIP en una carpeta.
+2. Necesitas tener Python 3 instalado.
+3. Haz doble clic en INICIAR_WINDOWS.bat.
+4. Se abrirá http://localhost:8765 en tu navegador.
+5. Mantén abierta la ventana del servidor mientras uses el panel.
+   Para detenerlo, pulsa Ctrl+C en esa ventana.
+
+ALTERNATIVA EN WINDOWS, LINUX O MAC
+Abre una terminal dentro de esta carpeta y ejecuta:
+python servidor.py
+En Linux/Mac puede ser: python3 servidor.py
+También puedes abrir la carpeta con VS Code y usar Live Server.
+
+ARCHIVOS
+index.html: página principal.
+style.css: diseño visual.
+app.js: lógica del panel, formularios y almacenamiento.
+servidor.py: servidor local para abrir el panel.
+
+FUNCIONES
+Pacientes, historial, citas, atención clínica, laboratorio, imágenes,
+vacunas y controles, cirugía, hospitalización, estética e informes.
+Permite adjuntar imágenes y PDF, imprimir informes y exportar respaldo.
+Los originales DICOM se descargan; no incluye un visor DICOM clínico.
+
+DATOS
+Los datos y archivos se guardan en el navegador mediante IndexedDB.
+El panel comienza con datos ficticios. No incluye una base de datos
+central, usuarios autenticados ni conexión con caja o WhatsApp.
+Usa siempre el mismo navegador y dirección para acceder a tus registros.
+Si borras los datos del sitio, pierdes los registros locales.
+La opción Exportar respaldo descarga una copia JSON; esta versión no
+incluye un importador de respaldos.
+
+Los datos que hayas ingresado en la página publicada NO vienen en este ZIP
+ni se transfieren automáticamente a localhost. El ZIP contiene el código.
+Las imágenes adjuntadas en tu navegador tampoco vienen incluidas.
+
+Esta es una versión inicial funcional. Se verificaron sintaxis y lógica de
+los flujos principales; no se completó una revisión visual en navegador.
