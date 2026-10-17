@@ -11,11 +11,12 @@ export class VeterinarianApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/portal/veterinario`;
 
-  getRequests(date?: string, status?: AppointmentStatus, search?: string): Observable<VeterinarianAppointment[]> {
+  getRequests(date?: string, status?: AppointmentStatus, search?: string, includeClosed = false): Observable<VeterinarianAppointment[]> {
     const params: Record<string, string> = {};
     if (date) params['fecha'] = date;
     if (status) params['estado'] = status;
     if (search) params['busqueda'] = search;
+    if (includeClosed) params['incluir_finalizadas'] = 'true';
     return this.http.get<VeterinarianAppointment[]>(`${this.baseUrl}/solicitudes`, { params });
   }
 

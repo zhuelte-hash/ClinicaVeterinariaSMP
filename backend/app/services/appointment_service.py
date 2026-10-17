@@ -325,6 +325,7 @@ class AppointmentService:
         requested_date: datetime.date | None = None,
         state: EstadoCita | None = None,
         search: str | None = None,
+        include_closed: bool = False,
     ) -> list[Cita]:
         statement = (
             select(Cita)
@@ -339,7 +340,7 @@ class AppointmentService:
             )
             .order_by(Cita.fecha_hora_programada)
         )
-        if state is None:
+        if state is None and not include_closed:
             statement = statement.where(
                 Cita.estado.not_in({EstadoCita.CANCELADA, EstadoCita.ATENDIDA, EstadoCita.NO_ASISTIO})
             )
@@ -351,7 +352,7 @@ class AppointmentService:
             statement = statement.where(Cita.estado == state)
         if search:
             term = f"%{search.strip()}%"
-            statement = statement.join(Cita.servicio).where(or_(Mascota.nombre.ilike(term), Servicio.nombre.ilike(term)))
+            statement = statement.join(Cita.servicio).where(or_(Mascota.nombre.ilike(term), Servicio.nombre.ilike(term), Usuario.nombre.ilike(term)))
         return list(self.db.scalars(statement).all())
 
     def coordinate_appointment(

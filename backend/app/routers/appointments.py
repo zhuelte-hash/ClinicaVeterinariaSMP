@@ -169,6 +169,7 @@ def get_veterinarian_appointments(
     fecha: datetime.date | None = None,
     estado: str | None = None,
     busqueda: str | None = None,
+    incluir_finalizadas: bool = False,
 ):
     parsed_state = None
     if estado:
@@ -179,7 +180,7 @@ def get_veterinarian_appointments(
         except ValueError as exc:
             raise HTTPException(status_code=422, detail="Estado no válido") from exc
     appointments = AppointmentService(db).get_veterinarian_appointments(
-        veterinarian.id, fecha, parsed_state, busqueda
+        veterinarian.id, fecha, parsed_state, busqueda, incluir_finalizadas
     )
     return [_veterinarian_read(appointment) for appointment in appointments]
 

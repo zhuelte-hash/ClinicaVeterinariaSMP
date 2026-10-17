@@ -118,3 +118,9 @@ def test_booking_shared_by_client_veterinarian_and_read_only_admin(monkeypatch: 
         rejection = http.patch(reject_url, headers=headers("vet"), json={"estado": "cancelada", "nota_coordinacion": "Cliente solicitó cancelar"})
         assert rejection.status_code == 200, rejection.text
         assert any(item["id"] == rejected.json()["id"] for item in admin_list(estado="cancelada"))
+        active = http.get("/portal/veterinario/solicitudes", headers=headers("vet"))
+        assert active.status_code == 200, active.text
+        assert all(item["id"] != rejected.json()["id"] for item in active.json())
+        complete = http.get("/portal/veterinario/solicitudes", headers=headers("vet"), params={"incluir_finalizadas": "true", "busqueda": "Cliente prueba"})
+        assert complete.status_code == 200, complete.text
+        assert any(item["id"] == rejected.json()["id"] and item["estado"] == "cancelada" for item in complete.json())

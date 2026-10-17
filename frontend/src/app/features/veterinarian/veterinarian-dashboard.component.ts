@@ -39,7 +39,7 @@ export class VeterinarianDashboardComponent {
   readonly scheduleForm = { dia_semana: 0, hora_inicio: '08:00', hora_fin: '19:00', activo: true };
   readonly blockForm = { fecha_hora_inicio: '', fecha_hora_fin: '', motivo: '' };
   readonly attentionForm = { motivo_consulta: '', anamnesis: '', observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '', proxima_fecha_control: '' };
-  readonly filterForm = this.formBuilder.nonNullable.group({ fecha: [''], estado: ['' as AppointmentStatus | ''], busqueda: [''] });
+  readonly filterForm = this.formBuilder.nonNullable.group({ fecha: [''], estado: ['' as AppointmentStatus | 'todas' | ''], busqueda: [''], asignacion: ['todas' as 'todas' | 'mias' | 'sin_asignar'] });
   readonly coordinationNotes: Record<number, string> = {};
   readonly coordinationDates: Record<number, string> = {};
 
@@ -70,10 +70,10 @@ export class VeterinarianDashboardComponent {
   }
 
   load(): void {
-    const { fecha, estado, busqueda } = this.filterForm.getRawValue();
+    const { fecha, estado, busqueda, asignacion } = this.filterForm.getRawValue();
     this.loading.set(true);
     forkJoin({
-      requests: this.api.getRequests(fecha || undefined, estado || undefined, busqueda || undefined),
+      requests: this.api.getRequests(fecha || undefined, estado && estado !== 'todas' ? estado : undefined, busqueda || undefined, estado === 'todas'),
       summary: this.api.getSummary(),
       schedules: this.api.getSchedules(),
       blocks: this.api.getBlocks(),
@@ -81,12 +81,15 @@ export class VeterinarianDashboardComponent {
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-          next: ({ requests, summary, schedules, blocks, notifications }) => {
+        next: ({ requests, summary, schedules, blocks, notifications }) => {
           const focusPetId = this.focusPetId();
-          const visibleRequests = focusPetId ? requests.filter((request) => request.mascota.id === focusPetId) : requests;
+          const visibleRequests = requests.filter((request) =>
+            (!focusPetId || request.mascota.id === focusPetId) &&
+            (asignacion === 'todas' || (asignacion === 'mias' ? request.veterinario_id !== null : request.veterinario_id === null))
+          );
           this.requests.set(visibleRequests);
           if (this.autoOpenAttention()) {
-            const request = visibleRequests.find((item) => item.estado === 'confirmada' || item.estado === 'reprogramada');
+            const request = visibleRequests.find((item) => item.veterinario_id !== null && (item.estado === 'confirmada' || item.estado === 'reprogramada'));
             if (request) this.startConsultation(request);
             this.autoOpenAttention.set(false);
           }
@@ -119,6 +122,7 @@ export class VeterinarianDashboardComponent {
         delete this.coordinationDates[request.id];
         this.errorMessage.set('');
         this.notice.show('Solicitud actualizada');
+        this.load();
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
@@ -130,6 +134,7 @@ export class VeterinarianDashboardComponent {
       next: (updated) => {
         this.requests.update((items) => items.map((item) => item.id === updated.id ? updated : item));
         this.notice.show('Llegada registrada');
+        this.load();
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
@@ -177,17 +182,19 @@ export class VeterinarianDashboardComponent {
   }
 
   addSchedule(): void {
+    if (this.scheduleForm.hora_fin <= this.scheduleForm.hora_inicio) { this.errorMessage.set('La hora final debe ser posterior a la inicial.'); return; }
     const request = this.editingScheduleId() === null
       ? this.api.createSchedule(this.scheduleForm)
       : this.api.updateSchedule(this.editingScheduleId() as number, this.scheduleForm);
-    request.subscribe({ next: (schedule) => { this.schedules.update((items) => this.editingScheduleId() === null ? [...items, schedule] : items.map((item) => item.id === schedule.id ? schedule : item)); this.editingScheduleId.set(null); this.notice.show('Horario guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+    request.subscribe({ next: (schedule) => { this.schedules.update((items) => this.editingScheduleId() === null ? [...items, schedule] : items.map((item) => item.id === schedule.id ? schedule : item)); this.editingScheduleId.set(null); this.errorMessage.set(''); this.notice.show('Horario guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
   editSchedule(schedule: VeterinarianSchedule): void { this.editingScheduleId.set(schedule.id); Object.assign(this.scheduleForm, { dia_semana: schedule.dia_semana, hora_inicio: schedule.hora_inicio, hora_fin: schedule.hora_fin, activo: schedule.activo }); }
 
   addBlock(): void {
-    if (!this.blockForm.fecha_hora_inicio || !this.blockForm.fecha_hora_fin || !this.blockForm.motivo) return;
-    this.api.createBlock({ ...this.blockForm, fecha_hora_inicio: new Date(this.blockForm.fecha_hora_inicio).toISOString(), fecha_hora_fin: new Date(this.blockForm.fecha_hora_fin).toISOString() }).subscribe({ next: (block) => { this.blocks.update((items) => [...items, block]); this.blockForm.fecha_hora_inicio = ''; this.blockForm.fecha_hora_fin = ''; this.blockForm.motivo = ''; this.notice.show('Bloqueo guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+    if (!this.blockForm.fecha_hora_inicio || !this.blockForm.fecha_hora_fin || !this.blockForm.motivo.trim()) { this.errorMessage.set('Completa las fechas y el motivo del bloqueo.'); return; }
+    if (this.blockForm.fecha_hora_fin <= this.blockForm.fecha_hora_inicio) { this.errorMessage.set('El final del bloqueo debe ser posterior al inicio.'); return; }
+    this.api.createBlock({ ...this.blockForm, fecha_hora_inicio: new Date(this.blockForm.fecha_hora_inicio).toISOString(), fecha_hora_fin: new Date(this.blockForm.fecha_hora_fin).toISOString() }).subscribe({ next: (block) => { this.blocks.update((items) => [...items, block]); this.blockForm.fecha_hora_inicio = ''; this.blockForm.fecha_hora_fin = ''; this.blockForm.motivo = ''; this.errorMessage.set(''); this.notice.show('Bloqueo guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
   removeBlock(block: ScheduleBlock): void { this.api.deleteBlock(block.id).subscribe({ next: () => this.blocks.update((items) => items.filter((item) => item.id !== block.id)), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
@@ -196,6 +203,13 @@ export class VeterinarianDashboardComponent {
 
   setProposal(id: number, value: string): void { this.coordinationDates[id] = value; }
   setNote(id: number, value: string): void { this.coordinationNotes[id] = value; }
+  filterToday(): void {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+    this.filterForm.controls.fecha.setValue(`${value('year')}-${value('month')}-${value('day')}`);
+    this.load();
+  }
+  clearFilters(): void { this.filterForm.reset({ fecha: '', estado: '', busqueda: '', asignacion: 'todas' }); this.focusPetId.set(null); this.load(); }
   startConsultation(request: VeterinarianAppointment): void {
     this.resetAttention();
     this.attentionForm.motivo_consulta = request.motivo || '';
@@ -215,9 +229,9 @@ export class VeterinarianDashboardComponent {
 
   statusLabel(status: AppointmentStatus): string {
     const labels: Partial<Record<AppointmentStatus, string>> = {
-      pendiente_contacto: 'Pendiente de confirmación', contactando_cliente: 'Contactando al cliente',
+      pendiente: 'Pendiente', pendiente_contacto: 'Pendiente de confirmación', contactando_cliente: 'Contactando al cliente',
       esperando_respuesta: 'Esperando respuesta', requiere_otro_horario: 'Requiere otro horario',
-      confirmada: 'Confirmada', cancelada: 'Cancelada', cliente_no_respondio: 'Cliente no respondió', atendida: 'Atendida',
+      confirmada: 'Confirmada', reprogramada: 'Reprogramada', cancelada: 'Cancelada', cliente_no_respondio: 'Cliente no respondió', atendida: 'Atendida', no_asistio: 'No asistió',
     };
     return labels[status] ?? status;
   }
