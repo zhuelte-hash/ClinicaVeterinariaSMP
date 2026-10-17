@@ -1,21 +1,51 @@
-<div class="home-dashboard w-full space-y-5">
-  <div class="crumb">ÁREA VETERINARIA / INICIO</div>
-  <div class="flex flex-wrap items-center justify-between gap-3"><div><h1 class="text-3xl font-black text-[#233748]">Inicio</h1><p class="mt-1 text-sm text-[#637888]">Pacientes, atenciones y servicios vinculados en un mismo lugar.</p></div><span class="rounded-md bg-[#edf5f5] px-3 py-2 text-xs font-bold text-[#2e686b]">Turno activo</span></div>
+<div class="home-dashboard w-full space-y-6">
+  <section class="dashboard-hero relative overflow-hidden rounded-[1.5rem] p-6 text-white shadow-xl sm:p-8">
+    <div class="relative z-10 max-w-xl">
+      <span class="eyebrow-chip">Centro clínico</span>
+      <h1 class="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Resumen operativo</h1>
+      <p class="mt-3 max-w-lg text-sm leading-6 text-slate-200 sm:text-base">Una vista clara para priorizar pacientes, revisar tu agenda y mantener cada atención bajo control.</p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a routerLink="/veterinario/agenda" class="hero-action">Abrir agenda <span>↗</span></a>
+        <a routerLink="/veterinario/nueva-atencion" class="hero-action secondary">Nueva atención <span>+</span></a>
+      </div>
+    </div>
+    <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+    <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
+    <div class="hero-pattern" aria-hidden="true"></div>
+  </section>
 
-  <section class="grid gap-3 sm:grid-cols-3">
-    @for (item of [{ label: 'Pacientes en agenda', value: summary().proximas, tone: 'teal' }, { label: 'Citas pendientes', value: summary().pendientes, tone: 'amber' }, { label: 'Citas confirmadas', value: summary().confirmadas, tone: 'blue' }]; track item.label) {
-      <article class="stat-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div class="flex items-center justify-between"><p class="text-xs font-black uppercase tracking-[.14em] text-slate-500">{{ item.label }}</p><span class="h-2.5 w-2.5 rounded-full" [class.bg-amber-400]="item.tone === 'amber'" [class.bg-[#35c9b5]]="item.tone === 'teal'" [class.bg-blue-400]="item.tone === 'blue'" [class.bg-violet-400]="item.tone === 'violet'"></span></div><p class="mt-3 text-3xl font-black text-[#102b35]">{{ item.value }}</p></article>
+  <section class="grid gap-4 sm:grid-cols-3">
+    @for (item of [{ label: 'Pacientes en agenda', value: summary().proximas, icon: '🐾', tone: 'mint' }, { label: 'Citas pendientes', value: summary().pendientes, icon: '◷', tone: 'amber' }, { label: 'Citas confirmadas', value: summary().confirmadas, icon: '✓', tone: 'blue' }]; track item.label) {
+      <article class="modern-stat" [class]="'modern-stat ' + item.tone">
+        <div class="flex items-start justify-between gap-3"><span class="stat-icon">{{ item.icon }}</span><span class="stat-arrow">↗</span></div>
+        <p class="mt-5 text-3xl font-black text-[#172b3a]">{{ item.value }}</p>
+        <p class="mt-1 text-sm font-semibold text-slate-500">{{ item.label }}</p>
+        <div class="stat-line"><span></span></div>
+      </article>
     }
   </section>
 
-  <section class="grid gap-5 lg:grid-cols-2"><article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><div><p class="text-[10px] font-black uppercase tracking-[.18em] text-[#168b83]">Lectura rápida</p><h2 class="mt-1 text-xl font-black text-[#102b35]">Estado de la jornada</h2></div><span class="rounded-full bg-[#eaf9f6] px-3 py-1 text-xs font-black text-[#168b83]">Hoy</span></div><div class="mt-6 space-y-4">@for (item of statusChart(); track item.label) { <div><div class="mb-1 flex justify-between text-xs font-bold text-slate-500"><span>{{ item.label }}</span><strong class="text-[#102b35]">{{ item.value }}</strong></div><div class="h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all" [style.width.%]="chartWidth(item.value, statusChart().map(value => value.value))" [style.backgroundColor]="item.color"></div></div></div> }</div></article><article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div><p class="text-[10px] font-black uppercase tracking-[.18em] text-[#168b83]">Actividad clínica</p><h2 class="mt-1 text-xl font-black text-[#102b35]">Servicios de hoy</h2></div><div class="mt-6 space-y-4">@for (item of serviceChart(); track item.label) { <div><div class="mb-1 flex justify-between text-xs font-bold text-slate-500"><span>{{ item.label }}</span><strong class="text-[#102b35]">{{ item.value }}</strong></div><div class="h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[#168b83] transition-all" [style.width.%]="chartWidth(item.value, serviceChart().map(value => value.value))"></div></div></div> } @empty { <p class="text-sm text-slate-500">Aún no hay servicios para graficar.</p> }</div></article></section>
-
-  <section class="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.55fr)]">
-    <article class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <header class="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><p class="text-[10px] font-black uppercase tracking-[.18em] text-[#168b83]">Agenda</p><h2 class="mt-1 text-xl font-black text-[#102b35]">Próximas citas</h2></div><a routerLink="/veterinario/agenda" class="text-sm font-black text-[#168b83]">Ver todas</a></header>
-      <div class="divide-y divide-slate-100">@for (appointment of appointments(); track appointment.id) { <div class="flex items-center gap-4 px-5 py-4 transition hover:bg-[#f7fcfb]"><div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e5f8f4] text-sm font-black text-[#168b83]">{{ appointment.mascota.nombre.charAt(0).toUpperCase() }}</div><div class="min-w-0 flex-1"><p class="truncate font-black text-[#102b35]">{{ appointment.mascota.nombre }} <span class="font-normal text-slate-400">· {{ appointment.cliente_nombre }}</span></p><p class="mt-1 truncate text-sm text-slate-500">{{ appointment.servicio.nombre }}</p></div><div class="text-right"><p class="text-xs font-bold text-slate-600">{{ formatDate(appointment.fecha_hora_programada) }}</p><span class="mt-1 inline-block rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">{{ statusLabel(appointment.estado) }}</span></div></div> } @empty { <div class="px-5 py-12 text-center text-sm text-slate-500">No tienes citas pendientes.</div> }</div>
+  <section class="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
+    <article class="modern-card p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4"><div><span class="section-kicker">Rendimiento</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Estado de la jornada</h2><p class="mt-1 text-sm text-slate-500">Distribución de tus solicitudes clínicas</p></div><span class="live-dot">Actualizado</span></div>
+      <div class="mt-7 grid items-center gap-6 sm:grid-cols-[10rem_minmax(0,1fr)]">
+        <div class="donut-wrap" [style.background]="statusDonut()"><div class="donut-hole"><strong>{{ statusTotal() }}</strong><span>total</span></div></div>
+        <div class="space-y-4">@for (item of statusChart(); track item.label) { <div class="flex items-center gap-3"><span class="legend-dot" [style.backgroundColor]="item.color"></span><span class="min-w-0 flex-1 text-sm font-semibold text-slate-600">{{ item.label }}</span><strong class="text-sm text-[#172b3a]">{{ item.value }}</strong><span class="text-xs text-slate-400">{{ statusTotal() ? ((item.value / statusTotal()) * 100 | number:'1.0-0') : 0 }}%</span></div> }</div>
+      </div>
     </article>
 
-    <article class="rounded-2xl border border-slate-200 bg-[#102b35] p-5 text-white shadow-sm"><p class="text-[10px] font-black uppercase tracking-[.18em] text-[#8ce9dc]">Accesos rápidos</p><h2 class="mt-2 text-xl font-black">Trabajo clínico</h2><div class="mt-5 space-y-2"><a routerLink="/veterinario/mascotas" class="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/20"><span>Historias clínicas</span><span class="text-[#8ce9dc]">→</span></a><a routerLink="/veterinario/nueva-atencion" class="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/20"><span>Registrar paciente</span><span class="text-[#8ce9dc]">→</span></a><a routerLink="/veterinario/agenda" class="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 text-sm font-bold transition hover:bg-white/20"><span>Organizar disponibilidad</span><span class="text-[#8ce9dc]">→</span></a></div></article>
+    <article class="modern-card p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4"><div><span class="section-kicker">Actividad clínica</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Servicios frecuentes</h2></div><span class="chart-badge">TOP</span></div>
+      <div class="mt-6 space-y-5">@for (item of serviceChart(); track item.label; let index = $index) { <div><div class="mb-2 flex justify-between gap-3 text-sm"><span class="truncate font-semibold text-slate-600">{{ item.label }}</span><strong class="text-[#172b3a]">{{ item.value }}</strong></div><div class="chart-track"><span [class]="'chart-bar bar-' + index" [style.width.%]="chartWidth(item.value, serviceChart().map(value => value.value))"></span></div></div> } @empty { <div class="empty-chart"><span>◌</span><p>Aún no hay servicios para graficar.</p></div> }</div>
+    </article>
+  </section>
+
+  <section class="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.55fr)]">
+    <article class="modern-card overflow-hidden">
+      <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6"><div><span class="section-kicker">Agenda clínica</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Próximas citas</h2></div><a routerLink="/veterinario/agenda" class="view-link">Ver todas <span>→</span></a></header>
+      <div class="divide-y divide-slate-100">@for (appointment of appointments(); track appointment.id) { <div class="appointment-row"><div class="pet-avatar">{{ appointment.mascota.nombre.charAt(0).toUpperCase() }}</div><div class="min-w-0 flex-1"><p class="truncate font-black text-[#172b3a]">{{ appointment.mascota.nombre }} <span class="font-normal text-slate-400">· {{ appointment.cliente_nombre }}</span></p><p class="mt-1 truncate text-sm text-slate-500">{{ appointment.servicio.nombre }}</p></div><div class="text-right"><p class="text-xs font-bold text-slate-600">{{ formatDate(appointment.fecha_hora_programada) }}</p><span class="status-pill">{{ statusLabel(appointment.estado) }}</span></div></div> } @empty { <div class="px-5 py-12 text-center text-sm text-slate-500">No tienes citas pendientes.</div> }</div>
+    </article>
+
+    <article class="quick-panel p-5 sm:p-6"><div class="quick-panel-icon">✦</div><span class="section-kicker light">Accesos rápidos</span><h2 class="mt-2 text-2xl font-black text-white">Trabajo clínico</h2><p class="mt-2 text-sm leading-6 text-slate-300">Lo esencial para continuar tu jornada.</p><div class="mt-6 space-y-2"><a routerLink="/veterinario/mascotas" class="quick-link"><span><b>Historias clínicas</b><small>Consulta pacientes</small></span><span>↗</span></a><a routerLink="/veterinario/nueva-atencion" class="quick-link"><span><b>Registrar atención</b><small>Abre una nueva ficha</small></span><span>↗</span></a><a routerLink="/veterinario/agenda" class="quick-link"><span><b>Organizar agenda</b><small>Revisa tus citas</small></span><span>↗</span></a></div></article>
   </section>
 </div>

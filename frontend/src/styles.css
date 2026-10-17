@@ -128,8 +128,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .vet-app .text-slate-500,
 .vet-app .text-slate-600 { color: var(--vet-muted); }
 .vet-app .bg-slate-50 { background-color: #f7f9fa; }
-.vet-app .nav-link span:first-child { display: none; }
-.vet-app .nav-link { border-radius: 7px; }
 .vet-app button.rounded-xl,
 .vet-app a.rounded-xl,
 .vet-app input.rounded-xl,
@@ -167,8 +165,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .vet-app .stat-card,
 .vet-app .metric-card { border-radius: 10px; box-shadow: 0 2px 8px rgb(35 55 72 / 4%); }
 .vet-app .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgb(35 55 72 / 8%); }
-.vet-app .home-dashboard > section > article,
-.vet-app .module-shell article { border-radius: 10px; }
 .vet-app .home-dashboard h1,
 .vet-app .module-shell h2,
 .vet-app .module-shell h3 { color: var(--vet-ink); }
