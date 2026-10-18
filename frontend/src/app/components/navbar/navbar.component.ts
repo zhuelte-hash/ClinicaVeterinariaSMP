@@ -133,7 +133,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
 
           <!-- Acciones -->
           <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
-             <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-[#0B1B6D] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#147d87] md:inline-flex">Agenda tu cita</a>
+             <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-[#0B1B6D] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#147d87] md:inline-flex">Reservar cita</a>
             <a routerLink="/productos" title="Buscar" aria-label="Buscar productos" class="hidden h-10 w-10 items-center justify-center rounded-full text-[#0B1B6D] transition hover:bg-[#0799AE]/10 hover:text-[#0799AE] lg:flex">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 17a7 7 0 110-14 7 7 0 010 14z"/></svg>
             </a>
@@ -249,7 +249,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </div>
          }
          <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
-           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="rounded-full bg-[#0B1B6D] px-4 py-3 text-center text-white hover:bg-[#0799AE]">Agenda tu cita</a>
+           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="rounded-full bg-[#0B1B6D] px-4 py-3 text-center text-white hover:bg-[#0799AE]">Reservar cita</a>
            @if (auth.isAuthenticated()) {
              <a [routerLink]="accountRoute()" (click)="closeMobileMenu()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Mi cuenta</a>
              <button type="button" (click)="logout()" class="rounded-full border border-rose-200 px-4 py-3 text-center font-bold text-rose-600 hover:bg-rose-50">Cerrar sesión</button>

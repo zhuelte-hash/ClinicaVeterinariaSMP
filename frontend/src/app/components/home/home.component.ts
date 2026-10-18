@@ -98,13 +98,33 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
            <div><p class="text-sm font-bold uppercase tracking-[0.18em] text-[#147d87]">Tienda para mascotas</p><h2 class="mt-2 text-3xl font-extrabold text-[#0B1B6D] sm:text-4xl">Productos destacados</h2><p class="mt-3 text-slate-600">Encuentra lo mejor para el cuidado y felicidad de tu mascota.</p></div>
            <a routerLink="/productos" class="inline-flex min-h-11 items-center font-bold text-[#0B1B6D] hover:text-[#147d87]">Ver todo el catálogo →</a>
         </div>
-        <div class="mt-9 grid gap-6 lg:grid-cols-[250px_1fr]">
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+         @if (catalog.loading() && catalog.products().length === 0) {
+           <div class="mt-9 grid gap-6 lg:grid-cols-[250px_1fr]" aria-live="polite" aria-label="Cargando productos destacados">
+             <div class="min-h-44 animate-pulse rounded-3xl bg-slate-200"></div>
+             <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+               @for (placeholder of [1, 2, 3]; track placeholder) { <div class="min-h-80 animate-pulse rounded-3xl bg-slate-200"></div> }
+             </div>
+           </div>
+         } @else if (catalog.error()) {
+           <div class="mt-9 rounded-3xl border border-rose-200 bg-rose-50 px-6 py-10 text-center" role="alert">
+             <p class="font-bold text-rose-900">No pudimos cargar los productos destacados.</p>
+             <p class="mt-2 text-sm text-rose-800">Puedes reintentarlo sin salir de esta página.</p>
+             <button type="button" (click)="catalog.load()" class="site-button mt-5">Reintentar</button>
+           </div>
+         } @else if (featuredProducts().length > 0) {
+           <div class="mt-9 grid gap-6 lg:grid-cols-[250px_1fr]">
+           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-3xl bg-[#0B1B6D] p-6 text-white"><div class="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-sky-400/30"></div><p class="text-xs font-bold uppercase tracking-wider text-sky-300">Selección del mes</p><h3 class="mt-3 text-2xl font-black">Ofertas especiales</h3><span class="mt-5 inline-block text-sm font-bold">Descubrir productos →</span></a>
              <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-2xl bg-[#f8ecd2] p-6 text-[#0B1B6D] transition hover:bg-[#f5e4bf]"><div class="absolute -right-6 -top-8 h-28 w-28 rounded-full bg-[#E0A71A]/15"></div><p class="text-xs font-bold uppercase tracking-wider text-[#725409]">Recién llegados</p><h3 class="mt-3 text-2xl font-extrabold">Nuevos productos</h3><span class="mt-5 inline-block text-sm font-bold">Ver novedades →</span></a>
-          </div>
-           <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of featuredProducts(); track product.id) { <app-product-card [item]="product" /> }</div>
-        </div>
+            </div>
+            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of featuredProducts(); track product.id) { <app-product-card [item]="product" /> }</div>
+           </div>
+         } @else {
+           <div class="mt-9 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+             <p class="font-bold text-[#0B1B6D]">Próximamente tendremos productos destacados.</p>
+             <a routerLink="/productos" class="site-button mt-5">Ver catálogo</a>
+           </div>
+         }
       </div>
     </section>
 
@@ -119,7 +139,7 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
   `,
 })
 export class HomeComponent {
-  private readonly catalog = inject(PublicProductsService);
+  readonly catalog = inject(PublicProductsService);
   readonly featuredProducts = computed(() => this.catalog.products().filter((product) => product.stock > 0).slice(0, 3));
   constructor() { this.catalog.load(); }
   readonly favoriteCategories = [

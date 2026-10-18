@@ -11,7 +11,7 @@ import { CartService } from '../../services/cart.service';
   template: `
     <article class="site-card group flex h-full flex-col overflow-hidden hover:-translate-y-0.5">
       <div class="relative aspect-[4/3] overflow-hidden bg-[#f6f8f8]">
-        <img [src]="item().image" [alt]="item().imageAlt" loading="lazy" class="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.03]" />
+         <img [src]="item().image" [alt]="item().imageAlt" (error)="onImageError($event)" loading="lazy" class="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.03]" />
         @if (badge()) { <span class="absolute left-4 top-4 rounded-full border border-[#0B1B6D]/10 bg-white/95 px-3 py-1 text-xs font-bold text-[#0B1B6D]">{{ badge() }}</span> }
         <button type="button" (click)="favorite.update(value => !value)" class="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white/95 transition hover:border-[#1A98A2] hover:scale-105" [class.text-[#a8462c]]="favorite()" [class.text-slate-600]="!favorite()" [attr.aria-label]="favorite() ? 'Quitar de favoritos' : 'Añadir a favoritos'" [attr.aria-pressed]="favorite()">
           <svg class="h-5 w-5" viewBox="0 0 24 24" [attr.fill]="favorite() ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
@@ -61,6 +61,12 @@ export class ProductCardComponent {
     const cartItem = this.toCartItem(product);
     this.cart.add(cartItem);
     this.notice.show('Producto añadido al carrito');
+  }
+
+  onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement;
+    if (image.src.endsWith('/logo.png')) return;
+    image.src = '/logo.png';
   }
 
   private toCartItem(product: Product | PharmacyProduct) {

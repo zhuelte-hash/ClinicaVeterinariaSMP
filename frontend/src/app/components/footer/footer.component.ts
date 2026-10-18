@@ -31,16 +31,14 @@ import { RouterLink } from '@angular/router';
             <li><a routerLink="/blog" class="hover:text-brand-500">Nuestro Blog</a></li>
           </ul>
         </div>
-        <div>
-           <h2 class="mb-3 font-bold text-white">Empresa</h2>
-          <ul class="space-y-2 text-sm">
-            <li><a routerLink="/" class="hover:text-brand-500">Preguntas Frecuentes</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Políticas de Privacidad</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Términos y Condiciones</a></li>
-            <li><a routerLink="/contacto" class="hover:text-brand-500">Contacto</a></li>
-            <li><a routerLink="/" class="hover:text-brand-500">Libro de Reclamaciones</a></li>
-          </ul>
-        </div>
+         <div>
+            <h2 class="mb-3 font-bold text-white">Empresa</h2>
+           <ul class="space-y-2 text-sm">
+             <li><a routerLink="/contacto" class="hover:text-brand-500">Preguntas frecuentes</a></li>
+             <li><a routerLink="/contacto" class="hover:text-brand-500">Políticas y condiciones</a></li>
+             <li><a routerLink="/contacto" class="hover:text-brand-500">Contacto y reclamos</a></li>
+           </ul>
+         </div>
         <div>
            <h2 class="mb-3 font-bold text-white">Contacto</h2>
           <ul class="space-y-2 text-sm">
