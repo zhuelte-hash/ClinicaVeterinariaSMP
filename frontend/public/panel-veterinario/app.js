@@ -20,6 +20,11 @@ const clinicalGroups={
 };
 let db,state,page='Inicio',patientId='PAC-LUNA',encounterId=null,tab='Evaluación',draft=null,editingService=null,serviceDraft=null,filter='',apptDate='',servicePatient='',viewRecord=null,objectUrls=[];
 const app=$('#app'),modal=$('#modal');
+const themeIcon=()=>localStorage.getItem('clinic-theme')==='dark'?'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.6 6.6 0 0 0 21 12.8Z"/></svg>';
+function applyTheme(){document.documentElement.dataset.theme=localStorage.getItem('clinic-theme')==='dark'?'dark':'light';}
+function toggleTheme(){const dark=document.documentElement.dataset.theme==='dark';localStorage.setItem('clinic-theme',dark?'light':'dark');applyTheme();const control=$('#theme-toggle');if(control)control.innerHTML=themeIcon();}
+applyTheme();
+const themeButton=document.createElement('button');themeButton.id='theme-toggle';themeButton.className='theme-toggle';themeButton.type='button';themeButton.setAttribute('aria-label','Cambiar modo de color');themeButton.title='Cambiar modo de color';themeButton.innerHTML=themeIcon();document.body.append(themeButton);
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('vet-centro-clinico-v1',1);r.onupgradeneeded=()=>{r.result.createObjectStore('state');r.result.createObjectStore('files',{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
 function get(store,key){return new Promise((resolve,reject)=>{const r=db.transaction(store).objectStore(store).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
 function commit(next,files=[]){return new Promise((resolve,reject)=>{const tx=db.transaction(['state','files'],'readwrite');tx.objectStore('state').put(next,'main');files.forEach(f=>tx.objectStore('files').put(f));tx.oncomplete=()=>{state=next;resolve();};tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('No se pudo guardar'));});}
@@ -98,6 +103,7 @@ else if(action==='file-view'||action==='file-download')await fileAction(id,actio
 else if(['zoom-in','zoom-out','rotate'].includes(action)){const img=$('#viewer-image');let scale=Number(img.dataset.scale),angle=Number(img.dataset.angle);if(action==='rotate')angle+=90;else scale=Math.min(4,Math.max(.5,scale+(action==='zoom-in'?.25:-.25)));img.dataset.scale=scale;img.dataset.angle=angle;img.style.width=(scale*100)+'%';img.style.maxWidth='none';img.style.transform=`rotate(${angle}deg)`;}
 else if(action==='print')window.print();else if(action==='backup')await backup();
 }
+document.addEventListener('click',e=>{if(e.target.closest('#theme-toggle'))toggleTheme();});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const wasDisabled=b.disabled;b.disabled=true;try{await handleAction(b.dataset.action,b.dataset.id);}catch(error){notify(error.message||'No se pudo completar la operación.');}finally{b.disabled=wasDisabled;}});
 document.addEventListener('input',e=>{if(e.target.id==='patient-search')$('#patient-results').innerHTML=patientRows(e.target.value);});
 document.addEventListener('change',e=>{if(e.target.name==='filterDate'){apptDate=e.target.value;render();}if(e.target.name==='serviceFilter'){servicePatient=e.target.value;render();}if(e.target.name==='patientId'&&e.target.closest('#service-form')){captureService();serviceDraft.encounterId='';const select=$('#service-form select[name="encounterId"]');select.innerHTML='<option value="">Servicio independiente</option>'+state.encounters.filter(x=>x.patientId===serviceDraft.patientId).map(x=>`<option value="${esc(x.id)}">${esc(x.id)} · ${dateText(x.date)}</option>`).join('');}});

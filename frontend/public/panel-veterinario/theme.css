@@ -38,6 +38,8 @@ header {
 .brand strong { color: var(--ink); letter-spacing: -.02em; }
 .brand small { color: var(--muted); }
 .mode { border: 1px solid #d6ece9; background: #eefaf8; color: #27716f; }
+.theme-toggle { position: fixed; top: 18px; right: 24px; z-index: 20; display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d6e4e7; border-radius: 12px; background: #fff; color: #526b68; cursor: pointer; }
+.theme-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 nav { background: linear-gradient(180deg, #182f41 0%, #112a3a 100%); padding: 24px 14px; }
 nav button { border-radius: 9px; transition: background .2s, transform .2s, color .2s; }
@@ -86,6 +88,27 @@ form { display: grid; gap: 22px; }
 .viewer img { max-width: 100%; margin: auto; border-radius: 6px; }
 .note { border-left: 3px solid #8bd6d1; border-radius: 0 8px 8px 0; background: #eef9f7; padding: 11px 13px; color: #52717a; font-size: 12px; line-height: 1.55; }
 .printhead { display: none; }
+
+[data-theme='dark'] {
+  --bg: #0b1220;
+  --surface: #111c2d;
+  --surface-soft: #162337;
+  --ink: #e2e8f0;
+  --muted: #94a3b8;
+  --line: #263449;
+  --shadow: 0 12px 34px rgba(0, 0, 0, .18);
+  --violet-soft: #20264a;
+}
+[data-theme='dark'] body { background: radial-gradient(circle at 90% 0%, rgba(40, 110, 120, .16), transparent 28rem), var(--bg); }
+[data-theme='dark'] header { background: rgba(15, 23, 42, .94); }
+[data-theme='dark'] .mode { border-color: #334155; background: #162337; color: #9edee0; }
+[data-theme='dark'] .theme-toggle { border-color: #334155; background: #162337; color: #f8fafc; }
+[data-theme='dark'] .card, [data-theme='dark'] section.card { background: rgba(17, 28, 45, .98); }
+[data-theme='dark'] .detailgrid > div, [data-theme='dark'] .attachment { border-color: #334155; background: #162337; }
+[data-theme='dark'] .field input, [data-theme='dark'] .field select, [data-theme='dark'] .field textarea { border-color: #334155; background: #0f1a2b; color: #e2e8f0; }
+[data-theme='dark'] .note { background: #162e36; color: #a5c8ca; }
+[data-theme='dark'] .tabs button:hover { background: #202f42; }
+[data-theme='dark'] .tabs button.active { background: #203b43; color: #9de5df; }
 
 .card, section.card {
   border-color: var(--line);

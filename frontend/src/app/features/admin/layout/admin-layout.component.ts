@@ -1,7 +1,7 @@
-import { Component, computed, HostListener, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AdminDataService } from '../services/admin-data.service';
+import { AdminApiService, AdminNotification } from '../services/admin-api.service';
 
 interface NavItem { label: string; path: string; icon: 'grid' | 'box' | 'stock' | 'tag' | 'calendar' | 'sale' | 'bell' | 'users' | 'settings'; }
 
@@ -14,7 +14,8 @@ export class AdminLayoutComponent {
   readonly drawerOpen = signal(false);
   readonly profileOpen = signal(false);
   readonly notificationOpen = signal(false);
-  readonly unread = computed(() => this.data.notifications().filter((item) => !item.read).length);
+  readonly notifications = signal<AdminNotification[]>([]);
+  readonly unread = computed(() => this.notifications().filter((item) => !item.leida).length);
   readonly administratorName = computed(() => this.auth.currentUser()?.nombre || 'Administrador');
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly today = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -27,7 +28,8 @@ export class AdminLayoutComponent {
     { label: 'Configuración', path: 'configuracion', icon: 'settings' },
   ];
 
-  constructor(readonly auth: AuthService, private readonly router: Router, readonly data: AdminDataService) {}
+  private readonly api = inject(AdminApiService);
+  constructor(readonly auth: AuthService, private readonly router: Router) { this.api.getNotifications().subscribe({ next: (items) => this.notifications.set(items) }); }
   closeDrawer(): void { this.drawerOpen.set(false); }
   toggleProfile(): void { this.profileOpen.update((open) => !open); this.notificationOpen.set(false); }
   toggleNotifications(): void { this.notificationOpen.update((open) => !open); this.profileOpen.set(false); }

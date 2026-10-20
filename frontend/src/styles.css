@@ -272,6 +272,167 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .no-print { display: none !important; }
 }
 
+/* Shared theme control and dark palette for the operational panels. */
+.theme-toggle {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid #dce8e5;
+  border-radius: .9rem;
+  background: rgb(255 255 255 / 82%);
+  color: #526b68;
+  transition: .2s;
+}
+.theme-toggle:hover { border-color: #56c4d8; background: #f0fbfd; color: #111827; }
+.theme-toggle svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.panel-theme-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 100; display: grid; width: 2.8rem; height: 2.8rem; place-items: center; border: 1px solid #dce8e5; border-radius: .9rem; background: #fff; color: #526b68; box-shadow: 0 8px 24px rgb(15 23 42 / 16%); cursor: pointer; }
+.panel-theme-toggle:hover { border-color: #56c4d8; background: #f0fbfd; }
+.panel-theme-toggle svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+[data-theme='dark'] body { background: #0b1220; color: #e2e8f0; }
+[data-theme='dark'] .admin-app,
+[data-theme='dark'] .vet-app,
+[data-theme='dark'] .cashier-app { background: #0b1220; color: #e2e8f0; }
+[data-theme='dark'] .admin-app .topbar,
+[data-theme='dark'] .cashier-app .cashier-header { border-color: #263449; background: rgb(15 23 42 / 94%); }
+[data-theme='dark'] .admin-app .admin-card,
+[data-theme='dark'] .admin-app .admin-panel,
+[data-theme='dark'] .vet-app .module-hero,
+[data-theme='dark'] .vet-app .home-welcome,
+[data-theme='dark'] .vet-app .stat-card,
+[data-theme='dark'] .vet-app .metric-card { border-color: #263449; background: #111c2d !important; box-shadow: 0 8px 24px rgb(0 0 0 / 18%); }
+[data-theme='dark'] .admin-app .admin-input,
+[data-theme='dark'] .vet-app input,
+[data-theme='dark'] .vet-app select,
+[data-theme='dark'] .vet-app textarea { border-color: #334155; background: #0f1a2b; color: #e2e8f0; }
+[data-theme='dark'] .admin-app .admin-label,
+[data-theme='dark'] .admin-app h1,
+[data-theme='dark'] .admin-app h2,
+[data-theme='dark'] .admin-app h3,
+[data-theme='dark'] .admin-app .text-slate-800,
+[data-theme='dark'] .admin-app .text-slate-900,
+[data-theme='dark'] .vet-app h1,
+[data-theme='dark'] .vet-app h2,
+[data-theme='dark'] .vet-app h3 { color: #e2e8f0 !important; }
+[data-theme='dark'] .admin-app .admin-secondary,
+[data-theme='dark'] .admin-app button:not(.admin-primary),
+[data-theme='dark'] .vet-app button { border-color: #334155; background: #162337; color: #dbeafe; }
+[data-theme='dark'] .admin-app .admin-table th { border-color: #334155; background: #17253a; color: #cbd5e1; }
+[data-theme='dark'] .admin-app .admin-table td { border-color: #263449; color: #cbd5e1; }
+[data-theme='dark'] .admin-app .admin-table tbody tr:hover { background: #17253a; }
+[data-theme='dark'] .admin-app .dropdown { border-color: #334155; background: #111c2d; }
+[data-theme='dark'] .admin-app .dropdown .text-slate-800,
+[data-theme='dark'] .admin-app .dropdown .text-slate-900 { color: #e2e8f0 !important; }
+[data-theme='dark'] .admin-app .dropdown a:hover { background: #1e293b; }
+[data-theme='dark'] .vet-app .border-slate-100,
+[data-theme='dark'] .vet-app .border-slate-200 { border-color: #263449 !important; }
+[data-theme='dark'] .vet-app .bg-slate-50 { background: #162337 !important; }
+[data-theme='dark'] .vet-app .text-slate-500,
+[data-theme='dark'] .vet-app .text-slate-600,
+[data-theme='dark'] .vet-app .text-slate-700 { color: #94a3b8 !important; }
+[data-theme='dark'] .vet-app,
+[data-theme='dark'] .vet-app .page-shell,
+[data-theme='dark'] .vet-app main { background: #0b1220 !important; color: #e2e8f0 !important; }
+[data-theme='dark'] .vet-app main .bg-white,
+[data-theme='dark'] .vet-app main [class*='bg-white'],
+[data-theme='dark'] .vet-app main .bg-slate-50,
+[data-theme='dark'] .vet-app main [class*='bg-slate-50'] { background-color: #111c2d !important; }
+[data-theme='dark'] .vet-app main [class*='border-slate-100'],
+[data-theme='dark'] .vet-app main [class*='border-slate-200'],
+[data-theme='dark'] .vet-app main [class*='border-slate-300'],
+[data-theme='dark'] .vet-app main [class*='ring-slate-200'] { border-color: #334155 !important; --tw-ring-color: #334155 !important; }
+[data-theme='dark'] .vet-app main [class*='text-[#102b35]'],
+[data-theme='dark'] .vet-app main [class*='text-slate-700'],
+[data-theme='dark'] .vet-app main [class*='text-slate-800'],
+[data-theme='dark'] .vet-app main [class*='text-slate-900'] { color: #e2e8f0 !important; }
+[data-theme='dark'] .vet-app main [class*='text-slate-500'],
+[data-theme='dark'] .vet-app main [class*='text-slate-600'] { color: #94a3b8 !important; }
+[data-theme='dark'] .vet-app main input,
+[data-theme='dark'] .vet-app main select,
+[data-theme='dark'] .vet-app main textarea { border-color: #334155 !important; background-color: #0f1a2b !important; color: #e2e8f0 !important; }
+[data-theme='dark'] .vet-app main thead { background-color: #17253a !important; }
+[data-theme='dark'] .vet-app main tbody,
+[data-theme='dark'] .vet-app main tr { border-color: #334155 !important; }
+[data-theme='dark'] .vet-app main tbody tr,
+[data-theme='dark'] .vet-app main tbody tr:nth-child(odd),
+[data-theme='dark'] .vet-app main tbody tr:nth-child(even),
+[data-theme='dark'] .vet-app main tbody td { background-color: #111c2d !important; }
+[data-theme='dark'] .vet-app main tr:hover { background-color: #17253a !important; }
+[data-theme='dark'] .vet-app main [class*='bg-rose-50'] { border-color: #7f1d1d !important; background-color: #351522 !important; color: #fda4af !important; }
+[data-theme='dark'] .vet-app main [class*='bg-amber-50'] { border-color: #854d0e !important; background-color: #332711 !important; }
+[data-theme='dark'] .vet-app main [class*='bg-emerald-50'] { border-color: #166534 !important; background-color: #123326 !important; }
+[data-theme='dark'] .vet-app main [class*='bg-[#f'],
+[data-theme='dark'] .vet-app main [class*='bg-sky-50'] { background-color: #162e36 !important; }
+[data-theme='dark'] .vet-app app-veterinarian-new-attention section:first-child,
+[data-theme='dark'] .vet-app app-veterinarian-clients section:first-child,
+[data-theme='dark'] .vet-app app-veterinarian-pet-history > div > header:first-child {
+  background: linear-gradient(135deg, #13283a 0%, #123f49 58%, #12665f 100%) !important;
+  border-color: #2c5963 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 22%);
+}
+[data-theme='dark'] .vet-app main .text-white { color: #f8fafc !important; }
+[data-theme='dark'] .vet-app app-veterinarian-new-attention section:nth-child(2) {
+  background: #111c2d !important;
+  border-color: #334155 !important;
+}
+[data-theme='dark'] .vet-app main [class*='bg-[#eaf9f6]'],
+[data-theme='dark'] .vet-app main [class*='bg-[#effbf8]'],
+[data-theme='dark'] .vet-app main [class*='bg-[#f2fcfa]'] { background-color: #163b3f !important; }
+
+/* Service forms only keep fields that make clinical sense for the selected service. */
+.service-form-imaging form label:has([formControlName='proxima_fecha_control']),
+.service-form-imaging form label:has([formControlName='examenes_resultados']),
+.service-form-imaging form label:has([formControlName='observaciones']),
+.service-form-imaging form label:has([formControlName='peso']),
+.service-form-imaging form label:has([formControlName='temperatura']),
+.service-form-imaging form label:has([formControlName='historial_alergias']),
+.service-form-laboratory form label:has([formControlName='proxima_fecha_control']),
+.service-form-laboratory form label:has([formControlName='peso']),
+.service-form-laboratory form label:has([formControlName='temperatura']),
+.service-form-laboratory form label:has([formControlName='historial_alergias']),
+.service-form-grooming form label:has([formControlName='proxima_fecha_control']),
+.service-form-grooming form label:has([formControlName='temperatura']),
+.service-form-grooming form label:has([formControlName='historial_alergias']) { display: none; }
+.service-form-vaccination form label:has([formControlName='temperatura']),
+.service-form-deworming form label:has([formControlName='temperatura']),
+.service-form-grooming form label:has([formControlName='peso']) { display: none; }
+.service-form-procedure form label:has([formControlName='proxima_fecha_control']),
+.service-form-procedure form label:has([formControlName='peso']),
+.service-form-procedure form label:has([formControlName='temperatura']),
+.service-form-procedure form label:has([formControlName='historial_alergias']),
+.service-form-treatment form label:has([formControlName='temperatura']),
+.service-form-grooming form label:has([formControlName='proxima_fecha_control']),
+.service-form-grooming form label:has([formControlName='temperatura']),
+.service-form-grooming form label:has([formControlName='historial_alergias']) { display: none; }
+.service-form-imaging form > div:has(label:only-child),
+.service-form-laboratory form > div:has(label:only-child),
+.service-form-procedure form > div:has(label:only-child),
+.service-form-grooming form > div:has(label:only-child) { display: none; }
+[data-theme='dark'] .cashier-app { color: #e2e8f0; }
+[data-theme='dark'] .cashier-app article,
+[data-theme='dark'] .cashier-app section,
+[data-theme='dark'] .cashier-app aside,
+[data-theme='dark'] .cashier-app .bg-white { border-color: #263449; background-color: #111c2d; }
+[data-theme='dark'] .cashier-app input,
+[data-theme='dark'] .cashier-app select,
+[data-theme='dark'] .cashier-app .border-slate-300 { border-color: #334155; background-color: #0f1a2b; color: #e2e8f0; }
+[data-theme='dark'] .cashier-app .bg-slate-50 { background-color: #162337; }
+[data-theme='dark'] .cashier-app .text-slate-500 { color: #94a3b8; }
+[data-theme='dark'] .cashier-app .text-slate-800,
+[data-theme='dark'] .cashier-app .text-\[\#111827\] { color: #e2e8f0 !important; }
+[data-theme='dark'] .cashier-app .border-slate-100,
+[data-theme='dark'] .cashier-app .border-slate-200 { border-color: #263449; }
+[data-theme='dark'] .cashier-app thead { background-color: #17253a; }
+[data-theme='dark'] .theme-toggle { border-color: #334155; background: #162337; color: #f8fafc; }
+[data-theme='dark'] .panel-theme-toggle { border-color: #334155; background: #162337; color: #f8fafc; }
+
+.cashier-app { min-height: 100dvh; }
+.cashier-header { border-bottom: 1px solid #e2e8f0; }
+.header-theme-toggle { margin-left: auto; }
+.vet-theme-toggle { display: grid; }
+
 .purchase-checkout .checkout-card { border: 1px solid #e2e8f0; border-radius: 1.75rem; background: #fff; padding: clamp(1.25rem, 3vw, 2rem); box-shadow: 0 16px 45px rgb(26 30 39 / 6%); }
 .purchase-checkout .section-heading { display: flex; align-items: flex-start; gap: .9rem; }
 .purchase-checkout .section-heading > span { display: grid; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; place-items: center; border-radius: 999px; background: #1a98a2; color: #fff; font-weight: 900; }

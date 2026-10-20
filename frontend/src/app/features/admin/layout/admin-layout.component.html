@@ -77,8 +77,8 @@
         <p class="truncate text-sm font-semibold capitalize text-slate-500">{{ today }}</p>
       </div>
 
-      <div class="ml-auto flex items-center gap-2">
-        <div class="relative">
+       <div class="ml-auto flex items-center gap-2">
+         <div class="relative">
           <button class="header-button relative" aria-label="Notificaciones" aria-controls="admin-notifications" [attr.aria-expanded]="notificationOpen()" (click)="toggleNotifications()">
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
             @if (unread()) { <span class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full border-2 border-white bg-rose-500 px-1 text-[9px] font-bold text-white">{{ unread() }}</span> }
@@ -86,8 +86,8 @@
           @if (notificationOpen()) {
             <div id="admin-notifications" class="dropdown right-0 w-80" role="region" aria-label="Notificaciones recientes">
               <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3"><p class="text-sm font-extrabold text-slate-800">Notificaciones</p><span class="rounded-full bg-[#56c4d8]/15 px-2 py-1 text-[10px] font-bold text-[#168ba1]">{{ unread() }} nuevas</span></div>
-              @for (note of data.notifications().slice(0, 3); track note.id) {
-                <a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-[#f5faf8]"><p class="text-sm font-semibold text-slate-800">{{ note.title }}</p><p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ note.message }}</p></a>
+              @for (note of notifications().slice(0, 3); track note.id) {
+                <a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-[#f5faf8]"><p class="text-sm font-semibold text-slate-800">{{ note.titulo }}</p><p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{{ note.mensaje }}</p></a>
               }
               <a routerLink="notificaciones" (click)="notificationOpen.set(false)" class="block px-4 py-3 text-center text-xs font-bold text-[#168ba1] hover:bg-[#56c4d8]/10">Ver todas</a>
             </div>

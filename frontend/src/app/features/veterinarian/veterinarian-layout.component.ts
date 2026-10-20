@@ -21,11 +21,12 @@ interface NavigationGroup {
     <div class="vet-app min-h-screen text-slate-800">
       <a href="#veterinarian-content" class="skip-link">Saltar al contenido</a>
       <aside class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white transition-all duration-300" [class.sidebar-collapsed]="collapsed()" [class.drawer-open]="drawerOpen()">
-        <div class="brand-row flex h-20 items-center gap-3 px-4">
+         <div class="brand-row flex h-20 items-center gap-3 px-4">
           <div class="brand-mark grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-black">VET</div>
           @if (!collapsed()) {
             <div class="min-w-0"><p class="truncate text-sm font-extrabold tracking-tight">Clínica Veterinaria</p><p class="mt-0.5 text-[10px] font-semibold uppercase tracking-[.18em] text-[#8bd7e5]">Centro clínico</p></div>
-          }
+           }
+           <button type="button" (click)="toggleSidebar()" class="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/15 text-[#8bd7e5] hover:bg-white/10" [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"><span aria-hidden="true">{{ collapsed() ? '»' : '«' }}</span></button>
         </div>
 
         <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Navegación veterinaria">
@@ -56,10 +57,12 @@ interface NavigationGroup {
         </nav>
 
         <button (click)="logout()" class="m-3 flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 text-xs font-bold text-[#8bd7e5] transition hover:border-[#56c4d8] hover:bg-[#56c4d8]/10 hover:text-white" aria-label="Cerrar sesión"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg>@if (!collapsed()) { <span>Cerrar sesión</span> }</button>
-      </aside>
+       </aside>
+       @if (drawerOpen()) { <button type="button" class="drawer-backdrop fixed inset-0 z-40 bg-slate-950/50" aria-label="Cerrar menú" (click)="closeDrawer()"></button> }
 
-      <div class="page-shell transition-all duration-300" [class.page-collapsed]="collapsed()">
-        <main id="veterinarian-content" class="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8" tabindex="-1">
+       <div class="page-shell transition-all duration-300" [class.page-collapsed]="collapsed()">
+          <div class="mobile-topbar fixed inset-x-0 top-0 z-30 flex h-[4.5rem] items-center bg-[#111827] px-4 shadow-lg lg:hidden"><button type="button" (click)="toggleSidebar()" class="rounded-xl border border-white/20 px-3 py-2 text-sm font-bold text-white">Menú</button><span class="ml-3 text-sm font-black text-[#8bd7e5]">Panel veterinario</span></div>
+         <main id="veterinarian-content" class="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8" tabindex="-1">
           <router-outlet />
         </main>
       </div>
@@ -82,7 +85,8 @@ interface NavigationGroup {
     .header-button:hover { border-color: #56c4d8; color: #111827; background: #f0fbfd; }
     .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; border-radius: .75rem; background: #111827; padding: .75rem 1rem; color: white; font-size: .8rem; font-weight: 700; transition: top .2s; }
     .skip-link:focus { top: 1rem; }
-    @media (max-width: 1023px) { .sidebar, .sidebar-collapsed { position: relative; inset: auto; width: 100%; min-height: auto; transform: none; } .page-shell, .page-collapsed { margin-left: 0; } }
+     .drawer-backdrop { display: none; }
+     @media (max-width: 1023px) { .sidebar, .sidebar-collapsed { position: fixed; inset: 0 auto 0 0; width: 17rem; min-height: 100dvh; transform: translateX(-105%); } .sidebar.drawer-open { transform: translateX(0); } .sidebar-collapsed { width: 17rem; } .page-shell, .page-collapsed { margin-left: 0; padding-top: 4.5rem; } .drawer-backdrop { display: block; } }
     @media (prefers-reduced-motion: reduce) { .sidebar, .page-shell, .nav-icon { transition: none; } }
   `],
 })
@@ -99,6 +103,10 @@ export class VeterinarianLayoutComponent {
   ];
 
   closeDrawer(): void { this.drawerOpen.set(false); }
+  toggleSidebar(): void {
+    if (window.matchMedia('(max-width: 1023px)').matches) this.drawerOpen.update((value) => !value);
+    else this.collapsed.update((value) => !value);
+  }
   logout(): void { this.auth.logout(); void this.router.navigateByUrl('/login'); }
   @HostListener('document:keydown.escape') closeMenus(): void { this.drawerOpen.set(false); }
 }

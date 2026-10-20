@@ -12,6 +12,7 @@
 .topbar { border-bottom: 1px solid rgb(216 230 233 / 85%); background: rgb(255 255 255 / 84%); box-shadow: 0 8px 30px rgb(17 24 39 / 5%); backdrop-filter: blur(18px); }
 .header-button { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid #dce8e5; border-radius: .9rem; color: #526b68; background: rgb(255 255 255 / 82%); transition: .2s; }
 .header-button:hover { border-color: #56c4d8; color: #111827; background: #f0fbfd; }
+.theme-toggle svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .dropdown { position: absolute; top: calc(100% + .7rem); max-width: calc(100vw - 1.5rem); overflow: hidden; border: 1px solid #dce8e5; border-radius: 1rem; background: rgb(255 255 255 / 98%); box-shadow: 0 20px 55px rgb(12 53 50 / 18%); animation: dropdown-in .16s ease-out; }
 .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; border-radius: .75rem; background: #111827; padding: .75rem 1rem; color: white; font-size: .8rem; font-weight: 700; transition: top .2s; }
 .skip-link:focus { top: 1rem; }
