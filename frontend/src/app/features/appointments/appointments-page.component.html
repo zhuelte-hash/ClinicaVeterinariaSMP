@@ -11,25 +11,16 @@
       @if (loading()) { <p class="py-12 text-center text-slate-500">Cargando agenda...</p> }
       @else {
         <form class="mt-7 grid gap-5" [formGroup]="appointmentForm" (ngSubmit)="schedule()">
-          @if (auth.isAuthenticated() && auth.currentUser()?.tipo === 'cliente') {
-            <div><div class="mb-2 flex items-center justify-between"><label class="text-sm font-bold" for="pet">Mascota</label><button type="button" (click)="showPetForm.update(value => !value)" class="text-xs font-black text-[#0799AE]">+ Registrar mascota</button></div><select id="pet" formControlName="mascotaId" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-[#0799AE]"><option [ngValue]="0" disabled>Selecciona una mascota</option>@for (pet of pets(); track pet.id) {<option [ngValue]="pet.id">{{ pet.nombre }} · {{ pet.especie }}</option>}</select></div>
-          } @else { <p class="rounded-xl bg-brand-50 p-4 text-sm text-[#0B1B6D]">Puedes elegir servicio, fecha y horario sin iniciar sesión. Después podrás seleccionar o registrar tu mascota.</p> }
-
-           @if (showPetForm() && auth.isAuthenticated() && auth.currentUser()?.tipo === 'cliente') {
-             <div class="grid gap-4 rounded-2xl border border-[#0799AE]/20 bg-[#0799AE]/5 p-4" [formGroup]="petForm">
-               <p class="text-sm font-bold text-[#0B1B6D]">Nueva mascota</p>
-               <div class="grid gap-4 sm:grid-cols-2">
-                 <label class="grid gap-1.5 text-sm font-semibold">Nombre<input formControlName="nombre" placeholder="Nombre" class="site-input text-sm"></label>
-                 <label class="grid gap-1.5 text-sm font-semibold">Especie<select formControlName="especie" class="site-input text-sm"><option>Perro</option><option>Gato</option><option>Otro</option></select></label>
-                 <label class="grid gap-1.5 text-sm font-semibold">Raza (opcional)<input formControlName="raza" placeholder="Raza (opcional)" class="site-input text-sm"></label>
-                 <label class="grid gap-1.5 text-sm font-semibold">Sexo (opcional)<select formControlName="sexo" class="site-input text-sm"><option value="">Selecciona una opción</option><option value="hembra">Hembra</option><option value="macho">Macho</option></select></label>
-                 <label class="grid gap-1.5 text-sm font-semibold">Fecha de nacimiento<input formControlName="fecha_nacimiento" type="date" class="site-input text-sm"></label>
-                 <label class="grid gap-1.5 text-sm font-semibold">Peso actual (kg)<input formControlName="peso_actual" type="number" placeholder="Peso (kg)" class="site-input text-sm"></label>
-                 <label class="grid gap-1.5 text-sm font-semibold sm:col-span-2">Características relevantes<textarea formControlName="caracteristicas" placeholder="Características relevantes" class="site-input text-sm"></textarea></label>
-               </div>
-               <button type="button" (click)="createPet()" [disabled]="petSubmitting()" class="site-button justify-self-end">Guardar mascota</button>
-             </div>
-           }
+          @if (auth.isAuthenticated() && auth.currentUser()?.tipo === 'cliente' && pets().length) {
+            <label class="grid gap-2 text-sm font-bold" for="pet">Mascota<select id="pet" formControlName="mascotaId" class="rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-[#0799AE]"><option [ngValue]="0">Nueva mascota</option>@for (pet of pets(); track pet.id) {<option [ngValue]="pet.id">{{ pet.nombre }} · {{ pet.especie }}</option>}</select></label>
+          }
+          @if (!appointmentForm.controls.mascotaId.value) {
+            <div class="grid gap-4 sm:grid-cols-3">
+              <label class="grid gap-2 text-sm font-bold">Nombre de la mascota<input formControlName="nombreMascota" type="text" maxlength="100" placeholder="Nombre" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#0799AE]"></label>
+              <label class="grid gap-2 text-sm font-bold">Tipo de mascota<select formControlName="especieMascota" class="rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-[#0799AE]"><option value="">Selecciona el tipo</option><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Otro">Otro</option></select></label>
+              <label class="grid gap-2 text-sm font-bold">Sexo de la mascota<select formControlName="sexoMascota" class="rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-[#0799AE]"><option value="">Selecciona el sexo</option><option value="hembra">Hembra</option><option value="macho">Macho</option></select></label>
+            </div>
+          }
 
            <label class="grid gap-2 text-sm font-bold">Nombre de quien reserva<input formControlName="nombreReserva" type="text" maxlength="150" [readonly]="auth.isAuthenticated()" placeholder="Nombre y apellido" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#0799AE]"><small class="font-normal text-slate-500">La reserva quedará registrada a nombre del titular de la cuenta de cliente.</small></label>
            <label class="grid gap-2 text-sm font-bold">Servicio<select formControlName="servicioId" (change)="loadAvailability(true)" class="rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-[#0799AE]"><option [ngValue]="0" disabled>Selecciona un servicio</option>@for (service of services(); track service.id) {<option [ngValue]="service.id">{{ service.nombre }}</option>}</select></label>
@@ -38,7 +29,7 @@
           <label class="grid gap-2 text-sm font-bold">Motivo de la consulta<textarea formControlName="motivo" rows="3" maxlength="500" placeholder="Cuéntanos brevemente qué necesita tu mascota" class="resize-none rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#0799AE]"></textarea></label>
           <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-2 text-sm font-bold">Teléfono de contacto<input formControlName="telefono" type="tel" placeholder="Opcional si ya está registrado" class="rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#0799AE]"></label><label class="grid gap-2 text-sm font-bold">Preferencia de contacto<select formControlName="preferenciaContacto" class="rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal"><option value="llamada">Llamada</option><option value="whatsapp">WhatsApp</option></select></label></div>
           <label class="flex items-center gap-3 rounded-xl bg-amber-50 p-4 text-sm font-bold text-amber-900"><input type="checkbox" formControlName="esUrgente" class="h-4 w-4 accent-amber-600">Marcar como atención urgente</label>
-          <button type="submit" [disabled]="submitting() || loginPromptOpen() || privateLoading() || availabilityLoading() || !appointmentForm.controls.servicioId.value || !appointmentForm.controls.slot.value || availability().length === 0" class="rounded-xl bg-[#0B1B6D] px-5 py-3.5 font-black text-white transition hover:bg-[#0799AE] disabled:cursor-not-allowed disabled:opacity-45">{{ submitting() ? 'Enviando solicitud...' : 'Confirmar reserva' }}</button>
+          <button type="submit" [disabled]="submitting() || loginPromptOpen() || privateLoading() || availabilityLoading() || !appointmentForm.controls.servicioId.value || !appointmentForm.controls.slot.value || availability().length === 0" class="rounded-xl bg-[#0B1B6D] px-5 py-3.5 font-black text-white transition hover:bg-[#0799AE] disabled:cursor-not-allowed disabled:opacity-45">{{ submitting() ? 'Enviando solicitud...' : 'Enviar solicitud de cita' }}</button>
         </form>
       }
     </section>

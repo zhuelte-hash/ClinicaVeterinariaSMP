@@ -75,6 +75,7 @@ export interface Receipt {
   fecha_emision: string;
   cliente_nombre: string | null;
   cliente_correo: string | null;
+  cliente_dni: string | null;
   cajero_nombre: string;
   medio_pago: string;
   subtotal: string;

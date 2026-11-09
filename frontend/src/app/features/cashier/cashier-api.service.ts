@@ -76,6 +76,7 @@ export class CashierApiService {
 
   createSale(data: {
     cliente_id: number | null;
+    cliente_dni?: string | null;
     medio_pago: 'efectivo' | 'yape' | 'plin' | 'tarjeta';
     items: { producto_id?: number; servicio_id?: number; cantidad: number }[];
     clave_idempotencia: string;

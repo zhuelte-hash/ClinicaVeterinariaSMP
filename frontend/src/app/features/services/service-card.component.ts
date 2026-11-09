@@ -15,7 +15,7 @@ import { VeterinaryService } from './service.model';
           loading="lazy"
           class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
-        <div class="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[#1A98A2]/15 bg-white text-[#147d87]" aria-hidden="true">
+        <div class="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-xl border border-brand-200 bg-white text-brand-600" aria-hidden="true">
           @switch (service().icon) {
             @case ('science') { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v6l-5.4 9.1A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.9L14 9V3M8 15h8"/></svg> }
             @case ('bed') { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 19v-8m18 8v-6a2 2 0 0 0-2-2H9v8M3 15h18M5 11V7h4a2 2 0 0 1 2 2v2"/></svg> }
@@ -26,12 +26,12 @@ import { VeterinaryService } from './service.model';
         </div>
       </div>
       <div class="flex flex-1 flex-col p-6">
-        <p class="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[#1A98A2]">{{ service().category }}</p>
-        <h3 class="text-xl font-bold leading-snug text-[#1A1E27]">{{ service().name }}</h3>
+        <p class="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-brand-600">{{ service().category }}</p>
+        <h3 class="text-xl font-bold leading-snug text-pet-900">{{ service().name }}</h3>
         <p class="mt-3 flex-1 text-sm leading-6 text-[#1A1E27]/70">{{ service().summary }}</p>
         <button
           type="button"
-          class="mt-6 inline-flex min-h-11 items-center gap-2 self-start font-bold text-[#0B1B6D] transition hover:text-[#147d87] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1A98A2]"
+          class="mt-6 inline-flex min-h-11 items-center gap-2 self-start font-bold text-brand-600 transition hover:text-brand-700"
           [attr.aria-label]="'Ver más sobre ' + service().name"
           (click)="showDetails.emit(service())"
         >

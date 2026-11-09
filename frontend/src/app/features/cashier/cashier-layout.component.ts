@@ -14,7 +14,7 @@ import { AuthService } from '../../core/auth/auth.service';
       <aside class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white" [class.drawer-open]="drawerOpen()">
         <div class="border-b border-white/10 px-6 py-6">
           <div class="flex items-center gap-3">
-            <span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#56c4d8] font-black text-[#111827] shadow-lg">SMP</span>
+            <img src="/logo.png" alt="San Martín de Porres" class="h-11 w-11 rounded-full border-2 border-brand-300 bg-white object-contain shadow-lg" />
             <div><p class="font-black">Punto de caja</p><p class="text-xs text-[#8bd7e5]">Clínica Veterinaria</p></div>
           </div>
         </div>
@@ -45,11 +45,11 @@ import { AuthService } from '../../core/auth/auth.service';
     </div>
   `,
   styles: [`
-    .sidebar { width: 16rem; background: linear-gradient(165deg, #171e2c, #111827 55%, #030712); box-shadow: 12px 0 35px rgb(3 7 18 / .18); }
+    .sidebar { width: 16rem; background: linear-gradient(165deg, var(--brand-ink), #1c303c); box-shadow: 12px 0 35px rgb(var(--brand-ink-rgb) / .18); }
     .page-shell { margin-left: 16rem; }
     .nav-link { color: rgb(203 213 225); }
     .nav-link:hover { background: rgb(86 196 216 / .1); color: white; }
-    .active { background: #56c4d8; color: #111827; box-shadow: 0 10px 24px rgb(3 7 18 / .3); }
+    .active { background: var(--brand-action); color: white; box-shadow: 0 10px 24px rgb(var(--brand-ink-rgb) / .22); }
     @media (max-width: 1023px) { .sidebar { width: min(18rem, 86vw); transform: translateX(-105%); transition: transform .25s; } .sidebar.drawer-open { transform: translateX(0); } .page-shell { margin-left: 0; } }
   `],
 })

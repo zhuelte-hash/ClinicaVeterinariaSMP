@@ -81,11 +81,11 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
           <div class="space-y-5 border-t border-slate-100 p-5">
             <label class="grid gap-2 text-sm font-bold">Buscar cliente<input [ngModel]="clientSearch()" (ngModelChange)="searchClients($event)" placeholder="Nombre o correo" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
             <label class="grid gap-2 text-sm font-bold">Cliente<select [ngModel]="selectedClientId()" (ngModelChange)="selectClient(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Venta sin cliente</option>@for (client of clients(); track client.id) {<option [ngValue]="client.id">{{ client.nombre }} · {{ client.correo }}</option>}</select></label>
+            <label class="grid gap-2 text-sm font-bold">DNI del cliente (opcional)<input type="text" inputmode="numeric" maxlength="8" [ngModel]="clientDni()" (ngModelChange)="clientDni.set($event)" placeholder="8 dígitos" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
+            @if (clientDni() && !validDni()) { <p class="text-xs font-semibold text-rose-600">Ingresa un DNI de 8 dígitos.</p> }
             @if (selectedClientId()) { <label class="grid gap-2 text-sm font-bold">Atención asociada (opcional)<select [ngModel]="attentionId()" (ngModelChange)="attentionId.set(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Sin atención</option>@for (attention of attentions(); track attention.id) { <option [ngValue]="attention.id">#{{ attention.id }} · {{ attention.mascota_nombre }} · {{ attention.servicio_nombre }}</option> }</select></label> }
             <div><p class="mb-2 text-sm font-bold">Método de pago</p><div class="grid grid-cols-2 gap-2">@for (method of paymentMethods; track method.value) {<button (click)="paymentMethod.set(method.value)" class="payment-button" [class.payment-active]="paymentMethod() === method.value">{{ method.label }}</button>}</div></div>
             <label class="grid gap-2 text-sm font-bold">Descuento (S/)<input type="number" min="0" step="0.01" [ngModel]="discount()" (ngModelChange)="discount.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
-            <label class="grid gap-2 text-sm font-bold">Segundo medio de pago (opcional)<select [ngModel]="secondMethod()" (ngModelChange)="secondMethod.set($event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"><option value="">Pago único</option>@for (method of paymentMethods; track method.value) { @if (method.value !== paymentMethod()) { <option [value]="method.value">{{ method.label }}</option> } }</select></label>
-            @if (secondMethod()) { <label class="grid gap-2 text-sm font-bold">Importe segundo medio (S/)<input type="number" min="0.01" step="0.01" [ngModel]="secondAmount()" (ngModelChange)="secondAmount.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label><p class="text-xs text-slate-500">Primer medio: S/ {{ primaryAmount() }}</p> }
             @if (cashAmount() > 0) { <label class="grid gap-2 text-sm font-bold">Efectivo recibido (S/)<input type="number" min="0" step="0.01" [ngModel]="cashReceived()" (ngModelChange)="cashReceived.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label><p class="text-sm font-bold">Vuelto: S/ {{ change() }}</p> }
             <div class="rounded-2xl bg-[#111827] p-4 text-white shadow-lg"><div class="flex justify-between text-sm text-slate-300"><span>Subtotal tras descuento</span><span>S/ {{ subtotalWithoutTax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>IGV (18%)</span><span>S/ {{ tax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>Descuento</span><span>− S/ {{ discount().toFixed(2) }}</span></div><div class="mt-3 flex justify-between border-t border-white/15 pt-3 text-xl font-black"><span>Total</span><span class="text-[#56c4d8]">S/ {{ total() }}</span></div></div>
             <button (click)="charge()" [disabled]="!canCharge() || charging()" class="w-full rounded-xl bg-[#56c4d8] px-5 py-3.5 font-black text-[#111827] transition hover:bg-[#111827] hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{{ charging() ? 'Procesando...' : 'Cobrar y generar boleta' }}</button>
@@ -98,6 +98,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
 
     @if (receipt(); as currentReceipt) {
       <p class="fixed left-1/2 top-2 z-[110] -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-center text-sm font-bold shadow-lg">Venta {{ currentReceipt.codigo_orden }} registrada correctamente</p>
+      @if (currentReceipt.cliente_dni) { <p class="fixed left-1/2 top-14 z-[110] -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-center text-sm font-bold shadow-lg">DNI del cliente: {{ currentReceipt.cliente_dni }}</p> }
       <div class="fixed inset-0 z-[100] grid place-items-center bg-slate-950/70 p-4 backdrop-blur-sm"><section class="max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"><div class="no-print flex items-center justify-between border-b p-4"><h2 class="font-black text-[#102a43]">Venta completada</h2><button (click)="receipt.set(null)" class="rounded-lg p-2 hover:bg-slate-100">✕</button></div><div class="print-receipt p-7 font-mono text-sm text-slate-900"><div class="text-center"><img src="/logo.png" alt="Logo" class="mx-auto h-16 w-16 rounded-full"><h2 class="mt-3 text-lg font-black">CLINICA VETERINARIA SMP</h2><p>Jr. Quinua N° 178 · Ayacucho</p><p>BOLETA {{ currentReceipt.serie_correlativo }}</p></div><div class="my-5 border-y border-dashed border-slate-400 py-3"><p>Fecha: {{ formatDate(currentReceipt.fecha_emision) }}</p><p>Cliente: {{ currentReceipt.cliente_nombre }}</p><p>Cajero: {{ currentReceipt.cajero_nombre }}</p><p>Pago: {{ paymentLabel(currentReceipt.medio_pago) }}</p></div><table class="w-full"><thead><tr class="border-b"><th class="py-2 text-left">Detalle</th><th>Cant.</th><th class="text-right">Importe</th></tr></thead><tbody>@for (detail of currentReceipt.detalles; track detail.tipo + '-' + (detail.producto_id || detail.servicio_id)) {<tr><td class="py-2">{{ detail.nombre }}<small class="block text-[10px] uppercase">{{ detail.tipo }}</small></td><td class="text-center">{{ detail.cantidad }}</td><td class="text-right">S/ {{ money(detail.subtotal) }}</td></tr>}</tbody></table><div class="mt-4 border-t border-dashed border-slate-400 pt-3 text-right"><p>Subtotal: S/ {{ money(currentReceipt.subtotal) }}</p><p>IGV: S/ {{ money(currentReceipt.igv) }}</p><p class="mt-1 text-lg font-black">TOTAL: S/ {{ money(currentReceipt.total) }}</p></div><p class="mt-6 text-center">¡Gracias por su compra!</p></div><div class="no-print grid grid-cols-2 gap-3 border-t p-4"><button (click)="receipt.set(null)" class="rounded-xl border border-slate-300 px-4 py-3 font-bold">Cerrar</button><button (click)="printReceipt()" class="rounded-xl bg-[#102a43] px-4 py-3 font-black text-white">Imprimir boleta</button></div></section></div>
     }
   `,
@@ -136,9 +137,9 @@ export class CashierSalesComponent {
   readonly search = signal('');
   readonly selectedCategory = signal<number | null>(null);
   readonly selectedClientId = signal(0);
+  readonly clientDni = signal('');
+  readonly validDni = computed(() => !this.clientDni() || /^[0-9]{8}$/.test(this.clientDni()));
   readonly paymentMethod = signal<PaymentMethod>('efectivo');
-  readonly secondMethod = signal<PaymentMethod | ''>('');
-  readonly secondAmount = signal(0);
   readonly discount = signal(0);
   readonly cashReceived = signal(0);
   readonly registerOpen = signal(false);
@@ -170,12 +171,10 @@ export class CashierSalesComponent {
   readonly total = computed(() => (this.totalValue() - this.discount()).toFixed(2));
   readonly subtotalWithoutTax = computed(() => (Number(this.total()) / 1.18).toFixed(2));
   readonly tax = computed(() => (Number(this.total()) - Number(this.subtotalWithoutTax())).toFixed(2));
-  readonly primaryAmount = computed(() => (Number(this.total()) - this.secondAmount()).toFixed(2));
-  readonly cashAmount = computed(() => (this.paymentMethod() === 'efectivo' ? Number(this.secondMethod() ? this.primaryAmount() : this.total()) : 0) + (this.secondMethod() === 'efectivo' ? this.secondAmount() : 0));
+  readonly cashAmount = computed(() => this.paymentMethod() === 'efectivo' ? Number(this.total()) : 0);
   readonly change = computed(() => Math.max(0, this.cashReceived() - this.cashAmount()).toFixed(2));
-  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0 && Number.isFinite(this.discount())
-    && this.discount() >= 0 && Number(this.total()) > 0 && Number.isFinite(this.secondAmount()) && this.secondAmount() >= 0
-    && (!this.secondMethod() || (this.secondMethod() !== this.paymentMethod() && this.secondAmount() > 0 && Number(this.primaryAmount()) > 0))
+  readonly canCharge = computed(() => this.registerOpen() && this.cart().length > 0 && this.validDni() && Number.isFinite(this.discount())
+    && this.discount() >= 0 && Number(this.total()) > 0
     && (this.cashAmount() === 0 || this.cashReceived() >= this.cashAmount()));
 
   constructor() { this.loadData(); }
@@ -253,10 +252,10 @@ export class CashierSalesComponent {
     if (!this.canCharge()) return;
     this.charging.set(true);
     this.errorMessage.set('');
-    const payments: { medio: PaymentMethod; monto: number }[] = [{ medio: this.paymentMethod(), monto: Number(this.secondMethod() ? this.primaryAmount() : this.total()) }];
-    if (this.secondMethod()) payments.push({ medio: this.secondMethod() as PaymentMethod, monto: this.secondAmount() });
+    const payments: { medio: PaymentMethod; monto: number }[] = [{ medio: this.paymentMethod(), monto: Number(this.total()) }];
     const sale = {
       cliente_id: this.selectedClientId() || null,
+      cliente_dni: this.clientDni() || null,
       medio_pago: this.paymentMethod(),
       descuento: this.discount(), pagos: payments,
       efectivo_recibido: this.cashAmount() > 0 ? this.cashReceived() : undefined,
@@ -268,7 +267,7 @@ export class CashierSalesComponent {
     const payload = JSON.stringify(sale);
     if (this.pendingSale?.payload !== payload) this.pendingSale = { payload, key: crypto.randomUUID() };
     this.api.createSale({ ...sale, clave_idempotencia: this.pendingSale.key }).pipe(finalize(() => this.charging.set(false))).subscribe({
-      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.discount.set(0); this.secondMethod.set(''); this.secondAmount.set(0); this.cashReceived.set(0); this.attentionId.set(0); this.loadData(); },
+      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.discount.set(0); this.clientDni.set(''); this.cashReceived.set(0); this.attentionId.set(0); this.loadData(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }
@@ -281,6 +280,7 @@ export class CashierSalesComponent {
     const details = document.createElement('div');
     details.className = 'cashier-extra-print mt-4 border-t border-dashed pt-3 text-right';
     const lines = [
+      ...(receipt.cliente_dni ? [`DNI del cliente: ${receipt.cliente_dni}`] : []),
       `Descuento: S/ ${this.money(receipt.descuento)}`,
       ...receipt.pagos.map((payment) => `${this.paymentLabel(payment.medio)}: S/ ${this.money(payment.monto)}`),
       ...(receipt.proceso_atencion_id ? [`Atención #${receipt.proceso_atencion_id}`] : []),

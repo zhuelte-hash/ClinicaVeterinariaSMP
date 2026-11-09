@@ -8,14 +8,14 @@
   border-radius: 0.8rem;
   background: #fff;
   padding: 0.85rem 1rem;
-  color: #17191c;
+  color: var(--brand-ink);
   outline: none;
   transition: border-color 160ms, box-shadow 160ms;
 }
 
 .auth-input:focus {
-  border-color: #0799ae;
-  box-shadow: 0 0 0 3px rgb(7 153 174 / 14%);
+  border-color: var(--brand-turquoise);
+  box-shadow: 0 0 0 3px rgb(var(--brand-turquoise-rgb) / 14%);
 }
 
 .auth-input[aria-invalid='true'] {

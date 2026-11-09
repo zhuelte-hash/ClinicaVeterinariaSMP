@@ -10,6 +10,7 @@ export interface CatalogOption { id: number; nombre: string; }
 export interface ProductCatalog { categorias: CatalogOption[]; proveedores: CatalogOption[]; }
 export interface ProductCreate { categoria_id: number; proveedor_id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; imagen_url: string; }
 export interface AdminAppointment { id: number; fecha_hora_programada: string; estado: string; cliente_nombre: string; mascota_nombre: string; servicio_nombre: string; veterinario_nombre: string | null; }
+export interface AdminNotification { id: number; cita_id: number | null; tipo: string; titulo: string; mensaje: string; leida: boolean; fecha_creacion: string; }
 export interface AdminSale { id: number; codigo_orden: string; fecha_emision: string; cajero_nombre: string; cliente_nombre: string | null; total: number; medio_pago: string | null; }
 export interface SalesDay { fecha: string; total: number; ventas: AdminSale[]; }
 export interface Sale { id: number; codigo_orden: string; fecha_emision: string; cajero_id: number; cajero_nombre: string; cliente_nombre: string | null; medio_pago: string; subtotal: string; descuento: string; impuesto: string; total: string; estado: 'PAGADA' | 'ANULADA' | 'PENDIENTE'; }
@@ -35,6 +36,7 @@ export class AdminApiService {
   uploadProductImage(image: File): Observable<{ url: string }> { const form = new FormData(); form.append('image', image); return this.http.post<{ url: string }>(`${this.baseUrl}/productos/imagen`, form); }
   deactivateProduct(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/productos/${id}`); }
   getAppointments(date?: string, status?: string): Observable<AdminAppointment[]> { const params: Record<string, string> = {}; if (date) params['fecha'] = date; if (status) params['estado'] = status; return this.http.get<AdminAppointment[]>(`${this.baseUrl}/citas`, { params }); }
+  getNotifications(): Observable<AdminNotification[]> { return this.http.get<AdminNotification[]>(`${environment.apiUrl}/portal/notificaciones`); }
   getSalesDay(date?: string): Observable<SalesDay> { const params: Record<string, string> = {}; if (date) params['fecha'] = date; return this.http.get<SalesDay>(`${this.baseUrl}/ventas/dia`, { params }); }
   private salesParams(filters: SalesFilters): Record<string, string> { return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])); }
   getSales(filters: SalesFilters): Observable<SalesPage> { return this.http.get<SalesPage>(`${environment.apiUrl}/api/admin/ventas`, { params: this.salesParams(filters) }); }

@@ -11,45 +11,45 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
   template: `
     <div class="relative isolate overflow-hidden bg-pet-900 text-white">
       <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80" alt="" class="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
-      <div class="absolute inset-0 -z-10 bg-[#0B1B6D]/65"></div>
+      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-pet-900/95 via-pet-900/80 to-brand-700/80"></div>
       <div class="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 sm:py-16 lg:py-20">
         <p class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#aee5e9] sm:text-sm">Atención veterinaria en Ayacucho</p>
         <h1 class="mx-auto max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">Clínica Veterinaria San Martín de Porres</h1>
         <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">Cuidado, amor y salud para tus mejores amigos. Atención cercana y profesional para tu mascota.</p>
         <p class="mt-3 text-sm text-white/80">Jr. Quinua N° 178 – Cercado, Ayacucho · 965 939 522</p>
         <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          <a routerLink="/reservar-cita" class="inline-flex min-h-12 items-center justify-center rounded-full bg-[#E0A71A] px-6 py-3 text-sm font-bold text-[#1A1E27] transition hover:bg-[#f2c957]">Reservar cita</a>
-          <a routerLink="/contacto" class="inline-flex min-h-12 items-center justify-center rounded-full border border-white/75 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-[#0B1B6D]">Contáctanos</a>
+          <a routerLink="/reservar-cita" class="site-button min-h-12 px-6">Reservar cita</a>
+          <a routerLink="/contacto" class="inline-flex min-h-12 items-center justify-center rounded-full border border-white/75 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-pet-900">Contáctanos</a>
         </div>
       </div>
     </div>
 
-    <section class="bg-[#FFF9F4] py-14 sm:py-20 lg:py-24" aria-labelledby="about-title">
+    <section class="bg-brand-50 py-14 sm:py-20 lg:py-24" aria-labelledby="about-title">
       <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1.02fr_.98fr] lg:gap-16 lg:px-8">
         <div class="order-2 lg:order-1">
           <div class="mb-5 flex items-center gap-3">
-            <span class="grid h-10 w-10 place-items-center rounded-full bg-[#F4C430]/20 text-[#F4C430]" aria-hidden="true">
+            <span class="grid h-10 w-10 place-items-center rounded-full bg-brand-100 text-brand-600" aria-hidden="true">
               <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="8" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M12 10c-3.5 0-6 2.5-6 5.4C6 18.3 8.6 20 12 20s6-1.7 6-4.6c0-2.9-2.5-5.4-6-5.4Z"/></svg>
             </span>
-            <p class="text-sm font-extrabold uppercase tracking-[0.2em] text-[#0799AE]">Nosotros</p>
+            <p class="text-sm font-extrabold uppercase tracking-[0.2em] text-brand-600">Nosotros</p>
           </div>
-          <h2 id="about-title" class="max-w-xl text-3xl font-black leading-tight tracking-tight text-[#0B1B6D] sm:text-4xl lg:text-5xl">Cuidamos la salud de quienes más amas</h2>
+          <h2 id="about-title" class="max-w-xl text-3xl font-black leading-tight tracking-tight text-pet-900 sm:text-4xl lg:text-5xl">Cuidamos la salud de quienes más amas</h2>
           <p class="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">En la Clínica Veterinaria San Martín de Porres acompañamos a tu mascota con atención cercana, experiencia y un cuidado responsable en cada etapa de su vida.</p>
           <p class="mt-4 max-w-xl text-sm leading-7 text-slate-500 sm:text-base">Nuestro equipo trabaja para que cada visita sea tranquila y para que encuentres orientación, servicios y productos pensados para su bienestar.</p>
 
           <div class="mt-8 flex flex-wrap gap-3">
             <a routerLink="/servicios" class="site-button">Explorar servicios <span aria-hidden="true">→</span></a>
-            <a routerLink="/productos" class="inline-flex min-h-11 items-center justify-center rounded-full border border-[#0B1B6D]/25 bg-white px-6 py-3 text-sm font-bold text-[#0B1B6D] transition hover:border-[#1A98A2] hover:bg-brand-50">Ver productos</a>
+            <a routerLink="/productos" class="site-button site-button-secondary">Ver productos</a>
           </div>
         </div>
 
         <div class="order-1 lg:order-2">
           <div class="relative mx-auto max-w-xl">
-             <div class="absolute -inset-2 translate-x-2 translate-y-2 rounded-[1.5rem] bg-[#0799AE] sm:-inset-3"></div>
-             <div class="relative overflow-hidden rounded-[1.4rem] border-4 border-white bg-[#0799AE] shadow-[0_16px_36px_rgba(7,153,174,0.16)]">
+             <div class="absolute -inset-2 translate-x-2 translate-y-2 rounded-[1.5rem] bg-brand-500 sm:-inset-3"></div>
+             <div class="relative overflow-hidden rounded-[1.4rem] border-4 border-white bg-brand-500 shadow-xl shadow-brand-500/15">
                <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1200&q=88" alt="Perro descansando" loading="lazy" class="h-[280px] w-full object-cover object-center sm:h-[390px] lg:h-[440px]" />
             </div>
-            <span class="absolute -bottom-4 -left-3 grid h-16 w-16 place-items-center rounded-2xl bg-[#F4C430] text-[#0B1B6D] shadow-lg sm:h-20 sm:w-20" aria-hidden="true"><svg class="h-9 w-9 sm:h-11 sm:w-11" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="8" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M12 10c-3.5 0-6 2.5-6 5.4C6 18.3 8.6 20 12 20s6-1.7 6-4.6c0-2.9-2.5-5.4-6-5.4Z"/></svg></span>
+            <span class="absolute -bottom-4 -left-3 grid h-16 w-16 place-items-center rounded-2xl bg-pet-900 text-brand-200 shadow-lg sm:h-20 sm:w-20" aria-hidden="true"><svg class="h-9 w-9 sm:h-11 sm:w-11" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="8" r="2"/><circle cx="10" cy="5" r="2"/><circle cx="14" cy="5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M12 10c-3.5 0-6 2.5-6 5.4C6 18.3 8.6 20 12 20s6-1.7 6-4.6c0-2.9-2.5-5.4-6-5.4Z"/></svg></span>
           </div>
         </div>
       </div>
@@ -85,18 +85,18 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
         </div>
       </div>
       <div class="mt-8 text-center">
-        <a routerLink="/servicios" class="inline-flex items-center gap-2 rounded-full bg-[#1A1E27] px-7 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#1A98A2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">
+        <a routerLink="/servicios" class="site-button px-7">
           Conocer todos los servicios
           <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>
         </a>
       </div>
     </div>
 
-    <section class="bg-[#FFF9F4] py-16">
+    <section class="bg-brand-50 py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-           <div><p class="text-sm font-bold uppercase tracking-[0.18em] text-[#147d87]">Tienda para mascotas</p><h2 class="mt-2 text-3xl font-extrabold text-[#0B1B6D] sm:text-4xl">Productos destacados</h2><p class="mt-3 text-slate-600">Encuentra lo mejor para el cuidado y felicidad de tu mascota.</p></div>
-           <a routerLink="/productos" class="inline-flex min-h-11 items-center font-bold text-[#0B1B6D] hover:text-[#147d87]">Ver todo el catálogo →</a>
+           <div><p class="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Tienda para mascotas</p><h2 class="mt-2 text-3xl font-extrabold text-pet-900 sm:text-4xl">Productos destacados</h2><p class="mt-3 text-slate-600">Encuentra lo mejor para el cuidado y felicidad de tu mascota.</p></div>
+           <a routerLink="/productos" class="inline-flex min-h-11 items-center font-bold text-brand-600 hover:text-brand-700">Ver todo el catálogo →</a>
         </div>
          @if (catalog.loading() && catalog.products().length === 0) {
            <div class="mt-9 grid gap-6 lg:grid-cols-[250px_1fr]" aria-live="polite" aria-label="Cargando productos destacados">
@@ -114,14 +114,14 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
          } @else if (featuredProducts().length > 0) {
            <div class="mt-9 grid gap-6 lg:grid-cols-[250px_1fr]">
            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-3xl bg-[#0B1B6D] p-6 text-white"><div class="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-sky-400/30"></div><p class="text-xs font-bold uppercase tracking-wider text-sky-300">Selección del mes</p><h3 class="mt-3 text-2xl font-black">Ofertas especiales</h3><span class="mt-5 inline-block text-sm font-bold">Descubrir productos →</span></a>
-             <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-2xl bg-[#f8ecd2] p-6 text-[#0B1B6D] transition hover:bg-[#f5e4bf]"><div class="absolute -right-6 -top-8 h-28 w-28 rounded-full bg-[#E0A71A]/15"></div><p class="text-xs font-bold uppercase tracking-wider text-[#725409]">Recién llegados</p><h3 class="mt-3 text-2xl font-extrabold">Nuevos productos</h3><span class="mt-5 inline-block text-sm font-bold">Ver novedades →</span></a>
+             <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-3xl bg-pet-900 p-6 text-white"><div class="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-brand-500/30"></div><p class="text-xs font-bold uppercase tracking-wider text-brand-200">Selección del mes</p><h3 class="mt-3 text-2xl font-black">Ofertas especiales</h3><span class="mt-5 inline-block text-sm font-bold">Descubrir productos →</span></a>
+             <a routerLink="/productos" class="relative min-h-44 overflow-hidden rounded-2xl bg-brand-100 p-6 text-pet-900 transition hover:bg-brand-200"><div class="absolute -right-6 -top-8 h-28 w-28 rounded-full bg-brand-500/15"></div><p class="text-xs font-bold uppercase tracking-wider text-brand-700">Recién llegados</p><h3 class="mt-3 text-2xl font-extrabold">Nuevos productos</h3><span class="mt-5 inline-block text-sm font-bold">Ver novedades →</span></a>
             </div>
             <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">@for (product of featuredProducts(); track product.id) { <app-product-card [item]="product" /> }</div>
            </div>
          } @else {
            <div class="mt-9 rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
-             <p class="font-bold text-[#0B1B6D]">Próximamente tendremos productos destacados.</p>
+             <p class="font-bold text-pet-900">Próximamente tendremos productos destacados.</p>
              <a routerLink="/productos" class="site-button mt-5">Ver catálogo</a>
            </div>
          }
@@ -129,10 +129,10 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
     </section>
 
     <section class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div class="text-center"><h2 class="text-3xl font-black text-[#0B1B6D]">Categorías favoritas</h2><p class="mt-3 text-slate-600">Todo lo que tu compañero necesita, en un solo lugar.</p></div>
+      <div class="text-center"><h2 class="text-3xl font-black text-pet-900">Categorías favoritas</h2><p class="mt-3 text-slate-600">Todo lo que tu compañero necesita, en un solo lugar.</p></div>
       <div class="mt-9 grid gap-6 md:grid-cols-3">
         @for (category of favoriteCategories; track category.title) {
-          <article class="group relative min-h-72 overflow-hidden rounded-3xl"><img [src]="category.image" [alt]="category.alt" loading="lazy" class="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" /><div class="absolute inset-0 bg-gradient-to-t from-[#0B1B6D]/95 via-[#0B1B6D]/45 to-transparent"></div><div class="absolute inset-x-0 bottom-0 p-6 text-white"><h3 class="text-2xl font-black">{{ category.title }}</h3><p class="mt-2 text-sm text-sky-50">{{ category.text }}</p><a routerLink="/productos" [queryParams]="{ categoria: category.filter }" class="mt-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold text-[#0B1B6D]">Ver productos</a></div></article>
+          <article class="group relative min-h-72 overflow-hidden rounded-3xl"><img [src]="category.image" [alt]="category.alt" loading="lazy" class="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" /><div class="absolute inset-0 bg-gradient-to-t from-pet-900/95 via-pet-900/45 to-transparent"></div><div class="absolute inset-x-0 bottom-0 p-6 text-white"><h3 class="text-2xl font-black">{{ category.title }}</h3><p class="mt-2 text-sm text-brand-50">{{ category.text }}</p><a routerLink="/productos" [queryParams]="{ categoria: category.filter }" class="mt-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-bold text-brand-700">Ver productos</a></div></article>
         }
       </div>
     </section>

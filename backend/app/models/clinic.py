@@ -782,6 +782,7 @@ class OrdenCobro(Base):
         ForeignKey(f"{SCHEMA}.clientes.usuario_id", ondelete="RESTRICT"),
         nullable=True,
     )
+    cliente_dni: Mapped[str | None] = mapped_column(String(8))
     caja_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(f"{SCHEMA}.cajas.id", ondelete="RESTRICT"),

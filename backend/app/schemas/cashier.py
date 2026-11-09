@@ -114,6 +114,7 @@ class PagoCreate(BaseModel):
 
 class VentaCreate(BaseModel):
     cliente_id: int | None = None
+    cliente_dni: str | None = Field(default=None, pattern=r"^[0-9]{8}$")
     medio_pago: Literal["efectivo", "yape", "plin", "tarjeta"]
     items: list[VentaItemCreate] = Field(min_length=1, max_length=50)
     clave_idempotencia: str | None = Field(default=None, min_length=8, max_length=80)
@@ -150,6 +151,7 @@ class BoletaRead(BaseModel):
     fecha_emision: datetime.datetime
     cliente_nombre: str | None
     cliente_correo: str | None
+    cliente_dni: str | None = None
     cajero_nombre: str
     medio_pago: str
     subtotal: Decimal

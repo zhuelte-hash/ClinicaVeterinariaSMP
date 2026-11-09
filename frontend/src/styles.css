@@ -3,24 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --site-navy: #0b1b6d;
-  --site-teal: #1a98a2;
-  --site-teal-dark: #147d87;
+  --brand-turquoise: #009ead;
+  --brand-turquoise-rgb: 0 158 173;
+  --brand-action: #007e8a;
+  --brand-action-hover: #006873;
+  --brand-ink: #243b49;
+  --brand-ink-rgb: 36 59 73;
+  --brand-soft: #eaf8f9;
+  --brand-light: #a5e1e6;
+  --site-navy: var(--brand-ink);
+  --site-teal: var(--brand-turquoise);
+  --site-teal-dark: var(--brand-action);
   --site-gold: #e0a71a;
-  --site-cream: #fff9f4;
-  --site-border: #e3e6ea;
-  --site-shadow: 0 8px 28px rgb(11 27 109 / 7%);
-  --admin-primary: #56c4d8;
-  --admin-primary-dark: #111827;
-  --admin-accent: #56c4d8;
-  --admin-background: #f3f7f8;
+  --site-cream: var(--brand-soft);
+  --site-border: #d5e7e9;
+  --site-shadow: 0 8px 28px rgb(var(--brand-ink-rgb) / 7%);
+  --admin-primary: var(--brand-action);
+  --admin-primary-dark: var(--brand-ink);
+  --admin-accent: var(--brand-turquoise);
+  --admin-background: #f4f9fa;
   --admin-surface: #ffffff;
-  --admin-text: #111827;
+  --admin-text: var(--brand-ink);
   --admin-muted: #64748b;
   --admin-border: #d8e6e9;
   --admin-error: #e11d48;
   --admin-success: #059669;
-  --admin-shadow: 0 16px 45px rgb(17 24 39 / 9%);
+  --admin-shadow: 0 16px 45px rgb(var(--brand-ink-rgb) / 9%);
   --color-primary: var(--admin-primary);
   --color-primary-dark: var(--admin-primary-dark);
 }
@@ -40,7 +48,7 @@ body {
   box-shadow: var(--site-shadow);
   transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
-.site-card:hover { border-color: #b6dce0; box-shadow: 0 12px 32px rgb(11 27 109 / 10%); }
+.site-card:hover { border-color: var(--brand-light); box-shadow: 0 12px 32px rgb(var(--brand-ink-rgb) / 10%); }
 .site-button {
   display: inline-flex;
   min-height: 2.75rem;
@@ -48,7 +56,7 @@ body {
   justify-content: center;
   gap: .5rem;
   border-radius: 999px;
-  background: var(--site-navy);
+  background: var(--brand-action);
   padding: .7rem 1.4rem;
   color: white;
   font-size: .875rem;
@@ -56,7 +64,9 @@ body {
   text-align: center;
   transition: background .2s ease, transform .2s ease;
 }
-.site-button:hover { background: var(--site-teal-dark); transform: translateY(-1px); }
+.site-button:hover { background: var(--brand-action-hover); transform: translateY(-1px); }
+.site-button-secondary { border: 1px solid var(--brand-action); background: white; color: var(--brand-action); }
+.site-button-secondary:hover { background: var(--brand-soft); color: var(--brand-action-hover); }
 .site-button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
 .site-input {
   width: 100%;
@@ -65,11 +75,11 @@ body {
   border-radius: .85rem;
   background: white;
   padding: .7rem .9rem;
-  color: #1a1e27;
+  color: var(--brand-ink);
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
-.site-input:focus { border-color: var(--site-teal-dark); box-shadow: 0 0 0 3px rgb(26 152 162 / 16%); }
+.site-input:focus { border-color: var(--brand-turquoise); box-shadow: 0 0 0 3px rgb(var(--brand-turquoise-rgb) / 16%); }
 .site-input[aria-invalid='true'] { border-color: #b91c1c; }
 
 ::-webkit-scrollbar {
@@ -102,17 +112,19 @@ body {
 
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
-:focus-visible { outline: 3px solid rgb(86 196 216 / 45%); outline-offset: 3px; }
+:focus-visible { outline: 3px solid rgb(var(--brand-turquoise-rgb) / 55%); outline-offset: 3px; }
+::selection { background: var(--brand-light); color: var(--brand-ink); }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action); }
 
 /* Visual language of the local veterinarian panel reference. */
 .vet-app {
-  --vet-bg: #f2f5f7;
+  --vet-bg: var(--admin-background);
   --vet-surface: #fff;
-  --vet-ink: #233748;
+  --vet-ink: var(--brand-ink);
   --vet-muted: #637888;
   --vet-line: #dfe7ed;
-  --vet-teal: #087f83;
-  --vet-nav: #172f40;
+  --vet-teal: var(--brand-action);
+  --vet-nav: var(--brand-ink);
   font-family: Inter, 'Segoe UI', system-ui, sans-serif;
   color: var(--vet-ink);
   background: var(--vet-bg);
@@ -183,8 +195,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   min-height: 100dvh;
   color: var(--admin-text);
   background:
-    radial-gradient(circle at 82% 4%, rgb(86 196 216 / 14%), transparent 21rem),
-    radial-gradient(circle at 22% 88%, rgb(17 24 39 / 5%), transparent 24rem),
+    radial-gradient(circle at 82% 4%, rgb(var(--brand-turquoise-rgb) / 10%), transparent 21rem),
+    radial-gradient(circle at 22% 88%, rgb(var(--brand-ink-rgb) / 5%), transparent 24rem),
     var(--admin-background);
 }
 
@@ -206,13 +218,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-radius: .9rem;
   background: #fbfdfc;
   padding: .72rem .9rem;
-  color: #111827;
+  color: var(--brand-ink);
   font-size: .875rem;
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 .admin-app .admin-input:hover { border-color: #8fcbd6; background: white; }
-.admin-app .admin-input:focus { border-color: #56c4d8; background: white; box-shadow: 0 0 0 4px rgb(86 196 216 / 18%); }
+.admin-app .admin-input:focus { border-color: var(--brand-turquoise); background: white; box-shadow: 0 0 0 4px rgb(var(--brand-turquoise-rgb) / 18%); }
 .admin-app .admin-input:disabled { cursor: not-allowed; background: #f1f5f4; color: #64748b; }
 .admin-app .admin-label { display: block; margin-bottom: .45rem; color: #374151; font-size: .75rem; font-weight: 700; letter-spacing: .025em; }
 
@@ -225,10 +237,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   font-weight: 700;
   transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
 }
-.admin-app .admin-primary { background: linear-gradient(135deg, #111827, #030712); box-shadow: 0 8px 20px rgb(17 24 39 / 20%); color: white; }
-.admin-app .admin-primary:hover { transform: translateY(-1px); background: #56c4d8; box-shadow: 0 12px 24px rgb(86 196 216 / 30%); color: #111827; }
-.admin-app .admin-secondary { border-color: #cedde0; background: white; color: #374151; }
-.admin-app .admin-secondary:hover { border-color: #56c4d8; background: #f2fbfd; }
+.admin-app .admin-primary { background: var(--brand-action); box-shadow: 0 8px 20px rgb(var(--brand-turquoise-rgb) / 20%); color: white; }
+.admin-app .admin-primary:hover { transform: translateY(-1px); background: var(--brand-action-hover); box-shadow: 0 12px 24px rgb(var(--brand-turquoise-rgb) / 25%); color: white; }
+.admin-app .admin-secondary { border: 1px solid var(--brand-action); background: white; color: var(--brand-action); }
+.admin-app .admin-secondary:hover { border-color: var(--brand-action-hover); background: var(--brand-soft); }
 .admin-app button:disabled { transform: none; box-shadow: none; }
 
 .admin-app .admin-table { width: 100%; min-width: 760px; border-collapse: collapse; }
@@ -239,15 +251,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-app .admin-table tbody tr:hover { background: #f3fafb; }
 .admin-app .admin-table button { min-height: 2.25rem; }
 
-/* Keep legacy admin utility classes aligned with the cyan and charcoal palette. */
+/* Align informational accents with the logo; status colors keep their meaning. */
 .admin-app .text-teal-600,
 .admin-app .text-teal-700,
-.admin-app .text-teal-800 { color: #168ba1 !important; }
-.admin-app .bg-teal-50 { background-color: rgb(86 196 216 / 12%) !important; }
-.admin-app .bg-teal-100 { background-color: rgb(86 196 216 / 20%) !important; }
-.admin-app .bg-teal-500 { background-color: #56c4d8 !important; }
-.admin-app .ring-teal-50 { --tw-ring-color: rgb(86 196 216 / 15%) !important; }
-.admin-app .accent-teal-600 { accent-color: #56c4d8; }
+.admin-app .text-teal-800 { color: var(--brand-action) !important; }
+.admin-app .bg-teal-50 { background-color: var(--brand-soft) !important; }
+.admin-app .bg-teal-100 { background-color: #d2f0f2 !important; }
+.admin-app .bg-teal-500 { background-color: var(--brand-turquoise) !important; }
+.admin-app .ring-teal-50 { --tw-ring-color: rgb(var(--brand-turquoise-rgb) / 15%) !important; }
+.admin-app .accent-teal-600 { accent-color: var(--brand-action); }
 
 .admin-app .admin-modal { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: clamp(1rem, 4vw, 2rem); background: rgb(3 7 18 / 72%); backdrop-filter: blur(8px); }
 .admin-app .admin-modal-panel { width: 100%; max-width: 32rem; max-height: 90dvh; overflow: auto; border: 1px solid rgb(255 255 255 / 65%); border-radius: 1.4rem; background: white; padding: 1.5rem; box-shadow: 0 30px 80px rgb(2 20 19 / 32%); animation: admin-modal-in .2s ease-out; }

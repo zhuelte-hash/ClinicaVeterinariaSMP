@@ -3,7 +3,7 @@
 }
 
 .services-page {
-  background-image: radial-gradient(circle at 15% 35%, rgb(26 152 162 / 6%), transparent 24%);
+  background-image: radial-gradient(circle at 15% 35%, rgb(var(--brand-turquoise-rgb) / 6%), transparent 24%);
 }
 
 @media (prefers-reduced-motion: reduce) {

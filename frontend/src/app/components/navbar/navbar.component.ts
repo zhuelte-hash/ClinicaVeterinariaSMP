@@ -30,13 +30,13 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
       bottom: 2px;
       height: 2px;
       border-radius: 2px;
-      background: #1A98A2;
+      background: var(--brand-turquoise);
       transform: scaleX(0);
       transform-origin: left;
       transition: transform .25s ease;
     }
     .nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); }
-     .nav-link:hover, .nav-link.active { color: #147d87; }
+     .nav-link:hover, .nav-link.active { color: var(--brand-action); }
     .cart-drawer { animation: cart-drawer-in .22s ease-out both; }
     .cart-backdrop { animation: cart-backdrop-in .22s ease-out both; }
     @keyframes cart-drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -47,34 +47,34 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
   `],
   template: `
     <!-- Barra superior -->
-    <div class="bg-[#1A1E27] text-white text-xs sm:text-[13px] font-medium">
+    <div class="bg-pet-900 text-white text-xs sm:text-[13px] font-medium">
        <div class="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-4 py-1.5 sm:px-6">
         <p class="flex items-center gap-2 truncate">
           <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
           <span class="truncate">Jr. Quinua N° 178 – Cercado, Ayacucho</span>
           <span class="hidden md:inline text-[#1A98A2]">|</span>
-           <a href="tel:965939522" class="hidden md:inline hover:text-[#E0A71A]">965 939 522</a>
+           <a href="tel:965939522" class="hidden md:inline hover:text-brand-200">965 939 522</a>
         </p>
         <p class="hidden sm:flex items-center gap-1.5">vamospetshop&#64;gmail.com</p>
       </div>
     </div>
 
     <!-- Header principal -->
-     <header class="sticky top-0 z-50 border-b border-[#e3e6ea] bg-white shadow-[0_4px_18px_rgba(11,27,109,0.06)]">
+     <header class="sticky top-0 z-50 border-b border-brand-100 bg-white shadow-sm shadow-pet-900/5">
        <div class="mx-auto max-w-[1450px] px-4 sm:px-6">
         <div class="flex items-center justify-between h-[76px] gap-4">
 
           <!-- Logo -->
            <a routerLink="/inicio" class="flex min-w-0 shrink items-center gap-2 sm:gap-3" aria-label="Clínica Veterinaria San Martín de Porres, ir al inicio">
-             <img src="/logo.png" alt="" class="h-11 w-11 shrink-0 rounded-full border border-[#D5D2D3] object-contain sm:h-12 sm:w-12" />
+              <img src="/logo.png" alt="" class="h-11 w-11 shrink-0 rounded-full border border-brand-200 bg-white object-contain sm:h-12 sm:w-12" />
             <span class="leading-tight hidden xs:block sm:block">
-              <span class="block text-[19px] font-extrabold text-[#1A1E27] tracking-tight">San Martín de Porres</span>
-              <span class="block text-[10px] tracking-[0.22em] uppercase text-[#1A98A2] font-semibold">Clínica Veterinaria</span>
+              <span class="block text-[19px] font-extrabold text-pet-900 tracking-tight">San Martín de Porres</span>
+              <span class="block text-[10px] tracking-[0.22em] uppercase text-brand-600 font-semibold">Clínica Veterinaria</span>
             </span>
           </a>
 
           <!-- Menú central -->
-           <nav class="hidden xl:flex items-center gap-0 text-xs font-semibold text-gray-800 uppercase" aria-label="Navegación principal">
+           <nav class="hidden xl:flex items-center gap-0 text-xs font-semibold text-pet-900 uppercase" aria-label="Navegación principal">
             <a routerLink="/inicio" routerLinkActive="active" class="nav-link">Nosotros</a>
             <div class="relative" (mouseenter)="desktopServicesOpen.set(true)" (mouseleave)="desktopServicesOpen.set(false)" (focusout)="closeDesktopMenuAfterFocus($event)" (keydown.escape)="desktopServicesOpen.set(false)">
               <button
@@ -91,7 +91,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                 <div class="absolute left-0 top-full pt-2 normal-case tracking-normal" role="menu" aria-label="Categorías de servicios">
                   <div class="flex w-[700px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_55px_rgba(11,27,109,0.16)]">
                     <div class="w-[265px] shrink-0 border-r border-slate-100 p-3">
-                      <a routerLink="/servicios" (click)="closeDesktopServices()" class="mb-2 flex items-center justify-between rounded-2xl bg-[#0B1B6D] px-4 py-3 text-xs font-bold text-white" role="menuitem"><span>Ver todos los servicios</span><span aria-hidden="true">→</span></a>
+                      <a routerLink="/servicios" (click)="closeDesktopServices()" class="mb-2 flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-xs font-bold text-white hover:bg-brand-700" role="menuitem"><span>Ver todos los servicios</span><span aria-hidden="true">→</span></a>
                       @for (category of serviceMenuCategories; track category.id) {
                         <button type="button" (mouseenter)="activeDesktopCategory.set(category.id)" (focus)="activeDesktopCategory.set(category.id)" (click)="activeDesktopCategory.set(category.id)" class="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition" [class.bg-[#0799AE]/10]="activeDesktopCategory() === category.id" [attr.aria-expanded]="activeDesktopCategory() === category.id" aria-haspopup="menu">
                           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#FFF9F4] text-[#0799AE] group-hover:bg-white"><app-service-menu-icon [icon]="category.icon" class="h-5 w-5" /></span>
@@ -100,11 +100,11 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                         </button>
                       }
                     </div>
-                    <div class="max-h-[68vh] w-[435px] overflow-y-auto bg-[#FFF9F4]/60 p-5">
+                    <div class="max-h-[68vh] w-[435px] overflow-y-auto bg-brand-50/60 p-5">
                       @for (category of serviceMenuCategories; track category.id) {
                         @if (activeDesktopCategory() === category.id) {
                           <div role="menu" [attr.aria-label]="category.name">
-                            <div class="mb-4 flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-[#F4C430]"></span><h3 class="text-sm font-extrabold text-[#0B1B6D]">{{ category.name }}</h3></div>
+                            <div class="mb-4 flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-brand-500"></span><h3 class="text-sm font-extrabold text-pet-900">{{ category.name }}</h3></div>
                             <div class="grid grid-cols-2 gap-x-5 gap-y-4">
                               @for (group of category.groups; track group.label) {
                                 <div><p class="mb-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">{{ group.label }}</p>
@@ -133,14 +133,14 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
 
           <!-- Acciones -->
           <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
-             <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-[#0B1B6D] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#147d87] md:inline-flex">Reservar cita</a>
+             <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-brand-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brand-700 md:inline-flex">Reservar cita</a>
             <a routerLink="/productos" title="Buscar" aria-label="Buscar productos" class="hidden h-10 w-10 items-center justify-center rounded-full text-[#0B1B6D] transition hover:bg-[#0799AE]/10 hover:text-[#0799AE] lg:flex">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 17a7 7 0 110-14 7 7 0 010 14z"/></svg>
             </a>
             <div>
               <button #cartToggle type="button" (click)="toggleCart()" title="Carrito de compras" [attr.aria-label]="cartOpen() ? 'Cerrar carrito de compras' : 'Abrir carrito de compras'" [attr.aria-expanded]="cartOpen()" aria-controls="cart-drawer" class="relative grid h-10 w-10 place-items-center rounded-full text-[#0B1B6D] transition hover:bg-[#0799AE]/10 hover:text-[#0799AE]">
                 <app-pet-carrier-icon class="h-6 w-6" />
-                @if (cart.count() > 0) { <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F4C430] px-1 text-[10px] font-black text-[#0B1B6D]">{{ cart.count() }}</span> }
+                @if (cart.count() > 0) { <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-black text-white">{{ cart.count() }}</span> }
               </button>
               @if (cartOpen()) {
                 <div class="cart-backdrop fixed inset-0 z-[60] bg-[#1A1E27]/45" (click)="closeCart()" aria-hidden="true"></div>
@@ -193,7 +193,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                     }
                     <button type="button" (click)="closeCart()" class="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#0B1B6D]/25 px-4 py-2.5 text-sm font-bold text-[#0B1B6D] transition hover:bg-brand-50">Seguir comprando</button>
                     @if (cart.items().length > 0) {
-                      <button type="button" (click)="continuePurchase()" class="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#0B1B6D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#147d87]">Continuar con la compra</button>
+                      <button type="button" (click)="continuePurchase()" class="site-button mt-2 w-full">Continuar con la compra</button>
                       <a routerLink="/carrito" (click)="closeCart()" class="mt-2 inline-flex min-h-10 w-full items-center justify-center text-sm font-semibold text-[#147d87] hover:underline">Ver carrito completo</a>
                     }
                   </div>
@@ -236,7 +236,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                   <span class="grid h-9 w-9 place-items-center rounded-xl bg-[#0799AE]/10 text-[#0799AE]"><app-service-menu-icon [icon]="category.icon" class="h-5 w-5" /></span><span class="flex-1 font-extrabold text-[#0B1B6D]">{{ category.name }}</span><svg class="h-4 w-4 transition" [class.rotate-180]="mobileServiceCategory() === category.id" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 7 6 6 6-6"/></svg>
                 </button>
                 @if (mobileServiceCategory() === category.id) {
-                  <div [id]="'mobile-' + category.id" class="border-t border-slate-100 bg-[#FFF9F4]/60 px-3 py-3">
+                  <div [id]="'mobile-' + category.id" class="border-t border-slate-100 bg-brand-50/60 px-3 py-3">
                     @for (group of category.groups; track group.label) {
                       <p class="mb-1 mt-2 text-[9px] font-black uppercase tracking-wider text-slate-400 first:mt-0">{{ group.label }}</p>
                       <div class="grid gap-1 sm:grid-cols-2">@for (link of group.links; track link.name) { <a [routerLink]="link.route" [fragment]="link.fragment" (click)="closeMobileMenu()" class="flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-white hover:text-[#0799AE]"><app-service-menu-icon [icon]="link.icon" class="h-4 w-4 text-[#0799AE]" />{{ link.name }}</a> }</div>
@@ -249,7 +249,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </div>
          }
          <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
-           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="rounded-full bg-[#0B1B6D] px-4 py-3 text-center text-white hover:bg-[#0799AE]">Reservar cita</a>
+           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="site-button">Reservar cita</a>
            @if (auth.isAuthenticated()) {
              <a [routerLink]="accountRoute()" (click)="closeMobileMenu()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Mi cuenta</a>
              <button type="button" (click)="logout()" class="rounded-full border border-rose-200 px-4 py-3 text-center font-bold text-rose-600 hover:bg-rose-50">Cerrar sesión</button>

@@ -12,17 +12,17 @@ type CategoryFilter = string;
   imports: [ProductCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-     <section class="border-b border-[#e3e6ea] bg-[#FFF9F4]">
+     <section class="border-b border-brand-100 bg-brand-50">
        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div class="max-w-3xl">
            <p class="mb-3 text-sm font-bold uppercase tracking-[0.14em] text-[#147d87]">Tienda veterinaria</p>
-           <h1 class="text-3xl font-extrabold tracking-tight text-[#0B1B6D] sm:text-4xl lg:text-5xl">Productos para tu mascota</h1>
+           <h1 class="text-3xl font-extrabold tracking-tight text-pet-900 sm:text-4xl lg:text-5xl">Productos para tu mascota</h1>
            <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">Encuentra alimentos, accesorios, ropa y artículos para el bienestar de tu compañero.</p>
         </div>
          <div class="site-card mt-8 flex flex-col gap-5 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
            <div class="flex gap-2 overflow-x-auto pb-2 lg:flex-wrap lg:overflow-visible lg:pb-0" role="group" aria-label="Categorías de productos">
              @for (category of categories(); track category) {
-               <button type="button" (click)="selectedCategory.set(category)" class="min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-[#1A98A2]" [class.border-[#0B1B6D]]="selectedCategory() === category" [class.bg-[#0B1B6D]]="selectedCategory() === category" [class.text-white]="selectedCategory() === category" [class.border-slate-300]="selectedCategory() !== category" [class.text-slate-700]="selectedCategory() !== category" [attr.aria-pressed]="selectedCategory() === category">{{ category }}</button>
+               <button type="button" (click)="selectedCategory.set(category)" class="min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-brand-600" [class.border-brand-600]="selectedCategory() === category" [class.bg-brand-600]="selectedCategory() === category" [class.text-white]="selectedCategory() === category" [class.border-slate-300]="selectedCategory() !== category" [class.text-slate-700]="selectedCategory() !== category" [attr.aria-pressed]="selectedCategory() === category">{{ category }}</button>
             }
           </div>
           <label class="relative block w-full lg:max-w-sm">
@@ -34,7 +34,7 @@ type CategoryFilter = string;
       </div>
     </section>
     <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-       <div class="mb-7 flex flex-wrap items-end justify-between gap-2"><h2 class="text-2xl font-bold text-[#0B1B6D]">Nuestro catálogo</h2><p class="text-sm text-slate-600" aria-live="polite">{{ filteredProducts().length }} productos</p></div>
+       <div class="mb-7 flex flex-wrap items-end justify-between gap-2"><h2 class="text-2xl font-bold text-pet-900">Nuestro catálogo</h2><p class="text-sm text-slate-600" aria-live="polite">{{ filteredProducts().length }} productos</p></div>
        @if (catalog.loading()) { <p class="py-10 text-center text-slate-600">Cargando productos...</p> }
        @else if (catalog.error()) { <p class="py-10 text-center text-rose-700">{{ catalog.error() }} <button type="button" (click)="catalog.load()" class="font-bold underline">Reintentar</button></p> }
        @else if (filteredProducts().length) {
@@ -42,7 +42,7 @@ type CategoryFilter = string;
           @for (product of filteredProducts(); track product.id) { <app-product-card [item]="product" /> }
         </div>
       } @else {
-         <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p class="text-xl font-bold text-[#0B1B6D]">No encontramos productos</p><p class="mt-2 text-slate-600">Prueba con otra categoría o término de búsqueda.</p><button type="button" (click)="clearFilters()" class="site-button mt-5">Limpiar filtros</button></div>
+         <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center"><p class="text-xl font-bold text-pet-900">No encontramos productos</p><p class="mt-2 text-slate-600">Prueba con otra categoría o término de búsqueda.</p><button type="button" (click)="clearFilters()" class="site-button mt-5">Limpiar filtros</button></div>
       }
     </section>
   `,

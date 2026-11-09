@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-     <footer class="mt-0 bg-pet-900 text-slate-200">
+     <footer class="mt-0 border-t-4 border-brand-500 bg-pet-900 text-slate-200">
        <div class="mx-auto grid max-w-7xl gap-9 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
         <div>
           <div class="flex items-center gap-2 mb-4">
@@ -21,7 +21,7 @@ import { RouterLink } from '@angular/router';
           </div>
         </div>
         <div>
-           <h2 class="mb-3 font-bold text-white">Enlaces</h2>
+             <h2 class="mb-3 font-bold text-brand-200">Enlaces</h2>
           <ul class="space-y-2 text-sm">
             <li><a routerLink="/inicio" class="hover:text-brand-500">Inicio</a></li>
             <li><a routerLink="/inicio" class="hover:text-brand-500">Sobre Nosotros</a></li>
@@ -32,7 +32,7 @@ import { RouterLink } from '@angular/router';
           </ul>
         </div>
          <div>
-            <h2 class="mb-3 font-bold text-white">Empresa</h2>
+             <h2 class="mb-3 font-bold text-brand-200">Empresa</h2>
            <ul class="space-y-2 text-sm">
              <li><a routerLink="/contacto" class="hover:text-brand-500">Preguntas frecuentes</a></li>
              <li><a routerLink="/contacto" class="hover:text-brand-500">Políticas y condiciones</a></li>
@@ -40,7 +40,7 @@ import { RouterLink } from '@angular/router';
            </ul>
          </div>
         <div>
-           <h2 class="mb-3 font-bold text-white">Contacto</h2>
+           <h2 class="mb-3 font-bold text-brand-200">Contacto</h2>
           <ul class="space-y-2 text-sm">
            <li><b>Celular:</b> <a href="tel:965939522" class="hover:text-brand-300">965 939 522</a></li>
            <li><b>Correo:</b> <a href="mailto:vamospetshop@gmail.com" class="break-all hover:text-brand-300">vamospetshop@gmail.com</a></li>

@@ -22,7 +22,7 @@ interface NavigationGroup {
       <a href="#veterinarian-content" class="skip-link">Saltar al contenido</a>
       <aside class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white transition-all duration-300" [class.sidebar-collapsed]="collapsed()" [class.drawer-open]="drawerOpen()">
          <div class="brand-row flex h-20 items-center gap-3 px-4">
-          <div class="brand-mark grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-black">VET</div>
+          <img src="/logo.png" alt="San Martín de Porres" class="brand-mark h-11 w-11 shrink-0 rounded-full object-contain" />
           @if (!collapsed()) {
             <div class="min-w-0"><p class="truncate text-sm font-extrabold tracking-tight">Clínica Veterinaria</p><p class="mt-0.5 text-[10px] font-semibold uppercase tracking-[.18em] text-[#8bd7e5]">Centro clínico</p></div>
            }
@@ -69,18 +69,18 @@ interface NavigationGroup {
     </div>
   `,
   styles: [`
-    .vet-app { min-height: 100dvh; background: #f5faf8; }
-    .sidebar { width: 17rem; background: linear-gradient(165deg, #161d2b 0%, #111827 52%, #030712 100%); box-shadow: 12px 0 35px rgb(3 7 18 / 18%); }
+    .vet-app { min-height: 100dvh; background: var(--admin-background); }
+    .sidebar { width: 17rem; background: linear-gradient(165deg, var(--brand-ink), #1c303c); box-shadow: 12px 0 35px rgb(var(--brand-ink-rgb) / 18%); }
     .sidebar-collapsed { width: 5.25rem; }
     .page-shell { min-height: 100dvh; margin-left: 17rem; }
     .page-collapsed { margin-left: 5.25rem; }
-    .brand-mark { color: #111827; background: linear-gradient(145deg, #dff8fc, #56c4d8); box-shadow: 0 10px 22px rgb(0 0 0 / 22%); }
+    .brand-mark { background: white; box-shadow: 0 0 0 3px rgb(var(--brand-turquoise-rgb) / 25%); }
     .nav-link { color: rgb(226 232 240 / 82%); }
     .nav-icon { color: #89d7e5; background: rgb(255 255 255 / 5%); transition: background .2s, color .2s, transform .2s; }
     .nav-link:hover { color: white; background: rgb(255 255 255 / 8%); }
     .nav-link:hover .nav-icon { color: #56c4d8; transform: scale(1.05); }
-    .active-link { color: #111827; background: linear-gradient(90deg, #8bd7e5, #56c4d8); box-shadow: 0 10px 24px rgb(3 7 18 / 30%); font-weight: 800; }
-    .active-link .nav-icon { color: #111827; background: rgb(255 255 255 / 45%); }
+    .active-link { color: white; background: var(--brand-action); box-shadow: 0 10px 24px rgb(var(--brand-ink-rgb) / 22%); font-weight: 800; }
+    .active-link .nav-icon { color: white; background: rgb(255 255 255 / 15%); }
     .header-button { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid #dce8e5; border-radius: .9rem; color: #526b68; background: rgb(255 255 255 / 82%); transition: .2s; }
     .header-button:hover { border-color: #56c4d8; color: #111827; background: #f0fbfd; }
     .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; border-radius: .75rem; background: #111827; padding: .75rem 1rem; color: white; font-size: .8rem; font-weight: 700; transition: top .2s; }

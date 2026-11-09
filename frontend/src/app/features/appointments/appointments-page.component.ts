@@ -13,6 +13,9 @@ import { Appointment, AppointmentStatus, AvailabilitySlot, ClinicalRecord, Clini
 const BOOKING_DRAFT_KEY = 'clinic_booking_draft_v1';
 type BookingDraft = {
   nombreReserva: string;
+  nombreMascota?: string;
+  especieMascota?: string;
+  sexoMascota?: string;
   servicioId: number;
   fecha: string;
   slot: string;
@@ -46,8 +49,6 @@ export class AppointmentsPageComponent {
   readonly privateLoading = signal(false);
   readonly submitting = signal(false);
   readonly loginPromptOpen = signal(false);
-  readonly petSubmitting = signal(false);
-  readonly showPetForm = signal(false);
   readonly errorMessage = signal('');
   readonly minDateTime = this.toDateTimeLocal(new Date(Date.now() + 60 * 60 * 1000));
   readonly minDate = this.minDateTime.slice(0, 10);
@@ -57,18 +58,12 @@ export class AppointmentsPageComponent {
   readonly petHistory = signal<ClinicalRecord[]>([]);
   private availabilityRequest = 0;
 
-  readonly petForm = this.formBuilder.nonNullable.group({
-    nombre: ['', [Validators.required, Validators.maxLength(100)]],
-    especie: ['Perro', [Validators.required, Validators.maxLength(80)]],
-    raza: ['', Validators.maxLength(100)],
-    sexo: [''],
-    fecha_nacimiento: [''],
-    peso_actual: [''],
-    caracteristicas: ['', Validators.maxLength(2000)],
-  });
   readonly appointmentForm = this.formBuilder.nonNullable.group({
     nombreReserva: ['', [Validators.required, Validators.maxLength(150)]],
-    mascotaId: [0, Validators.min(1)],
+    mascotaId: [0],
+    nombreMascota: ['', Validators.maxLength(100)],
+    especieMascota: ['', Validators.maxLength(80)],
+    sexoMascota: [''],
     servicioId: [0, Validators.min(1)],
     fecha: [this.minDate, Validators.required],
     slot: ['', Validators.required],
@@ -127,43 +122,14 @@ export class AppointmentsPageComponent {
         if (this.auth.currentUser()?.id !== clientId) return;
         this.pets.set(pets);
         this.appointments.set(appointments);
-        if (!this.appointmentForm.controls.mascotaId.value && pets.length) {
-          this.appointmentForm.controls.mascotaId.setValue(pets[0].id);
+        if (this.appointmentForm.controls.mascotaId.value && !pets.some((pet) => pet.id === this.appointmentForm.controls.mascotaId.value)) {
+          this.appointmentForm.controls.mascotaId.setValue(0);
         }
       },
       error: (error: unknown) => {
         if (this.auth.currentUser()?.id === clientId) this.errorMessage.set(this.errorText(error));
       },
     });
-  }
-
-  createPet(): void {
-    if (!this.auth.isAuthenticated() || this.auth.currentUser()?.tipo !== 'cliente') return;
-    if (this.petForm.invalid) {
-      this.petForm.markAllAsTouched();
-      return;
-    }
-    this.petSubmitting.set(true);
-    const value = this.petForm.getRawValue();
-     this.api.createPet({
-       ...value,
-       raza: value.raza || undefined,
-       sexo: value.sexo || undefined,
-       fecha_nacimiento: value.fecha_nacimiento || undefined,
-       peso_actual: value.peso_actual || undefined,
-       caracteristicas: value.caracteristicas || undefined,
-     })
-      .pipe(finalize(() => this.petSubmitting.set(false)))
-      .subscribe({
-        next: (pet) => {
-          this.pets.update((pets) => [...pets, pet]);
-          this.appointmentForm.controls.mascotaId.setValue(pet.id);
-           this.petForm.reset({ nombre: '', especie: 'Perro', raza: '', sexo: '', fecha_nacimiento: '', peso_actual: '', caracteristicas: '' });
-          this.showPetForm.set(false);
-          this.notice.show('Mascota registrada');
-        },
-        error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
-      });
   }
 
   schedule(): void {
@@ -174,6 +140,11 @@ export class AppointmentsPageComponent {
       this.errorMessage.set('Indica el nombre de quien reserva, un servicio, una fecha válida y un horario disponible.');
       return;
     }
+    if (!value.mascotaId && (!value.nombreMascota.trim() || !value.especieMascota || !value.sexoMascota)) {
+      this.appointmentForm.markAllAsTouched();
+      this.errorMessage.set('Indica el nombre, tipo y sexo de tu mascota.');
+      return;
+    }
     const selectedSlot = this.availability().find((slot) => slot.fecha_hora === value.slot);
     if (!selectedSlot) {
       this.errorMessage.set('Selecciona un horario disponible actualizado.');
@@ -182,7 +153,7 @@ export class AppointmentsPageComponent {
     if (this.auth.isLoading()) return;
     if (!this.auth.isAuthenticated()) {
       this.saveDraft();
-      this.notice.show('Para confirmar tu reserva, inicia sesión.');
+      this.notice.show('Para enviar tu solicitud, inicia sesión.');
       this.loginPromptOpen.set(true);
       this.authDialog.open(this.router.url).pipe(
         finalize(() => this.loginPromptOpen.set(false)),
@@ -193,7 +164,7 @@ export class AppointmentsPageComponent {
           return;
         }
         this.loadAvailability();
-        this.notice.show('Sesión iniciada. Revisa tu mascota y confirma la solicitud.');
+        this.notice.show('Sesión iniciada. Revisa los datos y envía tu solicitud.');
       });
       return;
     }
@@ -202,10 +173,9 @@ export class AppointmentsPageComponent {
       return;
     }
     if (this.privateLoading()) return;
-    if (this.appointmentForm.invalid || !this.pets().some((pet) => pet.id === value.mascotaId)) {
+    if (this.appointmentForm.invalid || (value.mascotaId !== 0 && !this.pets().some((pet) => pet.id === value.mascotaId))) {
       this.appointmentForm.markAllAsTouched();
-      this.showPetForm.set(this.pets().length === 0);
-      this.errorMessage.set('Selecciona o registra una mascota para completar la solicitud.');
+      this.errorMessage.set('Revisa los datos de la mascota para completar la solicitud.');
       return;
     }
     this.submitting.set(true);
@@ -226,7 +196,21 @@ export class AppointmentsPageComponent {
           this.submitting.set(false);
           return;
         }
-        this.createAppointment(value, selectedSlot);
+        if (value.mascotaId) {
+          this.createAppointment(value, selectedSlot, value.mascotaId);
+        } else {
+          this.api.createPet({ nombre: value.nombreMascota.trim(), especie: value.especieMascota, sexo: value.sexoMascota }).subscribe({
+            next: (pet) => {
+              this.pets.update((pets) => [...pets, pet]);
+              this.appointmentForm.controls.mascotaId.setValue(pet.id);
+              this.createAppointment(value, selectedSlot, pet.id);
+            },
+            error: (error: unknown) => {
+              this.submitting.set(false);
+              this.errorMessage.set(this.errorText(error));
+            },
+          });
+        }
       },
       error: (error: unknown) => {
         this.submitting.set(false);
@@ -235,23 +219,23 @@ export class AppointmentsPageComponent {
     });
   }
 
-  private createAppointment(value: ReturnType<typeof this.appointmentForm.getRawValue>, selectedSlot: AvailabilitySlot): void {
+  private createAppointment(value: ReturnType<typeof this.appointmentForm.getRawValue>, selectedSlot: AvailabilitySlot, petId: number): void {
     this.api.createAppointment({
-      mascota_id: value.mascotaId,
+      mascota_id: petId,
       servicio_id: value.servicioId,
       veterinario_id: selectedSlot.veterinario_id,
       fecha_hora_programada: value.slot,
       motivo: value.motivo || undefined,
-        es_urgente: value.esUrgente,
-        telefono_contacto: value.telefono || undefined,
-        preferencia_contacto: value.preferenciaContacto || undefined,
+      es_urgente: value.esUrgente,
+      telefono_contacto: value.telefono || undefined,
+      preferencia_contacto: value.preferenciaContacto || undefined,
     }).pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: (appointment) => {
         sessionStorage.removeItem(BOOKING_DRAFT_KEY);
         this.appointments.update((items) => [appointment, ...items]);
-          this.appointmentForm.patchValue({ slot: '', motivo: '', esUrgente: false });
-          this.loadAvailability();
-          this.notice.show(`Recibimos tu solicitud. Estado: ${this.statusLabel(appointment.estado)}. El veterinario se comunicará contigo para coordinar la cita.`);
+        this.appointmentForm.patchValue({ slot: '', motivo: '', esUrgente: false, nombreMascota: '', especieMascota: '', sexoMascota: '' });
+        this.loadAvailability();
+        this.notice.show(`Recibimos tu solicitud. Estado: ${this.statusLabel(appointment.estado)}. El veterinario se comunicará contigo para coordinar la cita.`);
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
@@ -364,8 +348,8 @@ export class AppointmentsPageComponent {
   }
 
   private saveDraft(): void {
-    const { nombreReserva, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto } = this.appointmentForm.getRawValue();
-    const draft: BookingDraft = { nombreReserva, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto, savedAt: Date.now() };
+    const { nombreReserva, nombreMascota, especieMascota, sexoMascota, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto } = this.appointmentForm.getRawValue();
+    const draft: BookingDraft = { nombreReserva, nombreMascota, especieMascota, sexoMascota, servicioId, fecha, slot, motivo, esUrgente, telefono, preferenciaContacto, savedAt: Date.now() };
     sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
   }
 
@@ -382,6 +366,7 @@ export class AppointmentsPageComponent {
       }
       this.appointmentForm.patchValue({
         nombreReserva: draft.nombreReserva ?? '',
+        nombreMascota: draft.nombreMascota ?? '', especieMascota: draft.especieMascota ?? '', sexoMascota: draft.sexoMascota ?? '',
         servicioId: draft.servicioId, fecha: draft.fecha, slot: draft.slot,
         motivo: draft.motivo ?? '', esUrgente: draft.esUrgente ?? false,
         telefono: draft.telefono ?? '', preferenciaContacto: draft.preferenciaContacto ?? 'llamada',

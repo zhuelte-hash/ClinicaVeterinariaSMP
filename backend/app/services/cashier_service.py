@@ -408,6 +408,7 @@ class CashierService:
             codigo_orden=code,
             cajero_id=cashier.id,
             cliente_id=client.usuario_id if client else None,
+            cliente_dni=data.cliente_dni,
             proceso_atencion_id=data.proceso_atencion_id,
             caja_id=register.id,
             monto_total=total,
@@ -449,6 +450,7 @@ class CashierService:
             requested[key] = requested.get(key, 0) + item.cantidad
         existing = {(item.producto_id, item.servicio_id): item.cantidad for item in order.detalles}
         if (order.cajero_id != cashier.id or order.cliente_id != data.cliente_id
+                or order.cliente_dni != data.cliente_dni
                 or order.medio_pago != data.medio_pago or existing != requested
                 or order.estado_pago != EstadoPago.VALIDADO_CONFIRMADO
                 or order.descuento != data.descuento
@@ -485,6 +487,7 @@ class CashierService:
             fecha_emision=order.comprobante_venta.fecha_emision,
             cliente_nombre=order.cliente.usuario.nombre if order.cliente else None,
             cliente_correo=order.cliente.usuario.correo if order.cliente else None,
+            cliente_dni=order.cliente_dni,
             cajero_nombre=order.cajero.usuario.nombre,
             medio_pago=order.medio_pago or "no_especificado",
             subtotal=order.subtotal,
