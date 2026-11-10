@@ -1,57 +1,31 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { PURCHASE_CONFIG } from '../../core/config/purchase.config';
-import { LocalPurchaseService } from '../../core/services/local-purchase.service';
+import { LocalPurchaseService, WebOrder } from '../../core/services/local-purchase.service';
 
 @Component({
-  selector: 'app-purchase-confirmation',
-  standalone: true,
-  imports: [RouterLink],
+  selector: 'app-purchase-confirmation', standalone: true, imports: [RouterLink, CommonModule],
   templateUrl: './purchase-confirmation.component.html',
-  styleUrl: './purchase-confirmation.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './purchase-confirmation.component.css', changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PurchaseConfirmationComponent {
   private readonly purchases = inject(LocalPurchaseService);
-  readonly order = this.purchases.currentOrder;
-  readonly formattedDate = computed(() => {
-    const order = this.order();
-    if (!order) return '';
-    return new Intl.DateTimeFormat('es-PE', {
-      dateStyle: 'long',
-      timeStyle: 'short',
-    }).format(new Date(order.fechaIso));
-  });
+  private readonly route = inject(ActivatedRoute);
+  readonly order = signal<WebOrder | null>(null);
+  readonly error = signal('');
+  readonly config = signal(PURCHASE_CONFIG);
   readonly whatsappUrl = computed(() => {
     const order = this.order();
-    if (!order) return '';
-    const address = order.cliente.tipoEntrega === 'Delivery'
-      ? order.cliente.direccion
-      : 'Recojo en clínica';
-    const productLines = order.items.map((item) =>
-      `• ${item.name} x${item.cantidad} — S/ ${item.subtotal.toFixed(2)}`,
-    );
-    const message = [
-      '🐾 *NUEVA ORDEN WEB – Clínica Veterinaria San Martín de Porres*',
-      '',
-      `Código: ${order.codigo}`,
-      `Cliente: ${order.cliente.nombreCompleto}`,
-      `Celular: ${order.cliente.celular}`,
-      `Entrega: ${order.cliente.tipoEntrega}`,
-      `Dirección: ${address}`,
-      '',
-      '*Productos:*',
-      ...productLines,
-      '',
-      `Total: S/ ${order.total.toFixed(2)}`,
-      `Método de pago: ${order.metodoPago}`,
-      `N.° de operación: ${order.numeroOperacion}`,
-      `Estado: ${order.estadoPago}`,
-    ].join('\n');
-    return `https://wa.me/${PURCHASE_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+    const number = this.config().whatsappNumber;
+    if (!order || !/^[1-9]\d{7,14}$/.test(number)) return '';
+    const message = `Hola, he realizado el pedido N.° ${order.codigo_pedido} en la Clínica Veterinaria San Martín de Porres. Quisiera consultar sobre el estado de mi compra.`;
+    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   });
-
-  printSummary(): void {
-    window.print();
+  constructor() {
+    const id = Number(this.route.snapshot.queryParamMap.get('pedido'));
+    if (id) this.purchases.get(id).subscribe({ next: order => this.order.set(order), error: () => this.error.set('No se pudo consultar el pedido.') });
+    this.purchases.configuration().subscribe({ next: config => this.config.set(config) });
   }
+  printSummary() { window.print(); }
 }

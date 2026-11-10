@@ -145,6 +145,7 @@ class BoletaDetalleRead(BaseModel):
 
 
 class BoletaRead(BaseModel):
+    costo_delivery: Decimal = Decimal("0.00")
     orden_id: int
     codigo_orden: str
     serie_correlativo: str

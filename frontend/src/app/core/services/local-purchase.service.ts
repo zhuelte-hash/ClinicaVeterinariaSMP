@@ -1,85 +1,64 @@
-import { Injectable, signal } from '@angular/core';
-import { PedidoTemporal, PurchaseOrderItem, PurchaseProduct } from '../models/purchase.model';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { environment } from '../../../environments/environment';
+import { DatosCliente } from '../models/purchase.model';
+import { PurchaseConfig } from '../config/purchase.config';
 
-const TEMPORARY_ORDER_KEY = 'clinic_temporary_order_v1';
-const ORDER_SEQUENCE_KEY = 'clinic_order_sequence_v1';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+export interface WebOrder {
+  id: number;
+  codigo_pedido: string;
+  fecha_pedido: string;
+  cliente_id: number;
+  datos_cliente: DatosCliente;
+  subtotal: string;
+  descuento: string;
+  costo_delivery: string;
+  total: string;
+  metodo_pago: string;
+  estado_pedido: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'CANCELADO';
+  estado_pago: string;
+  numero_operacion: string;
+  observaciones: string;
+  comprobante_pago: string;
+  comprobante_tipo: string;
+  motivo_rechazo: string | null;
+  usuario_revisor_id: number | null;
+  fecha_revision: string | null;
+  venta_id: number | null;
+  detalles: { producto_id: number; nombre_producto: string; imagen_url: string; cantidad: number; precio_unitario: string; subtotal: string }[];
 }
 
-function isPurchaseProduct(value: unknown): value is PurchaseProduct {
-  return isRecord(value)
-    && typeof value['id'] === 'string'
-    && typeof value['name'] === 'string'
-    && typeof value['price'] === 'number'
-    && typeof value['stock'] === 'number'
-    && typeof value['image'] === 'string'
-    && typeof value['imageAlt'] === 'string';
+export interface CreateWebOrder {
+  clave_idempotencia: string;
+  cliente: DatosCliente;
+  items: { producto_id: number; cantidad: number }[];
+  metodo_pago: string;
+  numero_operacion: string;
+  observaciones: string;
+  total_esperado: string;
 }
 
-function isOrderItem(value: unknown): value is PurchaseOrderItem {
-  if (!isRecord(value) || !isPurchaseProduct(value)) return false;
-  return typeof value['cantidad'] === 'number' && typeof value['subtotal'] === 'number';
-}
-
-function isOrder(value: unknown): value is PedidoTemporal {
-  return isRecord(value)
-    && typeof value['codigo'] === 'string'
-    && typeof value['fechaIso'] === 'string'
-    && isRecord(value['cliente'])
-    && typeof value['cliente']['nombreCompleto'] === 'string'
-    && Array.isArray(value['items'])
-    && value['items'].length > 0
-    && value['items'].every(isOrderItem)
-    && typeof value['total'] === 'number'
-    && (value['metodoPago'] === 'Yape' || value['metodoPago'] === 'Plin')
-    && typeof value['numeroOperacion'] === 'string';
-}
-
+/** Conserva el nombre para los consumidores existentes; la fuente de verdad es la API. */
 @Injectable({ providedIn: 'root' })
 export class LocalPurchaseService {
-  private readonly orderState = signal<PedidoTemporal | null>(
-    this.read(TEMPORARY_ORDER_KEY, isOrder),
-  );
+  private readonly http = inject(HttpClient);
+  private readonly url = `${environment.apiUrl}/pedidos-web`;
 
-  readonly currentOrder = this.orderState.asReadonly();
-
-  saveOrder(order: PedidoTemporal): void {
-    this.orderState.set(order);
-    sessionStorage.setItem(TEMPORARY_ORDER_KEY, JSON.stringify(order));
+  configuration() { return this.http.get<PurchaseConfig>(`${this.url}/configuracion`); }
+  create(data: CreateWebOrder, proof: File) {
+    const body = new FormData();
+    body.append('datos', JSON.stringify(data));
+    body.append('comprobante', proof);
+    return this.http.post<WebOrder>(this.url, body);
   }
-
-  createOrderCode(date = new Date()): string {
-    const datePart = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
-      .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, '0'))
-      .join('');
-    const stored = this.read(
-      ORDER_SEQUENCE_KEY,
-      (value): value is { date: string; sequence: number } =>
-        isRecord(value)
-        && typeof value['date'] === 'string'
-        && typeof value['sequence'] === 'number',
-    );
-    const sequence = stored?.date === datePart ? stored.sequence + 1 : 1;
-    sessionStorage.setItem(ORDER_SEQUENCE_KEY, JSON.stringify({ date: datePart, sequence }));
-    return `VET-${datePart}-${String(sequence).padStart(3, '0')}`;
+  list(filters: Record<string, string | number> = {}) {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(filters)) if (value !== '') params = params.set(key, value);
+    return this.http.get<WebOrder[]>(this.url, { params });
   }
-
-  private read<T>(key: string, isValid: (value: unknown) => value is T): T | null {
-    try {
-      const value = sessionStorage.getItem(key);
-      if (!value) return null;
-      const parsed: unknown = JSON.parse(value);
-      if (!isValid(parsed)) {
-        sessionStorage.removeItem(key);
-        return null;
-      }
-      return parsed;
-    } catch {
-      sessionStorage.removeItem(key);
-      return null;
-    }
+  get(id: number) { return this.http.get<WebOrder>(`${this.url}/${id}`); }
+  proof(id: number) { return this.http.get(`${this.url}/${id}/comprobante`, { responseType: 'blob' }); }
+  review(id: number, accion: 'APROBAR' | 'RECHAZAR', motivo = '') {
+    return this.http.post<WebOrder>(`${this.url}/${id}/revision`, { accion, motivo });
   }
-
 }

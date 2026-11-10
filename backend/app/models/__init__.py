@@ -1,3 +1,4 @@
+from app.models.purchase import PedidoWeb, DetallePedidoWeb
 from app.models.clinic import (
     Caja,
     BloqueoHorario,
