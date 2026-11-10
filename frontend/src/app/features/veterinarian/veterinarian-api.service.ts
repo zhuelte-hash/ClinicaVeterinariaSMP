@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AppointmentStatus } from '../appointments/appointments.models';
 import { ClinicService, Pet } from '../appointments/appointments.models';
-import { AppointmentSummary, AttentionStatus, ClinicalRecord, CoordinationUpdate, Diagnosis, ExamOrder, ExamPriority, ExamStatus, Notification, Prescription, ScheduleBlock, VeterinarianAppointment, VeterinarianClient, VeterinarianClientPayload, VeterinarianSchedule } from './veterinarian.models';
+import { AppointmentSummary, AttentionStatus, ClinicalRecord, CoordinationUpdate, Diagnosis, ExamOrder, ExamPriority, ExamStatus, Notification, Prescription, ScheduleBlock, VeterinarianAppointment, VeterinarianClient, VeterinarianClientPayload, VeterinarianClinicalRecord, VeterinarianPatient, VeterinarianSchedule } from './veterinarian.models';
 
 @Injectable({ providedIn: 'root' })
 export class VeterinarianApiService {
@@ -32,6 +32,9 @@ export class VeterinarianApiService {
     return this.http.get<VeterinarianClient[]>(`${this.baseUrl}/clientes`);
   }
   getPetsForClient(clientId: number): Observable<Pet[]> { return this.http.get<Pet[]>(`${this.baseUrl}/clientes/${clientId}/mascotas`); }
+  getPatients(): Observable<VeterinarianPatient[]> { return this.http.get<VeterinarianPatient[]>(`${this.baseUrl}/mascotas`); }
+  getPatient(id: number): Observable<VeterinarianPatient> { return this.http.get<VeterinarianPatient>(`${this.baseUrl}/mascotas/${id}`); }
+  getClinicalRecords(): Observable<VeterinarianClinicalRecord[]> { return this.http.get<VeterinarianClinicalRecord[]>(`${this.baseUrl}/atenciones`); }
 
   createClient(data: VeterinarianClientPayload): Observable<VeterinarianClient> {
     return this.http.post<VeterinarianClient>(`${this.baseUrl}/clientes`, data);
@@ -57,6 +60,7 @@ export class VeterinarianApiService {
   registerAttention(id: number, data: Record<string, unknown>): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion`, data); }
   startAttention(id: number): Observable<ClinicalRecord> { return this.http.post<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion/iniciar`, {}); }
   updateAttentionStatus(processId: number, estado: AttentionStatus): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/atenciones/${processId}/estado`, { estado }); }
+  updateClinicalResults(processId: number, examenesResultados: string): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/atenciones/${processId}/resultados`, { examenes_resultados: examenesResultados }); }
   addDiagnosis(processId: number, data: { descripcion: string; codigo?: string; es_principal?: boolean; observaciones?: string }): Observable<Diagnosis> { return this.http.post<Diagnosis>(`${this.baseUrl}/atenciones/${processId}/diagnosticos`, data); }
   addExamOrder(processId: number, data: { tipo: string; prioridad: ExamPriority }): Observable<ExamOrder> { return this.http.post<ExamOrder>(`${this.baseUrl}/atenciones/${processId}/ordenes-examen`, data); }
   getExamOrders(processId: number): Observable<ExamOrder[]> { return this.http.get<ExamOrder[]>(`${this.baseUrl}/atenciones/${processId}/ordenes-examen`); }

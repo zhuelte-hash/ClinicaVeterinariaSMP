@@ -1,13 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-cashier-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   template: `
-    <div class="cashier-app min-h-screen bg-[#f3f7f8] text-slate-800">
+    <div class="clinic-panel cashier-app min-h-screen bg-[#f3f7f8] text-slate-800">
       @if (drawerOpen()) {
         <button class="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" aria-label="Cerrar menu" (click)="drawerOpen.set(false)"></button>
       }
@@ -38,7 +39,7 @@ import { AuthService } from '../../core/auth/auth.service';
         <header class="cashier-header sticky top-0 z-30 flex h-20 items-center border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
           <button class="rounded-xl border border-slate-200 p-2.5 lg:hidden" aria-label="Abrir menu" (click)="drawerOpen.set(true)">☰</button>
           <div class="ml-3 lg:ml-0"><p class="text-xs font-bold uppercase tracking-[.18em] text-[#168ba1]">Operación diaria</p><h1 class="font-black text-[#111827]">Panel del cajero</h1></div>
-           <div class="ml-1 grid h-10 w-10 place-items-center rounded-xl bg-[#56c4d8] font-black text-[#111827] shadow-md">{{ cashierInitials() }}</div>
+          <div class="ml-auto flex shrink-0 items-center gap-3"><app-theme-toggle /><div class="panel-avatar grid h-10 w-10 place-items-center rounded-xl bg-[#56c4d8] font-black text-[#111827] shadow-md">{{ cashierInitials() }}</div></div>
         </header>
         <main class="p-4 sm:p-6 lg:p-8"><router-outlet /></main>
       </div>

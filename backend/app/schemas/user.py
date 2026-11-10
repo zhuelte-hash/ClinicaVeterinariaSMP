@@ -92,7 +92,7 @@ class VeterinarianClientCreate(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     correo: EmailStr
     contrasena: str | None = Field(default=None, min_length=8, max_length=72)
-    telefono: str | None = Field(default=None, max_length=30)
+    telefono: str = Field(min_length=9, max_length=30)
     direccion: str | None = Field(default=None, max_length=255)
 
     @field_validator("nombre")
@@ -105,12 +105,20 @@ class VeterinarianClientCreate(BaseModel):
     def normalizar_correo(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
 
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono_whatsapp(cls, value: str) -> str:
+        normalized = "".join(char for char in value if char.isdigit())
+        if len(normalized) < 9:
+            raise ValueError("Registra un número de WhatsApp válido")
+        return normalized
+
 
 class VeterinarianClientUpdate(BaseModel):
     nombre: str = Field(min_length=2, max_length=150)
     correo: EmailStr
     contrasena: str | None = Field(default=None, min_length=8, max_length=72)
-    telefono: str = Field(default="", max_length=30)
+    telefono: str = Field(min_length=9, max_length=30)
     direccion: str = Field(default="", max_length=255)
 
     @field_validator("nombre")
@@ -122,3 +130,11 @@ class VeterinarianClientUpdate(BaseModel):
     @classmethod
     def normalizar_correo(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono_whatsapp(cls, value: str) -> str:
+        normalized = "".join(char for char in value if char.isdigit())
+        if len(normalized) < 9:
+            raise ValueError("Registra un número de WhatsApp válido")
+        return normalized

@@ -42,6 +42,7 @@ from app.schemas.appointments import (
     ProcedureCreate,
     PreventiveApplicationCreate,
     PetCreate,
+    VeterinarianPetRead,
     VeterinarianWalkInCreate,
     ScheduleBlockCreate,
     ScheduleUpdate,
@@ -117,6 +118,42 @@ class AppointmentService:
         self.db.commit()
         self.db.refresh(pet)
         return pet
+
+    def get_veterinarian_patients(self, veterinarian_id: int, pet_id: int | None = None) -> list[VeterinarianPetRead]:
+        appointments = (
+            select(Cita.mascota_id, func.count(Cita.id).label("citas"))
+            .where(or_(Cita.veterinario_id == veterinarian_id, Cita.veterinario_id.is_(None)))
+            .group_by(Cita.mascota_id)
+            .subquery()
+        )
+        records = (
+            select(
+                ProcesoAtencion.mascota_id,
+                func.count(ProcesoAtencion.id).label("atenciones"),
+                func.max(ProcesoAtencion.fecha_inicio).label("ultima_atencion"),
+            )
+            .outerjoin(ProcesoAtencion.cita)
+            .outerjoin(ProcesoAtencion.proceso_medico)
+            .where(or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id))
+            .group_by(ProcesoAtencion.mascota_id)
+            .subquery()
+        )
+        statement = (
+            select(Mascota, Usuario, Cliente, appointments.c.citas, records.c.atenciones, records.c.ultima_atencion)
+            .join(Mascota.cliente)
+            .join(Cliente.usuario)
+            .outerjoin(appointments, appointments.c.mascota_id == Mascota.id)
+            .outerjoin(records, records.c.mascota_id == Mascota.id)
+            .order_by(func.lower(Mascota.nombre), Mascota.id)
+        )
+        if pet_id is not None:
+            statement = statement.where(Mascota.id == pet_id)
+        return [VeterinarianPetRead(
+            **{key: getattr(pet, key) for key in ("id", "nombre", "especie", "raza", "sexo", "fecha_nacimiento", "peso_actual", "caracteristicas")},
+            cliente_id=owner.id, cliente_nombre=owner.nombre, cliente_correo=owner.correo,
+            telefono_contacto=client.telefono, direccion=client.direccion,
+            citas=appointments_count or 0, atenciones=records_count or 0, ultima_atencion=last_record,
+        ) for pet, owner, client, appointments_count, records_count, last_record in self.db.execute(statement).all()]
 
     def create_pet_for_client(self, client_id: int, data: PetCreate) -> Mascota:
         pet = Mascota(cliente_id=client_id, **data.model_dump())
@@ -658,12 +695,11 @@ class AppointmentService:
             self.db.add(process)
             self.db.flush()
         else:
-            process.observaciones = data.observaciones
-            process.motivo_consulta = data.motivo_consulta
-            process.anamnesis = data.anamnesis
-            process.proxima_fecha_control = data.proxima_fecha_control
-        if process.estado == EstadoProcesoAtencion.CERRADA:
-            raise CoordinationError("La atención ya está cerrada y no puede modificarse")
+            for field in ("observaciones", "motivo_consulta", "anamnesis", "proxima_fecha_control"):
+                if field in data.model_fields_set:
+                    setattr(process, field, getattr(data, field))
+        if process.estado in {EstadoProcesoAtencion.CERRADA, EstadoProcesoAtencion.CANCELADA}:
+            raise CoordinationError("La atención ya está finalizada y no puede modificarse")
         process.estado = data.estado
         if data.estado == EstadoProcesoAtencion.CERRADA:
             process.fecha_cierre = datetime.datetime.now(datetime.timezone.utc)
@@ -672,39 +708,31 @@ class AppointmentService:
             if medical is None:
                 medical = ProcesoAtencionMedica(proceso_id=process.id, veterinario_id=veterinarian.id)
                 self.db.add(medical)
-            medical.diagnostico = data.diagnostico
-            medical.tratamiento = data.tratamiento
-            if any(
-                value is not None
-                for value in (
-                    data.peso,
-                    data.temperatura,
-                    data.historial_alergias,
-                    data.vacunas,
-                    data.desparasitaciones,
-                    data.medicamentos,
-                    data.procedimientos,
-                    data.examenes_resultados,
-                )
-            ):
+            for field in ("diagnostico", "tratamiento"):
+                if field in data.model_fields_set:
+                    setattr(medical, field, getattr(data, field))
+            if data.model_fields_set.intersection({
+                "peso", "temperatura", "historial_alergias", "vacunas",
+                "desparasitaciones", "medicamentos", "procedimientos", "examenes_resultados",
+            }):
                 record = medical.ficha_clinica
                 if record is None:
                     record = FichaClinica(proceso_medico_id=process.id)
                     self.db.add(record)
-                record.peso = data.peso
-                record.temperatura = data.temperatura
-                record.historial_alergias = data.historial_alergias
-                record.vacunas = data.vacunas
-                record.desparasitaciones = data.desparasitaciones
-                record.medicamentos = data.medicamentos
-                record.procedimientos = data.procedimientos
-                record.examenes_resultados = data.examenes_resultados
+                for field in (
+                    "peso", "temperatura", "historial_alergias", "vacunas",
+                    "desparasitaciones", "medicamentos", "procedimientos",
+                    "examenes_resultados",
+                ):
+                    if field in data.model_fields_set:
+                        setattr(record, field, getattr(data, field))
         else:
             aesthetic = process.proceso_estetica
             if aesthetic is None:
                 aesthetic = ProcesoAtencionEstetica(proceso_id=process.id)
                 self.db.add(aesthetic)
-            aesthetic.notas_especiales_estilista = data.observaciones
+            if "observaciones" in data.model_fields_set or "procedimientos" in data.model_fields_set:
+                aesthetic.notas_especiales_estilista = "\n".join(filter(None, [data.procedimientos, data.observaciones])) or None
         if data.estado == EstadoProcesoAtencion.CERRADA:
             appointment.estado = EstadoCita.ATENDIDA
             appointment.estado_actualizado_por = veterinarian.id
@@ -803,8 +831,13 @@ class AppointmentService:
     def get_clinical_record_for_process(self, process_id: int) -> ProcesoAtencion:
         return self.db.scalar(select(ProcesoAtencion).where(ProcesoAtencion.id == process_id).options(
             selectinload(ProcesoAtencion.cita).selectinload(Cita.servicio),
-            selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica),
+            selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica).selectinload(FichaClinica.examenes),
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.veterinario).selectinload(Veterinario.usuario),
+            selectinload(ProcesoAtencion.diagnosticos),
+            selectinload(ProcesoAtencion.ordenes_examen),
+            selectinload(ProcesoAtencion.receta).selectinload(Receta.detalles),
+            selectinload(ProcesoAtencion.procedimientos_realizados),
+            selectinload(ProcesoAtencion.aplicaciones_preventivas),
         ))
 
     def _owned_process(self, veterinarian_id: int, process_id: int) -> ProcesoAtencion | None:
@@ -834,8 +867,26 @@ class AppointmentService:
         if data.estado == EstadoProcesoAtencion.CERRADA:
             process.fecha_cierre = datetime.datetime.now(datetime.timezone.utc)
             process.fecha_fin = process.fecha_cierre
+            if process.cita is not None:
+                process.cita.estado = EstadoCita.ATENDIDA
+                process.cita.estado_actualizado_por = veterinarian.id
         self.db.commit()
         return process
+
+    def update_clinical_results(self, veterinarian: Usuario, process_id: int, result: str) -> ProcesoAtencion:
+        process = self.get_clinical_record_for_process(process_id)
+        if process is None or self._owned_process(veterinarian.id, process_id) is None:
+            raise AppointmentNotFoundError
+        if process.proceso_medico is None:
+            raise AppointmentNotFoundError
+        ficha = process.proceso_medico.ficha_clinica
+        if ficha is None:
+            ficha = FichaClinica(proceso_medico_id=process.id)
+            self.db.add(ficha)
+        previous = (ficha.examenes_resultados or "").strip()
+        ficha.examenes_resultados = f"{previous}\n{result.strip()}".strip() if previous else result.strip()
+        self.db.commit()
+        return self.get_clinical_record_for_process(process_id)
 
     def add_diagnosis(self, veterinarian: Usuario, process_id: int, data: DiagnosisCreate) -> DiagnosticoAtencion:
         if self._owned_process(veterinarian.id, process_id) is None:
@@ -945,7 +996,36 @@ class AppointmentService:
             selectinload(ProcesoAtencion.cita).selectinload(Cita.servicio),
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica),
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.veterinario).selectinload(Veterinario.usuario),
+            selectinload(ProcesoAtencion.diagnosticos),
+            selectinload(ProcesoAtencion.ordenes_examen),
+            selectinload(ProcesoAtencion.receta).selectinload(Receta.detalles),
+            selectinload(ProcesoAtencion.procedimientos_realizados),
+            selectinload(ProcesoAtencion.aplicaciones_preventivas),
         ).order_by(ProcesoAtencion.fecha_inicio.desc())).all())
+
+    def get_veterinarian_clinical_records(self, veterinarian_id: int | None) -> list[ProcesoAtencion]:
+        statement = (
+            select(ProcesoAtencion)
+            .outerjoin(ProcesoAtencion.cita)
+            .outerjoin(ProcesoAtencion.proceso_medico)
+            .options(
+                selectinload(ProcesoAtencion.mascota).selectinload(Mascota.cliente).selectinload(Cliente.usuario),
+                selectinload(ProcesoAtencion.cita).selectinload(Cita.servicio),
+                selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica).selectinload(FichaClinica.examenes),
+                selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.veterinario).selectinload(Veterinario.usuario),
+                selectinload(ProcesoAtencion.proceso_estetica),
+                selectinload(ProcesoAtencion.cita).selectinload(Cita.veterinario).selectinload(Veterinario.usuario),
+                selectinload(ProcesoAtencion.diagnosticos),
+                selectinload(ProcesoAtencion.ordenes_examen),
+                selectinload(ProcesoAtencion.receta).selectinload(Receta.detalles),
+                selectinload(ProcesoAtencion.procedimientos_realizados),
+                selectinload(ProcesoAtencion.aplicaciones_preventivas),
+            )
+            .order_by(ProcesoAtencion.fecha_inicio.desc(), ProcesoAtencion.id.desc())
+        )
+        if veterinarian_id is not None:
+            statement = statement.where(or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id))
+        return list(self.db.scalars(statement).all())
 
     def get_notifications(self, user_id: int) -> list[Notificacion]:
         return list(self.db.scalars(select(Notificacion).where(
@@ -968,23 +1048,12 @@ class AppointmentService:
         self._validate_schedule(scheduled_at, appointment.servicio.duracion_estimada_min)
         if not self._has_schedule(veterinarian_id, scheduled_at, appointment.servicio.duracion_estimada_min):
             raise InvalidScheduleError("El veterinario no tiene disponibilidad en ese horario")
-        candidate_end = scheduled_at + datetime.timedelta(minutes=appointment.servicio.duracion_estimada_min)
-        if self._has_block(veterinarian_id, scheduled_at, candidate_end):
+        if self._has_block(veterinarian_id, scheduled_at, scheduled_at + datetime.timedelta(minutes=appointment.servicio.duracion_estimada_min)):
             raise InvalidScheduleError("El veterinario no está disponible en ese horario")
-        self.db.execute(text("SELECT pg_advisory_xact_lock(735291)"))
-        existing = self.db.scalars(
-            select(Cita)
-            .join(Cita.servicio)
-            .where(
-                Cita.veterinario_id == veterinarian_id,
-                Cita.id != appointment.id,
-                Cita.estado.in_(ACTIVE_BOOKING_STATES),
-            )
-        ).all()
-        for item in existing:
-            item_end = item.fecha_hora_programada + datetime.timedelta(minutes=item.servicio.duracion_estimada_min)
-            if scheduled_at < item_end and item.fecha_hora_programada < candidate_end:
-                raise AppointmentConflictError
+        if self.db.get_bind().dialect.name == "postgresql":
+            self.db.execute(text("SELECT pg_advisory_xact_lock(735291)"))
+        if self._has_conflict(veterinarian_id, scheduled_at, appointment.servicio, appointment.id):
+            raise AppointmentConflictError
 
     def _has_conflict(
         self,
@@ -994,17 +1063,13 @@ class AppointmentService:
         excluded_appointment_id: int | None = None,
     ) -> bool:
         end = start + datetime.timedelta(minutes=service.duracion_estimada_min)
-        existing = self.db.scalars(
-            select(Cita)
-            .join(Cita.servicio)
-            .where(Cita.veterinario_id == veterinarian_id, Cita.estado.in_(ACTIVE_BOOKING_STATES))
-        ).all()
-        return any(
-            item.id != excluded_appointment_id
-            and start < item.fecha_hora_programada + datetime.timedelta(minutes=item.servicio.duracion_estimada_min)
-            and item.fecha_hora_programada < end
-            for item in existing
+        statement = select(Cita.id).where(
+            Cita.veterinario_id == veterinarian_id, Cita.estado.in_(ACTIVE_BOOKING_STATES),
+            Cita.fecha_hora_programada < end, Cita.fecha_hora_fin_programada > start,
         )
+        if excluded_appointment_id is not None:
+            statement = statement.where(Cita.id != excluded_appointment_id)
+        return self.db.scalar(statement.limit(1)) is not None
 
     def _has_block(self, veterinarian_id: int, start: datetime.datetime, end: datetime.datetime) -> bool:
         return self.db.scalar(select(BloqueoHorario.id).where(

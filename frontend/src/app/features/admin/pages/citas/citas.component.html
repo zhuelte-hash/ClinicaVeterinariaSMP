@@ -1,4 +1,30 @@
-<admin-page-header title="Citas" description="Reservas de clientes y agenda clínica. Las citas son de solo lectura para administración." />
-@if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700">{{ error() }}</p> }
-<form class="admin-card mb-4 flex flex-col gap-3 p-4 sm:flex-row" (ngSubmit)="load()"><label class="text-sm font-semibold">Fecha<input type="date" class="admin-input mt-1" [ngModel]="date()" (ngModelChange)="date.set($event)" name="fecha"></label><label class="text-sm font-semibold">Estado<select class="admin-input mt-1" [ngModel]="status()" (ngModelChange)="status.set($event)" name="estado"><option value="">Todos</option><option value="pendiente_contacto">Pendiente</option><option value="contactando_cliente">Contactando</option><option value="esperando_respuesta">Esperando respuesta</option><option value="requiere_otro_horario">Requiere otro horario</option><option value="confirmada">Confirmada</option><option value="reprogramada">Reprogramada</option><option value="atendida">Atendida</option><option value="cancelada">Cancelada</option><option value="cliente_no_respondio">Cliente no respondió</option><option value="no_asistio">No asistió</option></select></label><button class="admin-primary self-end">Filtrar</button></form>
-<div class="admin-card overflow-x-auto">@if (loading()) {<p class="p-10 text-center text-slate-500">Cargando citas...</p>} @else {<table class="admin-table"><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Mascota</th><th>Servicio</th><th>Veterinario</th><th>Estado</th></tr></thead><tbody>@for (item of appointments(); track item.id) {<tr><td>{{ formatDate(item.fecha_hora_programada) }}</td><td>{{ item.cliente_nombre }}</td><td><b>{{ item.mascota_nombre }}</b></td><td>{{ item.servicio_nombre }}</td><td>{{ item.veterinario_nombre || 'Sin asignar' }}</td><td><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ item.estado }}</span></td></tr>} @empty {<tr><td colspan="6" class="p-8 text-center text-slate-500">No hay citas para los filtros aplicados.</td></tr>}</tbody></table>}</div>
+<admin-page-header title="Citas" description="Filtra las reservas, confirma su estado y coordina horarios y veterinarios." />
+@if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700" role="alert">{{ error() }}</p> }
+<form class="admin-card mb-4 flex flex-wrap items-end gap-3 p-4" (ngSubmit)="load()">
+  <label class="text-sm font-semibold">Fecha<input type="date" class="admin-input mt-1" [ngModel]="date()" (ngModelChange)="date.set($event)" name="fecha"></label>
+  <label class="text-sm font-semibold">Estado<select class="admin-input mt-1" [ngModel]="status()" (ngModelChange)="status.set($event)" name="estado"><option value="">Todos</option>@for (state of states; track state.value) { <option [value]="state.value">{{ state.label }}</option> }<option value="atendida">Atendida</option></select></label>
+  <button class="admin-primary" [disabled]="loading()">Filtrar</button>
+  <button type="button" class="admin-secondary" (click)="date.set(''); status.set(''); load()">Limpiar</button>
+</form>
+<div class="admin-card overflow-x-auto" [attr.aria-busy]="loading()">
+  @if (loading()) { <p class="p-10 text-center text-slate-500" role="status">Cargando citas…</p> }
+  @else {
+    <table class="admin-table"><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Mascota</th><th>Servicio</th><th>Veterinario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+      @for (item of appointments(); track item.id) {
+        <tr><td>{{ formatDate(item.fecha_hora_programada) }}</td><td>{{ item.cliente_nombre }}</td><td><b>{{ item.mascota_nombre }}</b></td><td>{{ item.servicio_nombre }}</td><td>{{ item.veterinario_nombre || 'Sin asignar' }}</td><td><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ statusLabel(item.estado) }}</span></td><td>@if (canEdit(item)) { <button type="button" class="admin-secondary" (click)="edit(item)">Gestionar</button> } @else { <span class="text-xs text-slate-500">Finalizada</span> }</td></tr>
+      } @empty { <tr><td colspan="7" class="p-8 text-center text-slate-500">No hay citas para los filtros aplicados.</td></tr> }
+    </tbody></table>
+  }
+</div>
+@if (editing(); as item) {
+  <div class="admin-modal" (click)="close()"><form class="admin-modal-panel grid gap-4" (ngSubmit)="save()" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="appointment-title">
+    <h2 id="appointment-title" class="text-xl font-bold">Gestionar cita de {{ item.mascota_nombre }}</h2>
+    <p class="text-sm text-slate-500">{{ item.servicio_nombre }} · Horario de Perú (America/Lima)</p>
+    @if (formError()) { <p class="rounded-xl bg-rose-50 p-3 text-sm text-rose-700" role="alert">{{ formError() }}</p> }
+    <label><span class="admin-label">Estado</span><select class="admin-input" name="edit-state" [(ngModel)]="form.estado">@for (state of states; track state.value) { <option [value]="state.value">{{ state.label }}</option> }</select></label>
+    <label><span class="admin-label">Veterinario</span><select class="admin-input" name="veterinarian" [(ngModel)]="form.veterinario_id"><option [ngValue]="null">Sin asignar</option>@for (vet of veterinarians(); track vet.id) { <option [ngValue]="vet.id">{{ vet.nombre }}</option> }</select></label>
+    <label><span class="admin-label">Fecha y hora</span><input required type="datetime-local" class="admin-input" name="edit-date" [(ngModel)]="form.fecha"></label>
+    <label><span class="admin-label">Nota de coordinación / motivo de cancelación</span><textarea class="admin-input" rows="3" maxlength="500" name="note" [(ngModel)]="form.nota_coordinacion"></textarea></label>
+    <div class="flex justify-end gap-2"><button type="button" class="admin-secondary" [disabled]="saving()" (click)="close()">Cancelar</button><button class="admin-primary" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+  </form></div>
+}

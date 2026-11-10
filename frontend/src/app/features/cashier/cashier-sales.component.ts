@@ -41,14 +41,14 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
       @if (errorMessage()) { <p class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
       @if (!registerOpen() && !loading()) { <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between"><div><b class="text-amber-900">Debes abrir una caja antes de vender</b><p class="mt-1 text-sm text-amber-700">El cobro no se procesará hasta iniciar el turno.</p></div><a routerLink="../dashboard" class="rounded-xl bg-amber-500 px-5 py-2.5 text-center font-black text-white">Abrir caja</a></div> }
 
-      <div class="grid gap-6 xl:grid-cols-[1fr_390px]">
-        <div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div class="min-w-0">
           <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
               <button (click)="catalogMode.set('products')" class="mode-button" [class.mode-active]="catalogMode() === 'products'">Productos</button>
               <button (click)="catalogMode.set('services')" class="mode-button" [class.mode-active]="catalogMode() === 'services'">Servicios de atención</button>
             </div>
-            <div class="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
               <input [ngModel]="search()" (ngModelChange)="search.set($event)" [placeholder]="catalogMode() === 'products' ? 'Buscar producto o SKU...' : 'Buscar servicio...'" class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-[#56c4d8] focus:ring-2 focus:ring-[#56c4d8]/20">
               @if (catalogMode() === 'products') { <div class="flex max-w-full gap-2 overflow-x-auto"><button (click)="selectedCategory.set(null)" class="category-button" [class.category-active]="selectedCategory() === null">Todos</button>@for (category of categories(); track category.id) {<button (click)="selectedCategory.set(category.id)" class="category-button" [class.category-active]="selectedCategory() === category.id">{{ category.nombre }}</button>}</div> }
             </div>
@@ -70,7 +70,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
           }
         </div>
 
-        <aside class="h-fit rounded-3xl border border-slate-200 bg-white shadow-lg xl:sticky xl:top-24">
+        <aside class="h-fit min-w-0 rounded-3xl border border-slate-200 bg-white shadow-lg xl:sticky xl:top-24">
           <div class="border-b border-slate-100 p-5"><div class="flex items-center justify-between"><h3 class="text-xl font-black text-[#111827]">Venta actual</h3><span class="rounded-full bg-[#56c4d8]/15 px-3 py-1 text-xs font-bold text-[#168ba1]">{{ cartCount() }} items</span></div></div>
           <div class="max-h-72 space-y-3 overflow-y-auto p-5">
             @for (item of cart(); track item.type + '-' + item.id) {
@@ -103,7 +103,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
     }
   `,
   styles: [`
-    .mode-button { border-radius: .5rem; padding: .65rem 1rem; font-size: .875rem; font-weight: 900; color: #64748b; }
+    .mode-button { border-radius: .5rem; padding: .65rem 1rem; font-size: .9375rem; font-weight: 700; color: #64748b; }
     .mode-active { background: white; color: #111827; box-shadow: inset 0 -2px #56c4d8, 0 1px 3px rgb(15 23 42 / .12); }
     .category-button { white-space: nowrap; border: 1px solid #cbd5e1; border-radius: .75rem; padding: .7rem .9rem; font-size: .75rem; font-weight: 800; color: #475569; }
     .category-active { border-color: #56c4d8; background: #eefbfc; color: #111827; }
@@ -112,8 +112,8 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
     .item-icon { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: .75rem; font-weight: 900; }
     .stock-badge { border-radius: 999px; background: #d1fae5; padding: .25rem .625rem; color: #047857; font-size: .75rem; font-weight: 800; }
     .low-stock { background: #fef3c7; color: #92400e; }
-    .item-code { margin-top: 1rem; color: #94a3b8; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .item-name { margin-top: .5rem; min-height: 3rem; color: #111827; font-weight: 900; line-height: 1.5rem; }
+    .item-code { margin-top: 1rem; color: #94a3b8; font-size: .75rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    .item-name { margin-top: .5rem; min-height: 3rem; color: #111827; font-weight: 700; line-height: 1.5rem; }
     .add-button { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: .75rem; color: white; font-size: 1.25rem; font-weight: 900; }
     .add-button:disabled { opacity: .3; }
     .quantity-button { display: grid; width: 1.8rem; height: 1.8rem; place-items: center; border: 1px solid #cbd5e1; border-radius: .5rem; background: white; font-weight: 900; }

@@ -38,14 +38,15 @@ class UserService:
         statement = statement.order_by(Usuario.id).offset(skip).limit(limit)
         return list(self.db.scalars(statement).all())
 
-    def get_clients(self, search: str | None = None) -> list[Usuario]:
+    def get_clients(self, search: str | None = None, *, limit: int | None = 200) -> list[Usuario]:
         statement = (
             select(Usuario)
             .where(Usuario.tipo == TipoUsuario.CLIENTE)
             .options(selectinload(Usuario.cliente))
             .order_by(Usuario.nombre)
-            .limit(200)
         )
+        if limit is not None:
+            statement = statement.limit(limit)
         if search:
             term = f"%{search.strip()}%"
             statement = statement.where(

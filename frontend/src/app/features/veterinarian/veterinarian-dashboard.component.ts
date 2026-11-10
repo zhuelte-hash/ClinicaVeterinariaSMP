@@ -1,17 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { AppointmentStatus } from '../appointments/appointments.models';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { AppointmentSummary, ClinicalRecord, Notification, ScheduleBlock, VeterinarianAppointment, VeterinarianSchedule } from './veterinarian.models';
+import { VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, VeterinarianTableState } from './veterinarian-table';
 
 @Component({
   selector: 'app-veterinarian-dashboard',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent],
   templateUrl: './veterinarian-dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -19,11 +20,20 @@ export class VeterinarianDashboardComponent {
   private readonly api = inject(VeterinarianApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly notice = inject(NoticeService);
 
   readonly requests = signal<VeterinarianAppointment[]>([]);
   readonly loading = signal(true);
   readonly savingId = signal<number | null>(null);
+  readonly coordinationId = signal<number | null>(null);
+  readonly sort = signal('recent');
+  readonly sortedRequests = computed(() => [...this.requests()].sort((a, b) => this.sort() === 'patient' ? a.mascota.nombre.localeCompare(b.mascota.nombre, 'es') : (Date.parse(a.fecha_hora_programada) - Date.parse(b.fecha_hora_programada)) * (this.sort() === 'oldest' ? 1 : -1)));
+  readonly table = new VeterinarianTableState(this.sortedRequests);
+  readonly scheduleSaving = signal(false);
+  readonly blockSaving = signal(false);
+  readonly removingBlockId = signal<number | null>(null);
+  private loadVersion = 0;
   readonly errorMessage = signal('');
   readonly summary = signal<AppointmentSummary>({ pendientes: 0, confirmadas: 0, atendidas: 0, proximas: 0 });
   readonly schedules = signal<VeterinarianSchedule[]>([]);
@@ -39,7 +49,7 @@ export class VeterinarianDashboardComponent {
   readonly scheduleForm = { dia_semana: 0, hora_inicio: '08:00', hora_fin: '19:00', activo: true };
   readonly blockForm = { fecha_hora_inicio: '', fecha_hora_fin: '', motivo: '' };
   readonly attentionForm = { motivo_consulta: '', anamnesis: '', observaciones: '', diagnostico: '', tratamiento: '', peso: '', temperatura: '', historial_alergias: '', vacunas: '', desparasitaciones: '', medicamentos: '', procedimientos: '', examenes_resultados: '', proxima_fecha_control: '' };
-  readonly filterForm = this.formBuilder.nonNullable.group({ fecha: [''], estado: ['' as AppointmentStatus | 'todas' | ''], busqueda: [''], asignacion: ['todas' as 'todas' | 'mias' | 'sin_asignar'] });
+  readonly filterForm = this.formBuilder.nonNullable.group({ fecha: [''], estado: ['todas' as AppointmentStatus | 'todas' | ''], busqueda: [''], asignacion: ['todas' as 'todas' | 'mias' | 'sin_asignar'] });
   readonly coordinationNotes: Record<number, string> = {};
   readonly coordinationDates: Record<number, string> = {};
 
@@ -70,6 +80,7 @@ export class VeterinarianDashboardComponent {
   }
 
   load(): void {
+    const version = ++this.loadVersion;
     const { fecha, estado, busqueda, asignacion } = this.filterForm.getRawValue();
     this.loading.set(true);
     forkJoin({
@@ -79,9 +90,10 @@ export class VeterinarianDashboardComponent {
       blocks: this.api.getBlocks(),
       notifications: this.api.getNotifications(),
     })
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(finalize(() => { if (version === this.loadVersion) this.loading.set(false); }))
       .subscribe({
         next: ({ requests, summary, schedules, blocks, notifications }) => {
+          if (version !== this.loadVersion) return;
           const focusPetId = this.focusPetId();
           const visibleRequests = requests.filter((request) =>
             (!focusPetId || request.mascota.id === focusPetId) &&
@@ -95,11 +107,12 @@ export class VeterinarianDashboardComponent {
           }
           this.summary.set(summary); this.schedules.set(schedules); this.blocks.set(blocks); this.notifications.set(notifications); this.errorMessage.set('');
         },
-        error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+        error: (error: unknown) => { if (version === this.loadVersion) this.errorMessage.set(this.errorText(error)); },
       });
   }
 
   update(request: VeterinarianAppointment, estado: AppointmentStatus): void {
+    if (this.savingId() !== null) return;
     const nota = this.coordinationNotes[request.id]?.trim() || '';
     const propuesta = this.coordinationDates[request.id] || '';
     if (estado === 'cancelada' && !nota) {
@@ -121,6 +134,7 @@ export class VeterinarianDashboardComponent {
         delete this.coordinationNotes[request.id];
         delete this.coordinationDates[request.id];
         this.errorMessage.set('');
+        this.coordinationId.set(null);
         this.notice.show('Solicitud actualizada');
         this.load();
       },
@@ -129,6 +143,7 @@ export class VeterinarianDashboardComponent {
   }
 
   registerArrival(request: VeterinarianAppointment): void {
+    if (this.savingId() !== null) return;
     this.savingId.set(request.id);
     this.api.registerArrival(request.id).pipe(finalize(() => this.savingId.set(null))).subscribe({
       next: (updated) => {
@@ -182,24 +197,28 @@ export class VeterinarianDashboardComponent {
   }
 
   addSchedule(): void {
+    if (this.scheduleSaving()) return;
     if (this.scheduleForm.hora_fin <= this.scheduleForm.hora_inicio) { this.errorMessage.set('La hora final debe ser posterior a la inicial.'); return; }
     const request = this.editingScheduleId() === null
       ? this.api.createSchedule(this.scheduleForm)
       : this.api.updateSchedule(this.editingScheduleId() as number, this.scheduleForm);
-    request.subscribe({ next: (schedule) => { this.schedules.update((items) => this.editingScheduleId() === null ? [...items, schedule] : items.map((item) => item.id === schedule.id ? schedule : item)); this.editingScheduleId.set(null); this.errorMessage.set(''); this.notice.show('Horario guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+    this.scheduleSaving.set(true);
+    request.pipe(finalize(() => this.scheduleSaving.set(false))).subscribe({ next: (schedule) => { this.schedules.update((items) => this.editingScheduleId() === null ? [...items, schedule] : items.map((item) => item.id === schedule.id ? schedule : item)); this.editingScheduleId.set(null); this.errorMessage.set(''); this.notice.show('Horario guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
   editSchedule(schedule: VeterinarianSchedule): void { this.editingScheduleId.set(schedule.id); Object.assign(this.scheduleForm, { dia_semana: schedule.dia_semana, hora_inicio: schedule.hora_inicio, hora_fin: schedule.hora_fin, activo: schedule.activo }); }
 
   addBlock(): void {
+    if (this.blockSaving()) return;
     if (!this.blockForm.fecha_hora_inicio || !this.blockForm.fecha_hora_fin || !this.blockForm.motivo.trim()) { this.errorMessage.set('Completa las fechas y el motivo del bloqueo.'); return; }
     if (this.blockForm.fecha_hora_fin <= this.blockForm.fecha_hora_inicio) { this.errorMessage.set('El final del bloqueo debe ser posterior al inicio.'); return; }
-    this.api.createBlock({ ...this.blockForm, fecha_hora_inicio: new Date(this.blockForm.fecha_hora_inicio).toISOString(), fecha_hora_fin: new Date(this.blockForm.fecha_hora_fin).toISOString() }).subscribe({ next: (block) => { this.blocks.update((items) => [...items, block]); this.blockForm.fecha_hora_inicio = ''; this.blockForm.fecha_hora_fin = ''; this.blockForm.motivo = ''; this.errorMessage.set(''); this.notice.show('Bloqueo guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
+    this.blockSaving.set(true);
+    this.api.createBlock({ ...this.blockForm, fecha_hora_inicio: new Date(this.blockForm.fecha_hora_inicio).toISOString(), fecha_hora_fin: new Date(this.blockForm.fecha_hora_fin).toISOString() }).pipe(finalize(() => this.blockSaving.set(false))).subscribe({ next: (block) => { this.blocks.update((items) => [...items, block]); this.blockForm.fecha_hora_inicio = ''; this.blockForm.fecha_hora_fin = ''; this.blockForm.motivo = ''; this.errorMessage.set(''); this.notice.show('Bloqueo guardado'); }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
 
-  removeBlock(block: ScheduleBlock): void { this.api.deleteBlock(block.id).subscribe({ next: () => this.blocks.update((items) => items.filter((item) => item.id !== block.id)), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
+  removeBlock(block: ScheduleBlock): void { if (this.removingBlockId() !== null) return; this.removingBlockId.set(block.id); this.api.deleteBlock(block.id).pipe(finalize(() => this.removingBlockId.set(null))).subscribe({ next: () => this.blocks.update((items) => items.filter((item) => item.id !== block.id)), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) }); }
   markNotificationRead(notification: Notification): void { if (notification.leida) return; this.api.markNotificationRead(notification.id).subscribe({ next: (updated) => this.notifications.update((items) => items.map((item) => item.id === updated.id ? updated : item)) }); }
-  dayLabel(day: number): string { return ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][day] ?? 'Día'; }
+  dayLabel(day: number): string { return ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][day] ?? 'Día'; }
 
   setProposal(id: number, value: string): void { this.coordinationDates[id] = value; }
   setNote(id: number, value: string): void { this.coordinationNotes[id] = value; }
@@ -209,11 +228,12 @@ export class VeterinarianDashboardComponent {
     this.filterForm.controls.fecha.setValue(`${value('year')}-${value('month')}-${value('day')}`);
     this.load();
   }
-  clearFilters(): void { this.filterForm.reset({ fecha: '', estado: '', busqueda: '', asignacion: 'todas' }); this.focusPetId.set(null); this.load(); }
+  clearFilters(): void { this.filterForm.reset({ fecha: '', estado: 'todas', busqueda: '', asignacion: 'todas' }); this.focusPetId.set(null); this.table.reset(); this.load(); }
+  applyFilters(): void { this.table.reset(); this.load(); }
+  setSort(value: string): void { this.sort.set(value); this.table.reset(); }
+  toggleCoordination(request: VeterinarianAppointment): void { this.coordinationId.update(id => id === request.id ? null : request.id); }
   startConsultation(request: VeterinarianAppointment): void {
-    this.resetAttention();
-    this.attentionForm.motivo_consulta = request.motivo || '';
-    this.consultationId.set(request.id);
+    void this.router.navigate(['/veterinario/atencion', request.id]);
   }
   cancelConsultation(): void { this.resetAttention(); this.consultationId.set(null); }
 

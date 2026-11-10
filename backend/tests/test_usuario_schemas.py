@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from app.models.user import TipoUsuario
 from app.schemas.auth import ClientRegisterRequest
 from app.schemas.appointments import AppointmentCreate, ScheduleUpdate
-from app.schemas.user import UsuarioCreate, UsuarioUpdate
+from app.schemas.user import UsuarioCreate, UsuarioUpdate, VeterinarianClientCreate, VeterinarianClientUpdate
 
 
 def test_usuario_create_normaliza_datos() -> None:
@@ -55,6 +55,14 @@ def test_registro_cliente_normaliza_datos() -> None:
     assert cliente.nombre == "Maria Lopez"
     assert cliente.correo == "maria@example.com"
     assert cliente.telefono == "999999999"
+
+
+def test_cliente_veterinario_requiere_whatsapp() -> None:
+    with pytest.raises(ValidationError):
+        VeterinarianClientCreate(nombre="Maria Lopez", correo="maria@example.com", telefono="")
+
+    client = VeterinarianClientUpdate(nombre="Maria Lopez", correo="maria@example.com", telefono="+51 999 999 999")
+    assert client.telefono == "51999999999"
 
 
 def test_reserva_requiere_veterinario_y_zona_horaria() -> None:

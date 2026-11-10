@@ -18,11 +18,16 @@ class PetCreate(BaseModel):
     peso_actual: Decimal | None = Field(default=None, ge=0, max_digits=7, decimal_places=2)
     caracteristicas: str | None = Field(default=None, max_length=2000)
 
-    @field_validator("nombre", "especie", "raza")
+    @field_validator("nombre", "especie", "raza", mode="before")
     @classmethod
     def normalize_text(cls, value: str | None) -> str | None:
         normalized = " ".join(value.split()) if value is not None else None
         return normalized or None
+
+    @field_validator("fecha_nacimiento", "peso_actual", mode="before")
+    @classmethod
+    def empty_optional_values(cls, value):
+        return None if value == "" else value
 
 
 class VeterinarianWalkInCreate(BaseModel):
@@ -54,6 +59,17 @@ class ServiceRead(BaseModel):
     descripcion: str | None
     precio_referencial: Decimal
     duracion_estimada_min: int
+
+
+class VeterinarianPetRead(PetRead):
+    cliente_id: int
+    cliente_nombre: str
+    cliente_correo: str
+    telefono_contacto: str | None
+    direccion: str | None
+    citas: int
+    atenciones: int
+    ultima_atencion: datetime.datetime | None
 
 
 class AppointmentCreate(BaseModel):
@@ -219,6 +235,12 @@ class ClinicalRecordCreate(BaseModel):
     proxima_fecha_control: datetime.date | None = None
 
 
+class ClinicalResultsUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    examenes_resultados: str = Field(min_length=1, max_length=5000)
+
+
 class ClinicalAttachmentRead(BaseModel):
     id: int
     tipo_examen: str
@@ -253,10 +275,23 @@ class ClinicalRecordRead(BaseModel):
     veterinario_nombre: str
     servicio_nombre: str
     archivos: list[ClinicalAttachmentRead] = Field(default_factory=list)
+    diagnosticos: list[dict[str, object]] = Field(default_factory=list)
+    ordenes_examen: list[dict[str, object]] = Field(default_factory=list)
+    receta: dict[str, object] | None = None
+    procedimientos_realizados: list[dict[str, object]] = Field(default_factory=list)
+    aplicaciones_preventivas: list[dict[str, object]] = Field(default_factory=list)
 
 
 class AttentionStatusUpdate(BaseModel):
     estado: EstadoProcesoAtencion
+
+
+class VeterinarianClinicalRecordRead(ClinicalRecordRead):
+    mascota: PetRead
+    cliente_id: int
+    cliente_nombre: str
+    cliente_correo: str
+    telefono_contacto: str | None
 
 
 class DiagnosisCreate(BaseModel):

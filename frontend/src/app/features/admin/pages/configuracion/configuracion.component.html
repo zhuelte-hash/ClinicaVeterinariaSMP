@@ -1,1 +1,24 @@
-<admin-page-header title="Configuracion" description="Datos generales, inventario y preferencias."/><form class="grid max-w-4xl gap-6" (ngSubmit)="save()"><section class="admin-card p-5"><h2 class="font-bold text-slate-900">Informacion de la clinica</h2><p class="mt-1 text-sm text-slate-500">Datos visibles en comunicaciones y comprobantes.</p><div class="mt-5 grid gap-4 sm:grid-cols-2"><label><span class="admin-label">Nombre comercial</span><input required class="admin-input" name="clinic" [(ngModel)]="form.clinicName"></label><label><span class="admin-label">Correo</span><input required type="email" class="admin-input" name="email" [(ngModel)]="form.email"></label><label><span class="admin-label">Telefono</span><input class="admin-input" name="phone" [(ngModel)]="form.phone"></label><label><span class="admin-label">Direccion</span><input class="admin-input" name="address" [(ngModel)]="form.address"></label></div></section><section class="admin-card p-5"><h2 class="font-bold text-slate-900">Preferencias operativas</h2><label class="mt-5 block max-w-xs"><span class="admin-label">Umbral de stock bajo</span><input type="number" min="1" class="admin-input" name="threshold" [(ngModel)]="form.lowStockThreshold"></label><div class="mt-5 space-y-4"><label class="flex items-center justify-between gap-4"><span><b class="block text-sm">Recordatorios de citas</b><small class="text-slate-500">Avisar antes de cada atencion.</small></span><input type="checkbox" name="reminders" [(ngModel)]="form.appointmentReminders" class="h-5 w-5 accent-teal-600"></label><label class="flex items-center justify-between gap-4"><span><b class="block text-sm">Alertas de inventario</b><small class="text-slate-500">Notificar al alcanzar el minimo.</small></span><input type="checkbox" name="alerts" [(ngModel)]="form.stockAlerts" class="h-5 w-5 accent-teal-600"></label></div></section><div class="flex items-center justify-end gap-4">@if (saved()) {<span class="text-sm font-semibold text-emerald-600">Cambios guardados</span>}<button class="admin-primary">Guardar configuracion</button></div></form>
+<admin-page-header title="Configuración" description="Datos generales, inventario y preferencias de la clínica." />
+@if (error()) { <div class="mb-4 flex max-w-4xl flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700" role="alert"><p>{{ error() }}</p><button type="button" class="admin-secondary" (click)="load()">Reintentar</button></div> }
+@if (loading()) { <p class="mb-4 text-sm text-slate-500" role="status">Cargando configuración…</p> }
+<form #settingsForm="ngForm" class="max-w-4xl" (ngSubmit)="settingsForm.valid && save()">
+  <fieldset class="grid gap-6" [disabled]="loading() || saving() || !loaded()">
+    <section class="admin-card p-5"><h2 class="font-bold text-slate-900">Información de la clínica</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <label><span class="admin-label">Nombre comercial</span><input required minlength="2" maxlength="150" class="admin-input" name="clinic" [(ngModel)]="form.nombre"></label>
+        <label><span class="admin-label">Correo</span><input required type="email" email maxlength="254" class="admin-input" name="email" [(ngModel)]="form.correo"></label>
+        <label><span class="admin-label">Teléfono</span><input maxlength="50" class="admin-input" name="phone" [(ngModel)]="form.telefono"></label>
+        <label><span class="admin-label">Dirección</span><input maxlength="250" class="admin-input" name="address" [(ngModel)]="form.direccion"></label>
+      </div>
+    </section>
+    <section class="admin-card p-5"><h2 class="font-bold text-slate-900">Preferencias operativas</h2>
+      <label class="mt-5 block max-w-xs"><span class="admin-label">Umbral general de stock bajo</span><input required type="number" min="0" max="1000000" step="1" class="admin-input" name="threshold" [(ngModel)]="form.umbral_stock_bajo"></label>
+      <p class="mt-2 text-sm text-slate-500">El dashboard alerta al alcanzar este umbral o el mínimo específico del producto.</p>
+      <div class="mt-5 space-y-4">
+        <label class="flex items-center justify-between gap-4"><span><b class="block text-sm">Recordatorios de citas</b><small class="text-slate-500">Guardar preferencia para las comunicaciones de citas.</small></span><input type="checkbox" name="reminders" [(ngModel)]="form.recordatorios_citas" class="h-5 w-5 accent-teal-600"></label>
+        <label class="flex items-center justify-between gap-4"><span><b class="block text-sm">Alertas de inventario</b><small class="text-slate-500">Mostrar alertas de reposición en el dashboard.</small></span><input type="checkbox" name="alerts" [(ngModel)]="form.alertas_stock" class="h-5 w-5 accent-teal-600"></label>
+      </div>
+    </section>
+    <div class="flex items-center justify-end gap-4">@if (saved()) { <span class="text-sm font-semibold text-emerald-600" role="status">Cambios guardados</span> }<button class="admin-primary" [disabled]="settingsForm.invalid">{{ saving() ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+  </fieldset>
+</form>

@@ -1,51 +1,16 @@
-<div class="home-dashboard w-full space-y-6">
-  <section class="dashboard-hero relative overflow-hidden rounded-[1.5rem] p-6 text-white shadow-xl sm:p-8">
-    <div class="relative z-10 max-w-xl">
-      <span class="eyebrow-chip">Centro clínico</span>
-      <h1 class="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Resumen operativo</h1>
-      <p class="mt-3 max-w-lg text-sm leading-6 text-slate-200 sm:text-base">Una vista clara para priorizar pacientes, revisar tu agenda y mantener cada atención bajo control.</p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a routerLink="/veterinario/agenda" class="hero-action">Abrir agenda <span>↗</span></a>
-        <a routerLink="/veterinario/nueva-atencion" class="hero-action secondary">Nueva atención <span>+</span></a>
-      </div>
-    </div>
-    <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
-    <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
-    <div class="hero-pattern" aria-hidden="true"></div>
+<div class="vet-page">
+  <header class="vet-page-header"><p class="vet-eyebrow">Centro clínico</p><h1>Resumen operativo veterinario</h1><p>Tu agenda, pacientes y actividad clínica con información registrada en la base de datos.</p><div class="vet-page-actions"><a routerLink="/veterinario/nueva-atencion" class="vet-btn vet-btn-primary"><vet-icon name="plus" />Nueva atención</a><a routerLink="/veterinario/agenda" class="vet-btn vet-btn-secondary"><vet-icon name="calendar" />Abrir agenda</a><button type="button" (click)="load()" [disabled]="loading()" class="vet-btn vet-btn-secondary"><vet-icon name="refresh" />Actualizar</button></div></header>
+  @if (error()) { <div class="vet-alert" role="alert"><p>{{ error() }}</p><button type="button" (click)="load()" class="vet-btn vet-btn-secondary vet-btn-small">Reintentar</button></div> }
+  <section class="vet-metrics" aria-label="Resumen de tu agenda">@for (item of [{ label: 'Citas pendientes', value: summary().pendientes }, { label: 'Citas confirmadas', value: summary().confirmadas }, { label: 'Atenciones registradas', value: summary().atendidas }, { label: 'Próximas citas', value: summary().proximas }]; track item.label) { <article class="vet-metric"><p>{{ item.label }}</p><strong>{{ loading() ? '—' : item.value }}</strong></article> }</section>
+  <section class="vet-panel" [attr.aria-busy]="loading()"><div class="vet-panel-heading"><div><h2>Agenda activa</h2><p>Citas pendientes, confirmadas y reprogramadas, ordenadas por fecha de atención</p></div><a routerLink="/veterinario/agenda" class="vet-btn vet-btn-quiet vet-btn-small">Ver todos los estados<vet-icon name="arrow" /></a></div><p class="vet-scroll-hint">Desliza la tabla para consultar todas las columnas.</p>
+    <div class="vet-table-scroll" role="region" aria-label="Agenda activa del veterinario" tabindex="0"><table class="vet-data-table"><caption class="sr-only">Agenda activa y acceso al historial de cada paciente</caption><thead><tr><th scope="col">Fecha y hora</th><th scope="col">Paciente</th><th scope="col">Propietario</th><th scope="col">Servicio</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead><tbody>
+      @if (loading()) { <tr><td colspan="6"><div class="vet-empty" role="status">Cargando tu agenda…</div></td></tr> }
+      @else { @for (appointment of table.rows(); track appointment.id) { <tr><td class="vet-cell-number"><strong>{{ formatDate(appointment.fecha_hora_programada, true) }}</strong><small>Cita #{{ appointment.id }}</small></td><td><div class="vet-cell"><strong>{{ appointment.mascota.nombre }}</strong><small>{{ appointment.mascota.especie }}</small></div></td><td><div class="vet-cell vet-cell-wide"><strong>{{ appointment.cliente_nombre }}</strong><small>{{ appointment.telefono_contacto || 'Sin teléfono' }}</small></div></td><td><span class="vet-cell vet-cell-wide">{{ appointment.servicio.nombre }}</span></td><td><vet-status [status]="appointment.estado" /><small>{{ appointment.veterinario_id === null ? 'Sin asignar' : 'Asignada a ti' }}</small></td><td><div class="vet-row-actions">@if (appointment.veterinario_id !== null && (appointment.estado === 'confirmada' || appointment.estado === 'reprogramada')) { <a [routerLink]="['/veterinario/atencion', appointment.id]" class="vet-btn vet-btn-primary vet-btn-small"><vet-icon name="arrow" />Atender</a> } @else { <a routerLink="/veterinario/agenda" class="vet-btn vet-btn-secondary vet-btn-small">Gestionar cita</a> }<a [routerLink]="['/veterinario/mascota', appointment.mascota.id]" class="vet-btn vet-btn-secondary vet-btn-small"><vet-icon name="file" />Historial</a></div></td></tr> } @empty { <tr><td colspan="6"><div class="vet-empty"><vet-icon name="calendar" /><strong>Tu agenda activa está al día</strong><p>Consulta el registro de citas para revisar atenciones finalizadas o registra una nueva atención.</p><a routerLink="/veterinario/agenda" class="vet-btn vet-btn-secondary">Consultar todas las citas</a></div></td></tr> } }
+    </tbody></table></div><vet-pagination [total]="table.total()" [page]="table.currentPage()" [pageSize]="table.pageSize()" (pageChange)="table.page.set($event)" (pageSizeChange)="table.resize($event)" label="Paginación de agenda activa" />
   </section>
-
-  <section class="grid gap-4 sm:grid-cols-3">
-    @for (item of [{ label: 'Pacientes en agenda', value: summary().proximas, icon: '🐾', tone: 'mint' }, { label: 'Citas pendientes', value: summary().pendientes, icon: '◷', tone: 'amber' }, { label: 'Citas confirmadas', value: summary().confirmadas, icon: '✓', tone: 'blue' }]; track item.label) {
-      <article class="modern-stat" [class]="'modern-stat ' + item.tone">
-        <div class="flex items-start justify-between gap-3"><span class="stat-icon">{{ item.icon }}</span><span class="stat-arrow">↗</span></div>
-        <p class="mt-5 text-3xl font-black text-[#172b3a]">{{ item.value }}</p>
-        <p class="mt-1 text-sm font-semibold text-slate-500">{{ item.label }}</p>
-        <div class="stat-line"><span></span></div>
-      </article>
-    }
+  <section class="grid min-w-0 gap-6 xl:grid-cols-2">
+    <article class="vet-panel"><div class="vet-panel-heading"><div><h2>Citas por estado</h2><p>Distribución de todos los registros disponibles en tu agenda</p></div><span class="vet-count">{{ appointments().length }} citas</span></div><div class="vet-table-scroll"><table class="vet-data-table vet-data-table-compact"><thead><tr><th scope="col">Estado</th><th scope="col">Cantidad</th></tr></thead><tbody>@for (item of statusRows(); track item.status) { <tr><td><vet-status [status]="item.status" /></td><td><strong>{{ item.total }}</strong></td></tr> } @empty { <tr><td colspan="2"><p class="vet-empty">{{ loading() ? 'Cargando resumen…' : 'No hay citas registradas.' }}</p></td></tr> }</tbody></table></div></article>
+    <article class="vet-panel"><div class="vet-panel-heading"><div><h2>Servicios de la agenda</h2><p>Conteo calculado a partir de todas las citas consultadas</p></div><a routerLink="/veterinario/documentos" class="vet-btn vet-btn-quiet vet-btn-small">Documentos clínicos</a></div><div class="vet-table-scroll"><table class="vet-data-table vet-data-table-compact"><thead><tr><th scope="col">Servicio</th><th scope="col">Citas</th></tr></thead><tbody>@for (item of serviceRows(); track item.name) { <tr><td>{{ item.name }}</td><td><strong>{{ item.total }}</strong></td></tr> } @empty { <tr><td colspan="2"><p class="vet-empty">{{ loading() ? 'Cargando servicios…' : 'Sin actividad registrada.' }}</p></td></tr> }</tbody></table></div></article>
   </section>
-
-  <section class="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
-    <article class="modern-card p-5 sm:p-6">
-      <div class="flex items-start justify-between gap-4"><div><span class="section-kicker">Rendimiento</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Estado de la jornada</h2><p class="mt-1 text-sm text-slate-500">Distribución de tus solicitudes clínicas</p></div><span class="live-dot">Actualizado</span></div>
-      <div class="mt-7 grid items-center gap-6 sm:grid-cols-[10rem_minmax(0,1fr)]">
-        <div class="donut-wrap" [style.background]="statusDonut()"><div class="donut-hole"><strong>{{ statusTotal() }}</strong><span>total</span></div></div>
-        <div class="space-y-4">@for (item of statusChart(); track item.label) { <div class="flex items-center gap-3"><span class="legend-dot" [style.backgroundColor]="item.color"></span><span class="min-w-0 flex-1 text-sm font-semibold text-slate-600">{{ item.label }}</span><strong class="text-sm text-[#172b3a]">{{ item.value }}</strong><span class="text-xs text-slate-400">{{ statusTotal() ? ((item.value / statusTotal()) * 100 | number:'1.0-0') : 0 }}%</span></div> }</div>
-      </div>
-    </article>
-
-    <article class="modern-card p-5 sm:p-6">
-      <div class="flex items-start justify-between gap-4"><div><span class="section-kicker">Actividad clínica</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Servicios frecuentes</h2></div><span class="chart-badge">TOP</span></div>
-      <div class="mt-6 space-y-5">@for (item of serviceChart(); track item.label; let index = $index) { <div><div class="mb-2 flex justify-between gap-3 text-sm"><span class="truncate font-semibold text-slate-600">{{ item.label }}</span><strong class="text-[#172b3a]">{{ item.value }}</strong></div><div class="chart-track"><span [class]="'chart-bar bar-' + index" [style.width.%]="chartWidth(item.value, serviceChart().map(value => value.value))"></span></div></div> } @empty { <div class="empty-chart"><span>◌</span><p>Aún no hay servicios para graficar.</p></div> }</div>
-    </article>
-  </section>
-
-  <section class="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,.55fr)]">
-    <article class="modern-card overflow-hidden">
-      <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6"><div><span class="section-kicker">Agenda clínica</span><h2 class="mt-1 text-xl font-black text-[#172b3a]">Próximas citas</h2></div><a routerLink="/veterinario/agenda" class="view-link">Ver todas <span>→</span></a></header>
-      <div class="divide-y divide-slate-100">@for (appointment of appointments(); track appointment.id) { <div class="appointment-row"><div class="pet-avatar">{{ appointment.mascota.nombre.charAt(0).toUpperCase() }}</div><div class="min-w-0 flex-1"><p class="truncate font-black text-[#172b3a]">{{ appointment.mascota.nombre }} <span class="font-normal text-slate-400">· {{ appointment.cliente_nombre }}</span></p><p class="mt-1 truncate text-sm text-slate-500">{{ appointment.servicio.nombre }}</p></div><div class="text-right"><p class="text-xs font-bold text-slate-600">{{ formatDate(appointment.fecha_hora_programada) }}</p><span class="status-pill">{{ statusLabel(appointment.estado) }}</span></div></div> } @empty { <div class="px-5 py-12 text-center text-sm text-slate-500">No tienes citas pendientes.</div> }</div>
-    </article>
-
-    <article class="quick-panel p-5 sm:p-6"><div class="quick-panel-icon">✦</div><span class="section-kicker light">Accesos rápidos</span><h2 class="mt-2 text-2xl font-black text-white">Trabajo clínico</h2><p class="mt-2 text-sm leading-6 text-slate-300">Lo esencial para continuar tu jornada.</p><div class="mt-6 space-y-2"><a routerLink="/veterinario/mascotas" class="quick-link"><span><b>Historias clínicas</b><small>Consulta pacientes</small></span><span>↗</span></a><a routerLink="/veterinario/nueva-atencion" class="quick-link"><span><b>Registrar atención</b><small>Abre una nueva ficha</small></span><span>↗</span></a><a routerLink="/veterinario/agenda" class="quick-link"><span><b>Organizar agenda</b><small>Revisa tus citas</small></span><span>↗</span></a></div></article>
-  </section>
+  <nav class="vet-page-actions" aria-label="Accesos clínicos"><a routerLink="/veterinario/mascotas" class="vet-btn vet-btn-secondary"><vet-icon name="file" />Pacientes e historial</a><a routerLink="/veterinario/clientes" class="vet-btn vet-btn-secondary">Directorio de propietarios</a><a routerLink="/veterinario/documentos" class="vet-btn vet-btn-secondary"><vet-icon name="download" />Documentos y registros</a></nav>
 </div>

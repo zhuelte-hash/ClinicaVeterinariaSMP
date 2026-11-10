@@ -1,11 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { finalize, map, of, switchMap, tap } from 'rxjs';
+import { NoticeService } from '../../core/services/notice.service';
 import { ClinicService, Pet } from '../appointments/appointments.models';
 import { VeterinarianApiService } from './veterinarian-api.service';
-import { clinicToday, VeterinarianClient } from './veterinarian.models';
+import { clinicToday, ClinicalRecord, VeterinarianClient } from './veterinarian.models';
 
 interface ClinicalField {
   key: 'anamnesis' | 'observaciones' | 'diagnostico' | 'tratamiento' | 'historial_alergias' | 'vacunas' | 'desparasitaciones' | 'medicamentos' | 'procedimientos' | 'examenes_resultados';
@@ -57,6 +58,13 @@ const DEFAULT_PROFILE: ClinicalProfile = {
 export class VeterinarianNewAttentionComponent {
   private readonly api = inject(VeterinarianApiService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly notice = inject(NoticeService);
+  private presetPetId = Number(this.route.snapshot.queryParamMap.get('mascota')) || null;
+  private presetClientId = Number(this.route.snapshot.queryParamMap.get('cliente')) || null;
+  private pendingAppointmentId: number | null = null;
+  private savedRecord: ClinicalRecord | null = null;
+  private uploadedFile: File | null = null;
 
   readonly step = signal(1);
   readonly clients = signal<VeterinarianClient[]>([]);
@@ -100,7 +108,7 @@ export class VeterinarianNewAttentionComponent {
   });
   readonly isPreventive = computed(() => /vacun|desparasit/i.test(this.selectedService()?.nombre || ''));
 
-  readonly serviceCategories = ['Atención médica', 'Prevención', 'Diagnóstico'];
+  readonly serviceCategories = ['Atención médica', 'Prevención', 'Diagnóstico', 'Bienestar y estadías', 'Otros servicios'];
   readonly clientForm = this.formBuilder.nonNullable.group({ nombre: ['', [Validators.required, Validators.minLength(2)]], correo: ['', [Validators.required, Validators.email]], telefono: ['', [Validators.required, Validators.minLength(9), Validators.maxLength(30)]], direccion: [''] });
   readonly petForm = this.formBuilder.nonNullable.group({ nombre: ['', Validators.required], especie: ['', Validators.required], raza: [''], sexo: [''], fecha_nacimiento: [''], peso_actual: [''], caracteristicas: [''] });
   readonly attentionForm = this.formBuilder.nonNullable.group({ motivo_consulta: [''], anamnesis: [''], observaciones: [''], diagnostico: [''], tratamiento: [''], peso: [''], temperatura: [''], historial_alergias: [''], vacunas: [''], desparasitaciones: [''], medicamentos: [''], procedimientos: [''], examenes_resultados: [''], proxima_fecha_control: [''] });
@@ -111,27 +119,42 @@ export class VeterinarianNewAttentionComponent {
 
   loadClients(): void {
     this.loading.set(true);
-    this.api.getClients().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (clients) => this.clients.set(clients), error: (error: unknown) => this.showError(error) });
+    this.api.getClients().pipe(finalize(() => this.loading.set(false))).subscribe({ next: (clients) => {
+      this.clients.set(clients);
+      const client = clients.find(item => item.id === this.presetClientId);
+      this.presetClientId = null;
+      if (client) { this.selectClient(client); this.goToPets(); }
+    }, error: (error: unknown) => this.showError(error) });
   }
 
-  selectClient(client: VeterinarianClient): void { this.selectedClient.set(client); }
+  selectClient(client: VeterinarianClient): void {
+    if (this.selectedClient()?.id !== client.id) { this.pets.set([]); this.selectedPet.set(null); this.selectedService.set(null); this.attentionForm.reset(); }
+    this.selectedClient.set(client);
+  }
 
   createClient(): void {
-    if (this.clientForm.invalid) { this.clientForm.markAllAsTouched(); return; }
+    if (this.saving() || this.clientForm.invalid) { this.clientForm.markAllAsTouched(); return; }
     this.save(this.api.createClient(this.clientForm.getRawValue()), (client) => { this.clients.update((items) => [...items, client]); this.selectClient(client); this.goToPets(); });
   }
 
   goToPets(): void {
     const client = this.selectedClient();
     if (!client) return;
-    this.api.getPetsForClient(client.id).subscribe({ next: (pets) => { this.pets.set(pets); this.step.set(2); }, error: (error: unknown) => this.showError(error) });
+    this.loading.set(true);
+    this.api.getPetsForClient(client.id).pipe(finalize(() => this.loading.set(false))).subscribe({ next: (pets) => {
+      if (this.selectedClient()?.id !== client.id) return;
+      this.pets.set(pets); this.step.set(2);
+      const preset = pets.find(pet => pet.id === this.presetPetId);
+      this.presetPetId = null;
+      if (preset) { this.selectPet(preset); this.goToServices(); }
+    }, error: (error: unknown) => this.showError(error) });
   }
 
-  selectPet(pet: Pet): void { this.selectedPet.set(pet); }
+  selectPet(pet: Pet): void { if (this.selectedPet()?.id !== pet.id) { this.selectedService.set(null); this.attentionForm.reset(); } this.selectedPet.set(pet); }
 
   createPet(): void {
     const client = this.selectedClient();
-    if (!client || this.petForm.invalid) { this.petForm.markAllAsTouched(); return; }
+    if (this.saving() || !client || this.petForm.invalid) { this.petForm.markAllAsTouched(); return; }
     this.save(this.api.createPet(client.id, this.petForm.getRawValue()), (pet) => { this.pets.update((items) => [...items, pet]); this.selectPet(pet); this.petForm.reset(); });
   }
 
@@ -141,6 +164,7 @@ export class VeterinarianNewAttentionComponent {
   }
 
   selectService(service: ClinicService): void {
+    if (this.selectedService()?.id !== service.id) this.attentionForm.reset();
     this.selectedService.set(service);
     this.imageFile.set(null);
     this.attentionForm.patchValue({ motivo_consulta: '', proxima_fecha_control: '' });
@@ -148,7 +172,11 @@ export class VeterinarianNewAttentionComponent {
 
   selectImage(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.imageFile.set(input.files?.[0] || null);
+    const file = input.files?.[0] || null;
+    if (file && (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 10 * 1024 * 1024)) {
+      this.errorMessage.set('Selecciona una imagen JPG, PNG o WEBP de hasta 10 MB.'); input.value = ''; this.imageFile.set(null); return;
+    }
+    this.imageFile.set(file);
   }
 
   categoryServices(category: string): ClinicService[] {
@@ -156,8 +184,12 @@ export class VeterinarianNewAttentionComponent {
       'Atención médica': /consulta|tratamiento|cirug|traumat|intern|hospital|urgencia|domicilio/i,
       Prevención: /vacun|desparasit|profilaxis|dental|microchip/i,
       Diagnóstico: /laboratorio|ecograf|rayos|imagen|radiograf/i,
+      'Bienestar y estadías': /hospedaje|guarderia|guardería|baño|bano|estetica|estética|peluquer|corte|oido|oído|cepillado/i,
     };
-    return this.services().filter((service) => patterns[category]?.test(`${service.codigo} ${service.nombre}`));
+    return this.services().filter((service) => {
+      const text = `${service.codigo} ${service.nombre}`;
+      return category === 'Otros servicios' ? !Object.values(patterns).some(pattern => pattern.test(text)) : patterns[category]?.test(text);
+    });
   }
 
   goToAttention(): void {
@@ -166,9 +198,10 @@ export class VeterinarianNewAttentionComponent {
     this.step.set(4);
   }
 
-  previousStep(): void { this.step.update((value) => Math.max(1, value - 1)); }
+  previousStep(): void { if (this.saving()) return; if (this.pendingAppointmentId !== null) { this.errorMessage.set('La atención ya se inició. Completa el guardado para conservar la misma ficha.'); return; } this.step.update((value) => Math.max(1, value - 1)); }
 
   finishAttention(): void {
+    if (this.saving()) return;
     const pet = this.selectedPet();
     const service = this.selectedService();
     if (!pet || !service || this.attentionForm.invalid) return;
@@ -190,26 +223,39 @@ export class VeterinarianNewAttentionComponent {
       temperatura: raw.temperatura || null,
       proxima_fecha_control: raw.proxima_fecha_control || null,
     };
-    this.api.startWalkIn({ mascota_id: pet.id, servicio_id: service.id, motivo: form.motivo_consulta || undefined, es_urgente: /urgencia|emergencia/i.test(service.nombre) }).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: (appointment) => this.api.registerAttention(appointment.id, form).subscribe({
-        next: (record) => {
-          const file = this.imageFile();
-          if (this.formType() !== 'imaging' || !file) { this.resetFlow(); return; }
-          this.api.uploadClinicalImage(record.id, service.nombre, this.today, file).subscribe({ next: () => this.resetFlow(), error: (error: unknown) => this.showError(error) });
-        },
-        error: (error: unknown) => this.showError(error),
+    const imaging = this.formType() === 'imaging';
+    const appointment = this.pendingAppointmentId !== null ? of({ id: this.pendingAppointmentId })
+      : this.api.startWalkIn({ mascota_id: pet.id, servicio_id: service.id, motivo: form.motivo_consulta || undefined, es_urgente: /urgencia|emergencia/i.test(service.nombre) }).pipe(tap(item => this.pendingAppointmentId = item.id));
+    appointment.pipe(
+      switchMap(item => this.savedRecord
+        ? this.api.getPetHistory(pet.id).pipe(map(records => records.find(record => record.id === this.savedRecord?.id) || this.savedRecord!))
+        : this.api.registerAttention(item.id, { ...form, estado: imaging ? 'en_atencion' : 'cerrada' })),
+      switchMap(record => record.estado === 'cerrada' || !this.savedRecord
+        ? of(record) : this.api.registerAttention(this.pendingAppointmentId!, { ...form, estado: 'en_atencion' })),
+      tap(record => this.savedRecord = record),
+      switchMap(record => {
+        const file = this.imageFile();
+        return imaging && file && file !== this.uploadedFile
+          ? this.api.uploadClinicalImage(record.id, service.nombre, this.today, file).pipe(tap(() => this.uploadedFile = file), map(() => record)) : of(record);
       }),
+      switchMap(record => record.estado === 'cerrada' ? of(record) : this.api.registerAttention(this.pendingAppointmentId!, { estado: 'cerrada' })),
+      finalize(() => this.saving.set(false)),
+    ).subscribe({
+      next: () => { this.notice.show(`Atención de ${pet.nombre} guardada en su historial clínico`); this.resetFlow(); },
       error: (error: unknown) => this.showError(error),
     });
   }
 
   resetFlow(): void {
+    this.pendingAppointmentId = null; this.savedRecord = null; this.uploadedFile = null;
     this.step.set(1); this.selectedClient.set(null); this.selectedPet.set(null); this.selectedService.set(null); this.imageFile.set(null); this.query.set(''); this.clientForm.reset(); this.petForm.reset(); this.attentionForm.reset();
     this.loadClients();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   private save<T>(request: import('rxjs').Observable<T>, success: (value: T) => void): void {
+    if (this.saving()) return;
+    this.errorMessage.set('');
     this.saving.set(true);
     request.pipe(finalize(() => this.saving.set(false))).subscribe({ next: success, error: (error: unknown) => this.showError(error) });
   }

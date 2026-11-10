@@ -1,0 +1,41 @@
+<div class="vet-page">
+  <header class="vet-page-header">
+    <p class="vet-eyebrow">Directorio de pacientes</p><h1>Pacientes e historial clínico</h1>
+    <p>Todos los pacientes registrados en la clínica, incluidos los que todavía no tienen citas. Abre su ficha para consultar los datos y tus atenciones.</p>
+    <div class="vet-page-actions"><a routerLink="/veterinario/nueva-atencion" class="vet-btn vet-btn-primary"><vet-icon name="plus" />Nueva atención</a><a routerLink="/veterinario/clientes" class="vet-btn vet-btn-secondary">Ver propietarios</a><button type="button" class="vet-btn vet-btn-secondary" [disabled]="loading()" (click)="load()"><vet-icon name="refresh" />Actualizar</button></div>
+  </header>
+  @if (error()) { <div class="vet-alert" role="alert"><p>{{ error() }}</p><button type="button" class="vet-btn vet-btn-secondary vet-btn-small" (click)="load()">Reintentar</button></div> }
+  <section class="vet-metrics" aria-label="Resumen de pacientes"><article class="vet-metric"><p>Pacientes registrados</p><strong>{{ patients().length }}</strong></article><article class="vet-metric"><p>Con registros clínicos tuyos</p><strong>{{ withRecords() }}</strong></article><article class="vet-metric"><p>Sin citas asignadas a tu agenda</p><strong>{{ withoutAppointments() }}</strong></article></section>
+  <section class="vet-panel" [attr.aria-busy]="loading()">
+    <div class="vet-panel-heading"><div><h2>Listado de pacientes</h2><p>Datos de identificación, propietario e historial de atención</p></div><span class="vet-count">{{ filteredPatients().length }} pacientes</span></div>
+    <div class="vet-toolbar">
+      <label class="vet-filter vet-filter-search">Buscar paciente o propietario<input type="search" [value]="query()" (input)="setQuery($any($event.target).value)" placeholder="Nombre, ID, correo o teléfono"></label>
+      <label class="vet-filter">Especie<select [value]="species()" (change)="setSpecies($any($event.target).value)"><option value="">Todas las especies</option>@for (item of speciesOptions(); track item) { <option [value]="item">{{ item }}</option> }</select></label>
+      <label class="vet-filter">Historial<select [value]="historyFilter()" (change)="setHistory($any($event.target).value)"><option value="">Todos los pacientes</option><option value="con">Con registros</option><option value="sin">Sin registros</option></select></label>
+      <label class="vet-filter">Ordenar<select [value]="sort()" (change)="setSort($any($event.target).value)"><option value="nombre">Nombre del paciente</option><option value="propietario">Propietario</option><option value="recientes">Última atención</option></select></label>
+      <button type="button" class="vet-btn vet-btn-secondary" (click)="clearFilters()">Limpiar filtros</button>
+    </div>
+    @if (ownerId()) { <p class="vet-scroll-hint !block">Mostrando las mascotas del propietario seleccionado. Usa “Limpiar filtros” para ver todos los pacientes.</p> }
+    <p class="vet-scroll-hint">Desliza la tabla para consultar todas las columnas.</p>
+    <div class="vet-table-scroll" role="region" aria-label="Pacientes registrados" tabindex="0">
+      <table class="vet-data-table"><caption class="sr-only">Pacientes registrados en la base de datos de la clínica</caption>
+        <thead><tr><th scope="col">Paciente</th><th scope="col">Identificación</th><th scope="col">Propietario y contacto</th><th scope="col">Nacimiento</th><th scope="col">Peso</th><th scope="col">Mis registros</th><th scope="col">Última atención</th><th scope="col">Acciones</th></tr></thead>
+        <tbody>
+          @if (loading()) { <tr><td colspan="8"><div class="vet-empty" role="status">Cargando pacientes desde la base de datos…</div></td></tr> }
+          @else {
+            @for (patient of table.rows(); track patient.id) {
+              <tr><td><div class="vet-cell"><strong>{{ patient.nombre }}</strong><small>Paciente #{{ patient.id }}</small></div></td>
+                <td><div class="vet-cell"><strong>{{ patient.especie }}</strong><small>{{ patient.raza || 'Raza no registrada' }} · {{ patient.sexo || 'Sexo no registrado' }}</small></div></td>
+                <td><div class="vet-cell vet-cell-wide"><strong>{{ patient.cliente_nombre }}</strong><small>{{ patient.cliente_correo }}</small><small>{{ patient.telefono_contacto || 'Teléfono no registrado' }}</small></div></td>
+                <td class="vet-cell-number">{{ formatDate(patient.fecha_nacimiento) }}</td><td class="vet-cell-number">{{ patient.peso_actual !== null && patient.peso_actual !== undefined ? patient.peso_actual + ' kg' : 'Sin registrar' }}</td>
+                <td><span class="vet-count">{{ patient.atenciones }}</span><small>{{ patient.citas }} cita(s)</small></td><td class="vet-cell-number">{{ patient.ultima_atencion ? formatDate(patient.ultima_atencion) : 'Sin atenciones' }}</td>
+                <td><div class="vet-row-actions"><a class="vet-btn vet-btn-secondary vet-btn-small" [routerLink]="['/veterinario/mascota', patient.id]" [attr.aria-label]="'Ver ficha de ' + patient.nombre"><vet-icon name="file" />Ver ficha</a><a class="vet-btn vet-btn-primary vet-btn-small" routerLink="/veterinario/nueva-atencion" [queryParams]="{ cliente: patient.cliente_id, mascota: patient.id }" [attr.aria-label]="'Nueva atención para ' + patient.nombre"><vet-icon name="plus" />Atender</a></div></td>
+              </tr>
+            } @empty { <tr><td colspan="8"><div class="vet-empty"><vet-icon name="search" /><strong>No se encontraron pacientes</strong><p>Cambia la búsqueda o limpia los filtros para consultar el directorio completo.</p><button type="button" class="vet-btn vet-btn-secondary" (click)="clearFilters()">Limpiar filtros</button></div></td></tr> }
+          }
+        </tbody>
+      </table>
+    </div>
+    <vet-pagination [total]="table.total()" [page]="table.currentPage()" [pageSize]="table.pageSize()" (pageChange)="table.page.set($event)" (pageSizeChange)="table.resize($event)" label="Paginación de pacientes" />
+  </section>
+</div>

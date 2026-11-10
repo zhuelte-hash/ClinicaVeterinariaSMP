@@ -2,11 +2,12 @@ import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import distinct, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.clinic import CategoriaProducto, Cita, ComprobanteVenta, EstadoPago, OrdenCobro, Producto, Proveedor, Mascota
+from app.models.clinic import CategoriaProducto, Cita, ComprobanteVenta, ConfiguracionClinica, EstadoCita, EstadoPago, EstadoProcesoAtencion, Notificacion, OrdenCobro, Producto, ProcesoAtencion, Proveedor, Mascota
+from app.services.appointment_service import ACTIVE_BOOKING_STATES, AppointmentConflictError, AppointmentService, InvalidScheduleError
 from app.models.user import Cajero, Cliente, PermisoRol, TipoUsuario, Usuario, Veterinario
 from app.schemas.admin import (
     AdminAppointmentRead, AdminCatalogOption, AdminProductCatalog, AdminProductCreate,
@@ -14,6 +15,14 @@ from app.schemas.admin import (
     AdminClientRead,
     AdminProductUpdate,
     InventoryStockUpdate,
+    AdminCategoryCreate,
+    AdminCategoryRead,
+    AdminCategoryUpdate,
+    AdminAppointmentUpdate,
+    AdminNotificationCreate,
+    AdminNotificationRead,
+    AdminSettingsRead,
+    AdminSettingsUpdate,
     AdminSaleRead,
     AdminSalesDayRead,
     RolePermissionRead,
@@ -77,6 +86,53 @@ class AdminService:
             proveedores=[AdminCatalogOption(id=item.id, nombre=item.razon_social) for item in self.db.scalars(select(Proveedor).order_by(Proveedor.razon_social)).all()],
         )
 
+    def get_categories(self) -> list[AdminCategoryRead]:
+        rows = self.db.execute(
+            select(CategoriaProducto, func.count(Producto.id).label("productos"))
+            .outerjoin(Producto, Producto.categoria_id == CategoriaProducto.id)
+            .group_by(CategoriaProducto.id)
+            .order_by(CategoriaProducto.nombre)
+        ).all()
+        return [AdminCategoryRead(id=item.id, nombre=item.nombre, productos=count) for item, count in rows]
+
+    def create_category(self, data: AdminCategoryCreate) -> AdminCategoryRead:
+        category = CategoriaProducto(nombre=data.nombre.strip())
+        self.db.add(category)
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise AdminConflictError("La categoría ya está registrada") from exc
+        self.db.refresh(category)
+        return AdminCategoryRead(id=category.id, nombre=category.nombre, productos=0)
+
+    def update_category(self, category_id: int, data: AdminCategoryUpdate) -> AdminCategoryRead:
+        category = self.db.get(CategoriaProducto, category_id)
+        if category is None:
+            raise AdminNotFoundError
+        category.nombre = data.nombre.strip()
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise AdminConflictError("La categoría ya está registrada") from exc
+        self.db.refresh(category)
+        count = self.db.scalar(select(func.count(Producto.id)).where(Producto.categoria_id == category.id)) or 0
+        return AdminCategoryRead(id=category.id, nombre=category.nombre, productos=count)
+
+    def delete_category(self, category_id: int) -> None:
+        category = self.db.get(CategoriaProducto, category_id)
+        if category is None:
+            raise AdminNotFoundError
+        if self.db.scalar(select(func.count(Producto.id)).where(Producto.categoria_id == category_id)):
+            raise AdminConflictError("No se puede eliminar una categoría con productos")
+        self.db.delete(category)
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise AdminConflictError("No se puede eliminar una categoría con productos") from exc
+
     def deactivate_product(self, product_id: int) -> None:
         product = self.db.get(Producto, product_id)
         if product is None:
@@ -125,19 +181,130 @@ class AdminService:
             statement = statement.where(Cita.fecha_hora_programada >= start, Cita.fecha_hora_programada < end)
         if status:
             statement = statement.where(Cita.estado == status)
-        appointments = self.db.scalars(statement.order_by(Cita.fecha_creacion.desc(), Cita.id.desc())).all()
-        return [
-            AdminAppointmentRead(
-                id=item.id,
-                fecha_hora_programada=item.fecha_hora_programada,
-                estado=item.estado.value,
-                cliente_nombre=item.mascota.cliente.usuario.nombre,
-                mascota_nombre=item.mascota.nombre,
-                servicio_nombre=item.servicio.nombre,
-                veterinario_nombre=item.veterinario.usuario.nombre if item.veterinario else None,
-            )
-            for item in appointments
-        ]
+        appointments = self.db.scalars(statement.order_by(Cita.fecha_hora_programada.desc(), Cita.id.desc())).all()
+        return [self._appointment_read(item) for item in appointments]
+
+    def get_veterinarians(self) -> list[AdminCatalogOption]:
+        return [AdminCatalogOption(id=user.id, nombre=user.nombre) for user in self.db.scalars(
+            select(Usuario).join(Usuario.veterinario).where(Usuario.tipo == TipoUsuario.VETERINARIO).order_by(Usuario.nombre)
+        ).all()]
+
+    def update_appointment(self, appointment_id: int, data: AdminAppointmentUpdate, admin_id: int) -> AdminAppointmentRead:
+        service = AppointmentService(self.db)
+        appointment = service._get_appointment_with_details(appointment_id, for_update=True)
+        if appointment is None:
+            raise AdminNotFoundError
+        values = data.model_dump(exclude_unset=True)
+        if not values:
+            return self._appointment_read(appointment)
+        if appointment.estado in {EstadoCita.ATENDIDA, EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO}:
+            raise AdminConflictError("La cita ya está finalizada y no puede modificarse")
+        process = appointment.proceso_atencion
+        if process is not None and process.estado != EstadoProcesoAtencion.CANCELADA:
+            raise AdminConflictError("La cita tiene una atención clínica; gestiona su cierre desde la ficha veterinaria")
+        state = data.estado or appointment.estado
+        if state == EstadoCita.ATENDIDA:
+            raise ValueError("Registra y cierra la atención clínica para marcar la cita como atendida")
+        if state == EstadoCita.CANCELADA and not (data.nota_coordinacion or "").strip():
+            raise ValueError("Indica el motivo de la cancelación")
+        if state == EstadoCita.NO_ASISTIO:
+            scheduled = appointment.fecha_hora_programada
+            if scheduled.tzinfo is None:
+                scheduled = scheduled.replace(tzinfo=datetime.timezone.utc)
+            if appointment.fecha_hora_llegada is not None or scheduled > datetime.datetime.now(datetime.timezone.utc):
+                raise ValueError("Solo puedes marcar inasistencia si pasó el horario y no se registró la llegada")
+        veterinarian_id = values.get("veterinario_id", appointment.veterinario_id)
+        if veterinarian_id is not None and self.db.scalar(select(Veterinario).join(Veterinario.usuario).where(
+            Veterinario.usuario_id == veterinarian_id, Usuario.tipo == TipoUsuario.VETERINARIO
+        )) is None:
+            raise ValueError("El veterinario seleccionado no existe")
+        if state in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA} and veterinarian_id is None:
+            raise ValueError("Asigna un veterinario para confirmar la cita")
+        scheduling = "fecha_hora_programada" in values or "veterinario_id" in values
+        if scheduling and appointment.fecha_hora_llegada is not None:
+            raise AdminConflictError("No se puede reprogramar una cita cuya llegada ya se registró")
+        if state in ACTIVE_BOOKING_STATES and (scheduling or state != appointment.estado):
+            scheduled = data.fecha_hora_programada or appointment.fecha_hora_programada
+            if scheduled.tzinfo is None:
+                scheduled = scheduled.replace(tzinfo=datetime.timezone.utc)
+            try:
+                if veterinarian_id is not None:
+                    service._confirm_without_overlap(appointment, veterinarian_id, scheduled)
+                else:
+                    service._validate_schedule(scheduled, appointment.servicio.duracion_estimada_min)
+            except AppointmentConflictError as exc:
+                raise AdminConflictError("El horario se cruza con otra cita del veterinario") from exc
+            except InvalidScheduleError as exc:
+                raise ValueError(str(exc)) from exc
+            values["fecha_hora_fin_programada"] = scheduled + datetime.timedelta(minutes=appointment.servicio.duracion_estimada_min)
+        previous_veterinarian = appointment.veterinario_id
+        for field, value in values.items():
+            setattr(appointment, field, value)
+        if scheduling or state in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA, EstadoCita.CANCELADA}:
+            appointment.fecha_hora_propuesta = None
+        appointment.estado_actualizado_por = admin_id
+        recipients = {appointment.mascota.cliente_id, veterinarian_id, previous_veterinarian} - {None, admin_id}
+        for recipient in recipients:
+            self.db.add(Notificacion(
+                usuario_id=recipient, cita_id=appointment.id, tipo="cambio_cita",
+                titulo="Actualización de cita",
+                mensaje=f"Administración actualizó la cita de {appointment.mascota.nombre}: {appointment.estado.value}.",
+            ))
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise AdminConflictError("El horario de la cita está ocupado") from exc
+        self.db.refresh(appointment)
+        return self._appointment_read(appointment)
+
+    def get_clinical_records(self) -> list[ProcesoAtencion]:
+        return AppointmentService(self.db).get_veterinarian_clinical_records(None)
+
+    def get_notifications(self, user_id: int, unread: bool = False) -> list[AdminNotificationRead]:
+        statement = select(Notificacion, Usuario.nombre).join(Usuario, Usuario.id == Notificacion.usuario_id).where(Notificacion.usuario_id == user_id)
+        if unread:
+            statement = statement.where(Notificacion.leida.is_(False))
+        rows = self.db.execute(statement.order_by(Notificacion.fecha_creacion.desc(), Notificacion.id.desc())).all()
+        return [AdminNotificationRead(
+            id=item.id, usuario_id=item.usuario_id, usuario_nombre=name, tipo=item.tipo,
+            titulo=item.titulo, mensaje=item.mensaje, leida=item.leida, fecha_creacion=item.fecha_creacion,
+        ) for item, name in rows]
+
+    def create_notification(self, data: AdminNotificationCreate) -> AdminNotificationRead:
+        user = self.db.get(Usuario, data.usuario_id)
+        if user is None:
+            raise AdminNotFoundError
+        item = Notificacion(**data.model_dump())
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return AdminNotificationRead.model_validate({**data.model_dump(), "id": item.id, "usuario_nombre": user.nombre, "leida": item.leida, "fecha_creacion": item.fecha_creacion})
+
+    def mark_all_notifications(self, user_id: int) -> None:
+        self.db.execute(update(Notificacion).where(Notificacion.usuario_id == user_id, Notificacion.leida.is_(False)).values(leida=True))
+        self.db.commit()
+
+    def get_settings(self) -> AdminSettingsRead:
+        item = self.db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
+        if item is None:
+            item = ConfiguracionClinica(nombre="Clínica Veterinaria", correo="", telefono="", direccion="")
+            self.db.add(item)
+            self.db.commit()
+            self.db.refresh(item)
+        return AdminSettingsRead.model_validate(item, from_attributes=True)
+
+    def update_settings(self, data: AdminSettingsUpdate) -> AdminSettingsRead:
+        item = self.db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
+        if item is None:
+            item = ConfiguracionClinica(**data.model_dump())
+            self.db.add(item)
+        else:
+            for field, value in data.model_dump().items():
+                setattr(item, field, value)
+        self.db.commit()
+        self.db.refresh(item)
+        return AdminSettingsRead.model_validate(item, from_attributes=True)
 
     def get_sales_day(self, date: datetime.date | None = None) -> AdminSalesDayRead:
         report_date = date or datetime.datetime.now(CLINIC_TIMEZONE).date()
@@ -227,6 +394,18 @@ class AdminService:
             stock_minimo=product.stock_minimo, activo=product.activo,
             imagen_url=product.imagen_url, categoria_id=product.categoria_id,
             categoria_nombre=product.categoria.nombre,
+        )
+
+    @staticmethod
+    def _appointment_read(item: Cita) -> AdminAppointmentRead:
+        return AdminAppointmentRead(
+            id=item.id, fecha_hora_programada=item.fecha_hora_programada,
+            fecha_hora_fin_programada=item.fecha_hora_fin_programada,
+            estado=item.estado.value, cliente_nombre=item.mascota.cliente.usuario.nombre,
+            mascota_nombre=item.mascota.nombre, servicio_nombre=item.servicio.nombre,
+            veterinario_id=item.veterinario_id,
+            veterinario_nombre=item.veterinario.usuario.nombre if item.veterinario else None,
+            nota_coordinacion=item.nota_coordinacion,
         )
 
     @staticmethod

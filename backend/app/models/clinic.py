@@ -665,6 +665,20 @@ class CategoriaProducto(Base):
     productos: Mapped[list["Producto"]] = relationship(back_populates="categoria")
 
 
+class ConfiguracionClinica(Base):
+    __tablename__ = "configuracion_clinica"
+    __table_args__ = {"schema": SCHEMA}
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    correo: Mapped[str] = mapped_column(String(254), nullable=False)
+    telefono: Mapped[str] = mapped_column(String(50), nullable=False, server_default="")
+    direccion: Mapped[str] = mapped_column(String(250), nullable=False, server_default="")
+    umbral_stock_bajo: Mapped[int] = mapped_column(Integer, nullable=False, server_default="8")
+    recordatorios_citas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    alertas_stock: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+
+
 class Proveedor(Base):
     __tablename__ = "proveedores"
     __table_args__ = {"schema": SCHEMA}

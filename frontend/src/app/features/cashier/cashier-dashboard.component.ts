@@ -53,7 +53,7 @@ import { environment } from '../../../environments/environment';
         <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div class="border-b border-slate-100 p-6"><h3 class="text-xl font-black text-[#111827]">Órdenes recientes</h3><p class="mt-1 text-sm text-slate-500">Actividad asociada a tu usuario.</p></div>
           @if (summary()?.ordenes_recientes?.length) {
-            <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Orden</th><th class="px-6 py-3">Estado</th><th class="px-6 py-3 text-right">Monto</th></tr></thead><tbody>@for (order of summary()!.ordenes_recientes; track order.id) {<tr class="border-t border-slate-100"><td class="px-6 py-4 font-bold text-[#111827]">{{ order.codigo_orden }}</td><td class="px-6 py-4"><span class="rounded-full px-3 py-1 text-xs font-bold" [class]="statusClass(order)">{{ statusLabel(order) }}</span></td><td class="px-6 py-4 text-right font-black">S/ {{ money(order.monto_total) }}</td></tr>}</tbody></table></div>
+            <div class="overflow-x-auto"><table class="panel-data-table w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Orden</th><th class="px-6 py-3">Estado</th><th class="px-6 py-3 text-right">Monto</th></tr></thead><tbody>@for (order of summary()!.ordenes_recientes; track order.id) {<tr class="border-t border-slate-100"><td class="px-6 py-4 font-bold text-[#111827]">{{ order.codigo_orden }}</td><td class="px-6 py-4"><span class="rounded-full px-3 py-1 text-xs font-bold" [class]="statusClass(order)">{{ statusLabel(order) }}</span></td><td class="px-6 py-4 text-right font-black">S/ {{ money(order.monto_total) }}</td></tr>}</tbody></table></div>
           } @else {
             <div class="grid min-h-64 place-items-center p-8 text-center"><div><span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-2xl">▤</span><p class="mt-4 font-bold text-slate-700">Aun no hay ordenes</p><p class="mt-1 text-sm text-slate-500">Las operaciones asignadas apareceran aqui.</p></div></div>
           }
@@ -67,7 +67,7 @@ import { environment } from '../../../environments/environment';
   styles: [`
     .metric-card { border: 1px solid #d8e6e9; border-radius: 1.5rem; background: white; padding: 1.5rem; box-shadow: 0 8px 24px rgb(17 24 39 / .05); transition: .2s; }
     .metric-card:hover { border-color: #56c4d8; transform: translateY(-2px); box-shadow: 0 14px 30px rgb(17 24 39 / .09); }
-    .metric-label { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgb(100 116 139); }
+    .metric-label { font-size: .8125rem; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: rgb(100 116 139); }
   `],
 })
 export class CashierDashboardComponent {

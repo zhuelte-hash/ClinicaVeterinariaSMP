@@ -1,8 +1,12 @@
+@import './styles/veterinarian.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --font-body: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+  --font-panel: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --brand-turquoise: #009ead;
   --brand-turquoise-rgb: 0 158 173;
   --brand-action: #007e8a;
@@ -33,12 +37,45 @@
   --color-primary-dark: var(--admin-primary-dark);
 }
 
+html { color-scheme: light; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
 body {
   min-height: 100vh;
   margin: 0;
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  font-kerning: normal;
   color: var(--admin-text);
 }
+
+h1, h2, h3, h4 { text-wrap: balance; overflow-wrap: break-word; }
+p { text-wrap: pretty; }
+
+/* A shared reading scale for clinical data, forms and operational navigation. */
+.clinic-panel {
+  --table-surface: var(--admin-surface);
+  --table-heading-bg: #e8f1f5;
+  --table-heading-text: #243b49;
+  --table-text: #253b4b;
+  --table-muted: #526477;
+  --table-border: #cbdbe4;
+  --table-stripe: #f4f8fb;
+  --table-hover: #e4f3f7;
+  font-family: var(--font-panel);
+  font-variant-numeric: tabular-nums;
+}
+.clinic-panel :is(h1, h2, h3, h4) { line-height: 1.3; letter-spacing: -.02em; }
+.clinic-panel .font-black { font-weight: 800; }
+.clinic-panel .text-sm { font-size: .9375rem; line-height: 1.55; }
+.clinic-panel .text-xs { font-size: .8125rem; line-height: 1.5; }
+.clinic-panel :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]) { font-size: .75rem; line-height: 1.5; }
+app-navbar :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]),
+:is(app-login, app-register, app-auth-login-dialog) .text-\[10px\] { font-size: .75rem; line-height: 1.5; }
+.clinic-panel .uppercase { letter-spacing: .08em; }
+.clinic-panel :is(input, select, textarea):not([type='checkbox']):not([type='radio']) { min-width: 0; max-width: 100%; font-size: 1rem; line-height: 1.5; }
+.clinic-panel :is(input, textarea)::placeholder { opacity: 1; font-weight: 400; }
+.clinic-panel :is(th, td) { line-height: 1.55; }
 
 /* Shared public-facing surfaces and actions; admin controls retain their own styles. */
 .site-card {
@@ -59,7 +96,7 @@ body {
   background: var(--brand-action);
   padding: .7rem 1.4rem;
   color: white;
-  font-size: .875rem;
+  font-size: .9375rem;
   font-weight: 700;
   text-align: center;
   transition: background .2s ease, transform .2s ease;
@@ -75,6 +112,8 @@ body {
   border-radius: .85rem;
   background: white;
   padding: .7rem .9rem;
+  font-size: 1rem;
+  line-height: 1.5;
   color: var(--brand-ink);
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease;
@@ -125,11 +164,11 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
   --vet-line: #dfe7ed;
   --vet-teal: var(--brand-action);
   --vet-nav: var(--brand-ink);
-  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-panel);
   color: var(--vet-ink);
   background: var(--vet-bg);
 }
-.vet-app .page-shell > main { max-width: 1400px; margin: 0 auto; }
+.vet-app .page-shell > main { max-width: 1600px; min-width: 0; margin: 0 auto; }
 .vet-app .rounded-3xl,
 .vet-app .rounded-2xl { border-radius: 10px; }
 .vet-app .shadow-xl,
@@ -174,10 +213,10 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
 .vet-app app-veterinarian-clients section:first-child .text-slate-200,
 .vet-app app-veterinarian-new-attention section:first-child .text-slate-200,
 .vet-app app-veterinarian-pet-history > div > header:first-child .text-slate-200 { color: var(--vet-muted) !important; }
+.vet-app app-veterinarian-new-attention section:first-child [class~='text-[#83e7d9]'] { color: var(--vet-teal); }
 .vet-app .stat-card,
 .vet-app .metric-card { border-radius: 10px; box-shadow: 0 2px 8px rgb(35 55 72 / 4%); }
 .vet-app .stat-card:hover { transform: none; box-shadow: 0 2px 8px rgb(35 55 72 / 8%); }
-.vet-app .home-dashboard h1,
 .vet-app .module-shell h2,
 .vet-app .module-shell h3 { color: var(--vet-ink); }
 .vet-app .home-dashboard input,
@@ -226,7 +265,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
 .admin-app .admin-input:hover { border-color: #8fcbd6; background: white; }
 .admin-app .admin-input:focus { border-color: var(--brand-turquoise); background: white; box-shadow: 0 0 0 4px rgb(var(--brand-turquoise-rgb) / 18%); }
 .admin-app .admin-input:disabled { cursor: not-allowed; background: #f1f5f4; color: #64748b; }
-.admin-app .admin-label { display: block; margin-bottom: .45rem; color: #374151; font-size: .75rem; font-weight: 700; letter-spacing: .025em; }
+.admin-app .admin-label { display: block; margin-bottom: .45rem; color: #374151; font-size: .875rem; font-weight: 600; letter-spacing: .01em; }
 
 .admin-app .admin-primary,
 .admin-app .admin-secondary {
@@ -245,11 +284,24 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
 
 .admin-app .admin-table { width: 100%; min-width: 760px; border-collapse: collapse; }
 .admin-app .admin-table thead { position: sticky; top: 0; z-index: 1; }
-.admin-app .admin-table th { border-bottom: 1px solid #d8e6e9; background: #f3f8f9; padding: .8rem 1rem; color: #4b5563; font-size: .7rem; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
-.admin-app .admin-table td { border-top: 1px solid #edf3f4; padding: .9rem 1rem; color: #475569; font-size: .875rem; }
-.admin-app .admin-table tbody tr { transition: background .16s ease; }
-.admin-app .admin-table tbody tr:hover { background: #f3fafb; }
+.admin-app .admin-table th { padding: .9rem 1rem; text-align: left; text-transform: uppercase; }
+.admin-app .admin-table td { padding: 1rem; }
 .admin-app .admin-table button { min-height: 2.25rem; }
+
+/* A readable table palette shared by administration, veterinary care and cashier summaries. */
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) { background-color: var(--table-surface); color: var(--table-text); font-size: .9375rem; }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > :is(thead, tbody) > tr > th { border-bottom: 1px solid var(--table-border); background-color: var(--table-heading-bg); color: var(--table-heading-text); font-size: .8125rem; font-weight: 700; letter-spacing: .045em; }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > thead > tr > th { border-bottom-width: 2px; }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > thead > tr > th + th { border-inline-start: 1px solid var(--table-border); }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > tbody > tr > td { border-bottom: 1px solid var(--table-border); background-color: var(--table-surface); color: var(--table-text); transition: background-color .16s ease; }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > tbody > tr:nth-child(even) > td:not([colspan]) { background-color: var(--table-stripe); }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > tbody > tr:is(:hover, :focus-within) > td:not([colspan]) { background-color: var(--table-hover); }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) > tbody > tr:last-child > :is(th, td) { border-bottom: 0; }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) :is(small, .text-slate-400, .text-slate-500, .text-slate-600) { color: var(--table-muted); }
+.clinic-panel :is(.admin-table, .vet-data-table, .panel-data-table) small { font-size: .8125rem; }
+.clinic-panel .panel-data-table { width: 100%; min-width: 32rem; border-collapse: separate; border-spacing: 0; }
+.clinic-panel .panel-data-table :is(th, td) { padding: .85rem 1rem; }
+.clinic-panel .panel-data-table th:not(.text-right):not(.text-center) { text-align: left; }
 
 /* Align informational accents with the logo; status colors keep their meaning. */
 .admin-app .text-teal-600,
@@ -294,88 +346,83 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
   border-radius: .9rem;
   background: rgb(255 255 255 / 82%);
   color: #526b68;
-  transition: .2s;
+  flex: 0 0 auto;
+  cursor: pointer;
+  transition: border-color .2s ease, background-color .2s ease, color .2s ease;
 }
 .theme-toggle:hover { border-color: #56c4d8; background: #f0fbfd; color: #111827; }
 .theme-toggle svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.panel-theme-toggle { position: fixed; top: 1rem; right: 1rem; z-index: 100; display: grid; width: 2.8rem; height: 2.8rem; place-items: center; border: 1px solid #dce8e5; border-radius: .9rem; background: #fff; color: #526b68; box-shadow: 0 8px 24px rgb(15 23 42 / 16%); cursor: pointer; }
-.panel-theme-toggle:hover { border-color: #56c4d8; background: #f0fbfd; }
-.panel-theme-toggle svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle:focus-visible { outline: 3px solid rgb(var(--brand-turquoise-rgb) / 55%); outline-offset: 3px; }
 
-[data-theme='dark'] body { background: #0b1220; color: #e2e8f0; }
-[data-theme='dark'] .admin-app,
-[data-theme='dark'] .vet-app,
-[data-theme='dark'] .cashier-app { background: #0b1220; color: #e2e8f0; }
-[data-theme='dark'] .admin-app .topbar,
-[data-theme='dark'] .cashier-app .cashier-header { border-color: #263449; background: rgb(15 23 42 / 94%); }
-[data-theme='dark'] .admin-app .admin-card,
-[data-theme='dark'] .admin-app .admin-panel,
-[data-theme='dark'] .vet-app .module-hero,
-[data-theme='dark'] .vet-app .home-welcome,
-[data-theme='dark'] .vet-app .stat-card,
-[data-theme='dark'] .vet-app .metric-card { border-color: #263449; background: #111c2d !important; box-shadow: 0 8px 24px rgb(0 0 0 / 18%); }
-[data-theme='dark'] .admin-app .admin-input,
-[data-theme='dark'] .vet-app input,
-[data-theme='dark'] .vet-app select,
-[data-theme='dark'] .vet-app textarea { border-color: #334155; background: #0f1a2b; color: #e2e8f0; }
-[data-theme='dark'] .admin-app .admin-label,
-[data-theme='dark'] .admin-app h1,
-[data-theme='dark'] .admin-app h2,
-[data-theme='dark'] .admin-app h3,
-[data-theme='dark'] .admin-app .text-slate-800,
-[data-theme='dark'] .admin-app .text-slate-900,
-[data-theme='dark'] .vet-app h1,
-[data-theme='dark'] .vet-app h2,
-[data-theme='dark'] .vet-app h3 { color: #e2e8f0 !important; }
-[data-theme='dark'] .admin-app .admin-secondary,
-[data-theme='dark'] .admin-app button:not(.admin-primary),
-[data-theme='dark'] .vet-app button { border-color: #334155; background: #162337; color: #dbeafe; }
-[data-theme='dark'] .admin-app .admin-table th { border-color: #334155; background: #17253a; color: #cbd5e1; }
-[data-theme='dark'] .admin-app .admin-table td { border-color: #263449; color: #cbd5e1; }
-[data-theme='dark'] .admin-app .admin-table tbody tr:hover { background: #17253a; }
-[data-theme='dark'] .admin-app .dropdown { border-color: #334155; background: #111c2d; }
-[data-theme='dark'] .admin-app .dropdown .text-slate-800,
-[data-theme='dark'] .admin-app .dropdown .text-slate-900 { color: #e2e8f0 !important; }
-[data-theme='dark'] .admin-app .dropdown a:hover { background: #1e293b; }
-[data-theme='dark'] .vet-app .border-slate-100,
-[data-theme='dark'] .vet-app .border-slate-200 { border-color: #263449 !important; }
-[data-theme='dark'] .vet-app .bg-slate-50 { background: #162337 !important; }
-[data-theme='dark'] .vet-app .text-slate-500,
-[data-theme='dark'] .vet-app .text-slate-600,
-[data-theme='dark'] .vet-app .text-slate-700 { color: #94a3b8 !important; }
-[data-theme='dark'] .vet-app,
-[data-theme='dark'] .vet-app .page-shell,
-[data-theme='dark'] .vet-app main { background: #0b1220 !important; color: #e2e8f0 !important; }
-[data-theme='dark'] .vet-app main .bg-white,
-[data-theme='dark'] .vet-app main [class*='bg-white'],
-[data-theme='dark'] .vet-app main .bg-slate-50,
-[data-theme='dark'] .vet-app main [class*='bg-slate-50'] { background-color: #111c2d !important; }
-[data-theme='dark'] .vet-app main [class*='border-slate-100'],
-[data-theme='dark'] .vet-app main [class*='border-slate-200'],
-[data-theme='dark'] .vet-app main [class*='border-slate-300'],
-[data-theme='dark'] .vet-app main [class*='ring-slate-200'] { border-color: #334155 !important; --tw-ring-color: #334155 !important; }
-[data-theme='dark'] .vet-app main [class*='text-[#102b35]'],
-[data-theme='dark'] .vet-app main [class*='text-slate-700'],
-[data-theme='dark'] .vet-app main [class*='text-slate-800'],
-[data-theme='dark'] .vet-app main [class*='text-slate-900'] { color: #e2e8f0 !important; }
-[data-theme='dark'] .vet-app main [class*='text-slate-500'],
-[data-theme='dark'] .vet-app main [class*='text-slate-600'] { color: #94a3b8 !important; }
-[data-theme='dark'] .vet-app main input,
-[data-theme='dark'] .vet-app main select,
-[data-theme='dark'] .vet-app main textarea { border-color: #334155 !important; background-color: #0f1a2b !important; color: #e2e8f0 !important; }
-[data-theme='dark'] .vet-app main thead { background-color: #17253a !important; }
-[data-theme='dark'] .vet-app main tbody,
-[data-theme='dark'] .vet-app main tr { border-color: #334155 !important; }
-[data-theme='dark'] .vet-app main tbody tr,
-[data-theme='dark'] .vet-app main tbody tr:nth-child(odd),
-[data-theme='dark'] .vet-app main tbody tr:nth-child(even),
-[data-theme='dark'] .vet-app main tbody td { background-color: #111c2d !important; }
-[data-theme='dark'] .vet-app main tr:hover { background-color: #17253a !important; }
-[data-theme='dark'] .vet-app main [class*='bg-rose-50'] { border-color: #7f1d1d !important; background-color: #351522 !important; color: #fda4af !important; }
-[data-theme='dark'] .vet-app main [class*='bg-amber-50'] { border-color: #854d0e !important; background-color: #332711 !important; }
-[data-theme='dark'] .vet-app main [class*='bg-emerald-50'] { border-color: #166534 !important; background-color: #123326 !important; }
-[data-theme='dark'] .vet-app main [class*='bg-[#f'],
-[data-theme='dark'] .vet-app main [class*='bg-sky-50'] { background-color: #162e36 !important; }
+/* Reuse the existing dark palette consistently across all three panels. */
+:root[data-theme='dark']:has(.clinic-panel) { color-scheme: dark; }
+[data-theme='dark'] body:has(.clinic-panel) { background: #0b1220; color: #e2e8f0; }
+[data-theme='dark'] .clinic-panel {
+  --admin-background: #0b1220;
+  --admin-surface: #111c2d;
+  --admin-text: #e2e8f0;
+  --admin-muted: #94a3b8;
+  --admin-border: #334155;
+  --panel-heading: var(--admin-text);
+  --panel-caption: var(--admin-muted);
+  --panel-accent: var(--brand-light);
+  --table-heading-bg: #17253a;
+  --table-heading-text: #cbd5e1;
+  --table-text: var(--admin-text);
+  --table-muted: var(--admin-muted);
+  --table-border: var(--admin-border);
+  --table-stripe: var(--admin-surface);
+  --table-hover: #17253a;
+  --vet-bg: var(--admin-background);
+  --vet-surface: var(--admin-surface);
+  --vet-ink: var(--admin-text);
+  --vet-muted: var(--admin-muted);
+  --vet-line: var(--admin-border);
+  --vet-teal: var(--brand-light);
+  background: var(--admin-background);
+  color: var(--admin-text);
+}
+[data-theme='dark'] .clinic-panel :is(.topbar, .cashier-header) { border-color: #263449; background: rgb(15 23 42 / 94%); }
+[data-theme='dark'] .clinic-panel :is(.admin-card, .admin-panel, .admin-modal-panel, .dropdown, .modern-stat, .modern-card, .stat-card, .metric-card, .catalog-card) { border-color: var(--admin-border); background: var(--admin-surface); box-shadow: 0 8px 24px rgb(0 0 0 / 18%); }
+[data-theme='dark'] .clinic-panel :is(main, .topbar, .cashier-header) :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80) { border-color: var(--admin-border); background-color: var(--admin-surface); }
+[data-theme='dark'] .clinic-panel :is(main, .dropdown) :is(.bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100, [class~='bg-slate-50/80']) { background-color: #162337; }
+[data-theme='dark'] .clinic-panel :is(main, .topbar, .cashier-header) :is(.border-slate-50, .border-slate-100, .border-slate-200, .border-slate-300, .border-gray-200, [class~='border-slate-200/80']) { border-color: var(--admin-border); }
+[data-theme='dark'] .clinic-panel :is(main, .dropdown) :is(.divide-slate-100, .divide-slate-200) > :not([hidden]) ~ :not([hidden]) { border-color: var(--admin-border); }
+[data-theme='dark'] .clinic-panel :is(input, select, textarea):not([type='checkbox']):not([type='radio']) { border-color: var(--admin-border); background-color: #0f1a2b; color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel :is(input, textarea)::placeholder { color: var(--admin-muted); }
+[data-theme='dark'] .clinic-panel :is(input, select, textarea):focus { border-color: var(--brand-turquoise); }
+[data-theme='dark'] .clinic-panel .admin-input:disabled { background-color: #162337; color: var(--admin-muted); }
+[data-theme='dark'] .clinic-panel :is(.admin-label, .admin-table td, .item-name, .donut-hole strong, .appointment-date strong) { color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel :is(main, .topbar, .cashier-header) :is(.text-slate-700, .text-slate-800, .text-slate-900, .text-gray-700, .text-gray-800, .text-gray-900, [class~='text-[#111827]'], [class~='text-[#102b35]'], [class~='text-[#172b3a]'], [class~='text-[#102a43]']) { color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel :is(main, .topbar, .cashier-header) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-gray-400, .text-gray-500, .text-gray-600, .metric-label, .item-code, .empty-chart, .donut-hole span) { color: var(--admin-muted); }
+[data-theme='dark'] .clinic-panel .admin-panel h2 { color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel .admin-panel h2 + p { color: var(--admin-muted); }
+[data-theme='dark'] .clinic-panel :is(.text-teal-600, .text-teal-700, .text-teal-800, [class~='text-[#168ba1]'], [class~='text-[#168b83]'], [class~='text-[#83e7d9]'], .panel-kicker, .panel-link, .section-kicker:not(.light), .view-link) { color: var(--brand-light) !important; }
+[data-theme='dark'] .clinic-panel :is(.bg-teal-50, .bg-teal-100, [class~='bg-[#eaf9f6]'], [class~='bg-[#effbf8]'], [class~='bg-[#f2fcfa]'], .service-label, .time-box) { border-color: #2c5963; background-color: #163b3f !important; color: var(--brand-light); }
+[data-theme='dark'] .clinic-panel :is(.admin-secondary, .theme-toggle, .header-button, .quantity-button, .category-button, .payment-button) { border-color: var(--admin-border); background-color: #162337; color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel :is(.theme-toggle, .header-button, .admin-secondary, .category-button, .payment-button):hover { border-color: var(--brand-turquoise); background-color: #17253a; }
+[data-theme='dark'] .clinic-panel :is(.mode-button, .mode-active) { background-color: #162337; color: var(--admin-muted); }
+[data-theme='dark'] .clinic-panel .mode-active { color: var(--admin-text); }
+[data-theme='dark'] .clinic-panel :is(.category-active, .payment-active) { border-color: #56c4d8; background-color: #163b3f; color: var(--brand-light); }
+[data-theme='dark'] .clinic-panel :is(thead, .admin-table th) { border-color: var(--admin-border); background-color: #17253a; color: #cbd5e1; }
+[data-theme='dark'] .clinic-panel :is(tbody, tr, td) { border-color: var(--admin-border); }
+[data-theme='dark'] .clinic-panel :is(tbody tr:hover, .admin-table tbody tr:hover, .appointment-row:hover, .product-row:hover, .dropdown a:hover) { background-color: #17253a; }
+[data-theme='dark'] .clinic-panel :is(.appointment-row, .product-row, .donut-hole) { border-color: var(--admin-border); background-color: var(--admin-surface); }
+[data-theme='dark'] .clinic-panel .chart { border-color: var(--admin-border); background-image: linear-gradient(to top, #263449 1px, transparent 1px); }
+[data-theme='dark'] .clinic-panel :is(.stat-line, .chart-track) { background-color: #263449; }
+[data-theme='dark'] .clinic-panel .status-pill { background-color: #162337; color: #cbd5e1; }
+[data-theme='dark'] .clinic-panel :is(.bg-rose-50, .bg-rose-100) { border-color: #7f1d1d; background-color: #351522; color: #fda4af; }
+[data-theme='dark'] .clinic-panel :is(.text-rose-600, .text-rose-700, .text-rose-800) { color: #fda4af; }
+[data-theme='dark'] .clinic-panel :is(.bg-amber-50, .bg-amber-100, .status-pendiente_contacto, .status-contactando_cliente) { border-color: #854d0e; background-color: #332711; color: #fbbf24; }
+[data-theme='dark'] .clinic-panel :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-amber-950) { color: #fbbf24; }
+[data-theme='dark'] .clinic-panel :is(.bg-emerald-50, .bg-emerald-100, .status-confirmada, .status-reprogramada, .live-dot) { border-color: #166534; background-color: #123326; color: #8de8d5; }
+[data-theme='dark'] .clinic-panel :is(.text-emerald-600, .text-emerald-700, .text-emerald-800) { color: #8de8d5; }
+[data-theme='dark'] .clinic-panel :is(.bg-sky-50, .bg-sky-100, .status-atendida, .chart-badge) { background-color: #162e36; color: #8bd7e5; }
+[data-theme='dark'] .clinic-panel :is(.text-sky-600, .text-sky-700, .text-sky-800) { color: #8bd7e5; }
+/* Light accent fills keep their original dark lettering. */
+[data-theme='dark'] .clinic-panel :is(.panel-avatar, [class~='bg-[#56c4d8]'][class~='text-[#111827]']) { color: #111827; }
+[data-theme='dark'] .clinic-panel [class~='bg-[#58d3c2]'][class~='text-[#102b35]'] { color: #102b35; }
+[data-theme='dark'] .clinic-panel :is([class~='bg-[#25D366]'], [class~='bg-[#25d366]']) { color: var(--brand-ink); }
 [data-theme='dark'] .vet-app app-veterinarian-new-attention section:first-child,
 [data-theme='dark'] .vet-app app-veterinarian-clients section:first-child,
 [data-theme='dark'] .vet-app app-veterinarian-pet-history > div > header:first-child {
@@ -384,14 +431,10 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
   color: #f8fafc !important;
   box-shadow: 0 18px 40px rgb(0 0 0 / 22%);
 }
-[data-theme='dark'] .vet-app main .text-white { color: #f8fafc !important; }
 [data-theme='dark'] .vet-app app-veterinarian-new-attention section:nth-child(2) {
   background: #111c2d !important;
   border-color: #334155 !important;
 }
-[data-theme='dark'] .vet-app main [class*='bg-[#eaf9f6]'],
-[data-theme='dark'] .vet-app main [class*='bg-[#effbf8]'],
-[data-theme='dark'] .vet-app main [class*='bg-[#f2fcfa]'] { background-color: #163b3f !important; }
 
 /* Service forms only keep fields that make clinical sense for the selected service. */
 .service-form-imaging form label:has([formControlName='proxima_fecha_control']),
@@ -422,28 +465,10 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
 .service-form-laboratory form > div:has(label:only-child),
 .service-form-procedure form > div:has(label:only-child),
 .service-form-grooming form > div:has(label:only-child) { display: none; }
-[data-theme='dark'] .cashier-app { color: #e2e8f0; }
-[data-theme='dark'] .cashier-app article,
-[data-theme='dark'] .cashier-app section,
-[data-theme='dark'] .cashier-app aside,
-[data-theme='dark'] .cashier-app .bg-white { border-color: #263449; background-color: #111c2d; }
-[data-theme='dark'] .cashier-app input,
-[data-theme='dark'] .cashier-app select,
-[data-theme='dark'] .cashier-app .border-slate-300 { border-color: #334155; background-color: #0f1a2b; color: #e2e8f0; }
-[data-theme='dark'] .cashier-app .bg-slate-50 { background-color: #162337; }
-[data-theme='dark'] .cashier-app .text-slate-500 { color: #94a3b8; }
-[data-theme='dark'] .cashier-app .text-slate-800,
-[data-theme='dark'] .cashier-app .text-\[\#111827\] { color: #e2e8f0 !important; }
-[data-theme='dark'] .cashier-app .border-slate-100,
-[data-theme='dark'] .cashier-app .border-slate-200 { border-color: #263449; }
-[data-theme='dark'] .cashier-app thead { background-color: #17253a; }
 [data-theme='dark'] .theme-toggle { border-color: #334155; background: #162337; color: #f8fafc; }
-[data-theme='dark'] .panel-theme-toggle { border-color: #334155; background: #162337; color: #f8fafc; }
 
 .cashier-app { min-height: 100dvh; }
 .cashier-header { border-bottom: 1px solid #e2e8f0; }
-.header-theme-toggle { margin-left: auto; }
-.vet-theme-toggle { display: grid; }
 
 .purchase-checkout .checkout-card { border: 1px solid #e2e8f0; border-radius: 1.75rem; background: #fff; padding: clamp(1.25rem, 3vw, 2rem); box-shadow: 0 16px 45px rgb(26 30 39 / 6%); }
 .purchase-checkout .section-heading { display: flex; align-items: flex-start; gap: .9rem; }
@@ -497,5 +522,11 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--brand-action);
 
   body {
     background: #fff !important;
+  }
+  .print-receipt, .print-receipt * {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    color-scheme: light;
   }
 }

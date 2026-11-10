@@ -1,6 +1,7 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
 interface NavigationItem {
   label: string;
@@ -16,11 +17,11 @@ interface NavigationGroup {
 @Component({
   selector: 'app-veterinarian-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   template: `
-    <div class="vet-app min-h-screen text-slate-800">
+    <div class="clinic-panel vet-app min-h-screen text-slate-800">
       <a href="#veterinarian-content" class="skip-link">Saltar al contenido</a>
-      <aside class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white transition-all duration-300" [class.sidebar-collapsed]="collapsed()" [class.drawer-open]="drawerOpen()">
+      <aside id="veterinarian-navigation" class="sidebar fixed inset-y-0 left-0 z-50 flex flex-col text-white transition-all duration-300" [class.sidebar-collapsed]="collapsed()" [class.drawer-open]="drawerOpen()">
          <div class="brand-row flex h-20 items-center gap-3 px-4">
           <img src="/logo.png" alt="San Martín de Porres" class="brand-mark h-11 w-11 shrink-0 rounded-full object-contain" />
           @if (!collapsed()) {
@@ -61,8 +62,8 @@ interface NavigationGroup {
        @if (drawerOpen()) { <button type="button" class="drawer-backdrop fixed inset-0 z-40 bg-slate-950/50" aria-label="Cerrar menú" (click)="closeDrawer()"></button> }
 
        <div class="page-shell transition-all duration-300" [class.page-collapsed]="collapsed()">
-          <div class="mobile-topbar fixed inset-x-0 top-0 z-30 flex h-[4.5rem] items-center bg-[#111827] px-4 shadow-lg lg:hidden"><button type="button" (click)="toggleSidebar()" class="rounded-xl border border-white/20 px-3 py-2 text-sm font-bold text-white">Menú</button><span class="ml-3 text-sm font-black text-[#8bd7e5]">Panel veterinario</span></div>
-         <main id="veterinarian-content" class="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8" tabindex="-1">
+          <header class="vet-topbar"><div class="flex min-w-0 items-center gap-3"><button type="button" (click)="toggleSidebar()" class="vet-menu-button vet-btn vet-btn-secondary vet-btn-small" aria-label="Abrir menú veterinario" aria-controls="veterinarian-navigation" [attr.aria-expanded]="drawerOpen()">☰</button><div class="min-w-0"><p>Área veterinaria · San Martín de Porres</p><strong class="block truncate">{{ veterinarianName() }}</strong></div></div><app-theme-toggle /></header>
+          <main id="veterinarian-content" class="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8" tabindex="-1">
           <router-outlet />
         </main>
       </div>
@@ -86,7 +87,7 @@ interface NavigationGroup {
     .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; border-radius: .75rem; background: #111827; padding: .75rem 1rem; color: white; font-size: .8rem; font-weight: 700; transition: top .2s; }
     .skip-link:focus { top: 1rem; }
      .drawer-backdrop { display: none; }
-     @media (max-width: 1023px) { .sidebar, .sidebar-collapsed { position: fixed; inset: 0 auto 0 0; width: 17rem; min-height: 100dvh; transform: translateX(-105%); } .sidebar.drawer-open { transform: translateX(0); } .sidebar-collapsed { width: 17rem; } .page-shell, .page-collapsed { margin-left: 0; padding-top: 4.5rem; } .drawer-backdrop { display: block; } }
+     @media (max-width: 1023px) { .sidebar, .sidebar-collapsed { position: fixed; inset: 0 auto 0 0; width: 17rem; min-height: 100dvh; transform: translateX(-105%); } .sidebar.drawer-open { transform: translateX(0); } .sidebar-collapsed { width: 17rem; } .page-shell, .page-collapsed { margin-left: 0; } .drawer-backdrop { display: block; } }
     @media (prefers-reduced-motion: reduce) { .sidebar, .page-shell, .nav-icon { transition: none; } }
   `],
 })
@@ -95,8 +96,9 @@ export class VeterinarianLayoutComponent {
   private readonly router = inject(Router);
   readonly collapsed = signal(false);
   readonly drawerOpen = signal(false);
+  readonly veterinarianName = computed(() => this.auth.currentUser()?.nombre || 'Profesional veterinario');
   readonly navigation: NavigationGroup[] = [
-    { label: 'Área de trabajo', items: [{ label: 'Inicio', route: 'inicio', icon: 'home' }, { label: 'Citas', route: 'agenda', icon: 'calendar' }, { label: 'Pacientes e historial', route: 'mascotas', icon: 'users' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: 'plus' }] },
+    { label: 'Área de trabajo', items: [{ label: 'Inicio', route: 'inicio', icon: 'home' }, { label: 'Citas', route: 'agenda', icon: 'calendar' }, { label: 'Pacientes e historial', route: 'mascotas', icon: 'users' }, { label: 'Propietarios', route: 'clientes', icon: 'users' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: 'plus' }] },
     { label: 'Pacientes', items: [{ label: 'Hospedaje', route: 'hospedaje', icon: 'bed' }] },
     { label: 'Servicios clínicos', items: [{ label: 'Laboratorio', route: 'laboratorio', icon: 'lab' }, { label: 'Rayos X / Ecografía', route: 'imagenes', icon: 'image' }, { label: 'Vacunas y controles', route: 'vacunacion', icon: 'vaccine' }, { label: 'Cirugía', route: 'cirugia', icon: 'surgery' }, { label: 'Hospitalización', route: 'hospitalizacion', icon: 'bed' }, { label: 'Estética', route: 'estetica', icon: 'sparkle' }] },
     { label: 'Otros servicios', items: [{ label: 'Documentos', route: 'documentos', icon: 'file' }] },

@@ -1,8 +1,9 @@
 import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
+from app.models.clinic import EstadoCita
 from app.models.user import TipoUsuario
 
 
@@ -53,6 +54,22 @@ class AdminProductCatalog(BaseModel):
     proveedores: list[AdminCatalogOption]
 
 
+class AdminCategoryRead(BaseModel):
+    id: int
+    nombre: str
+    productos: int = 0
+
+
+class AdminCategoryCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nombre: str = Field(min_length=2, max_length=100)
+
+
+class AdminCategoryUpdate(AdminCategoryCreate):
+    pass
+
+
 class AdminClientRead(BaseModel):
     id: int
     nombre: str
@@ -72,6 +89,70 @@ class AdminAppointmentRead(BaseModel):
     mascota_nombre: str
     servicio_nombre: str
     veterinario_nombre: str | None
+    veterinario_id: int | None
+    fecha_hora_fin_programada: datetime.datetime
+    nota_coordinacion: str | None
+
+
+class AdminNotificationRead(BaseModel):
+    id: int
+    usuario_id: int
+    usuario_nombre: str
+    tipo: str
+    titulo: str
+    mensaje: str
+    leida: bool
+    fecha_creacion: datetime.datetime
+
+
+class AdminNotificationCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    usuario_id: int
+    tipo: str = Field(min_length=1, max_length=50)
+    titulo: str = Field(min_length=1, max_length=150)
+    mensaje: str = Field(min_length=1, max_length=500)
+
+
+class AdminSettingsRead(BaseModel):
+    nombre: str
+    correo: str
+    telefono: str
+    direccion: str
+    umbral_stock_bajo: int
+    recordatorios_citas: bool
+    alertas_stock: bool
+
+
+class AdminSettingsUpdate(AdminSettingsRead):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nombre: str = Field(min_length=2, max_length=150)
+    correo: EmailStr
+    telefono: str = Field(max_length=50)
+    direccion: str = Field(max_length=250)
+    umbral_stock_bajo: int = Field(ge=0, le=1000000)
+
+
+class AdminAppointmentUpdate(BaseModel):
+    estado: EstadoCita | None = None
+    fecha_hora_programada: datetime.datetime | None = None
+    veterinario_id: int | None = None
+    nota_coordinacion: str | None = Field(default=None, max_length=500)
+
+    @field_validator("fecha_hora_programada")
+    @classmethod
+    def require_timezone(cls, value: datetime.datetime | None) -> datetime.datetime | None:
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+            raise ValueError("La fecha debe incluir zona horaria")
+        return value
+
+    @model_validator(mode="after")
+    def reject_null_required_fields(self):
+        for field in ("estado", "fecha_hora_programada"):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f"{field} no puede ser nulo")
+        return self
 
 
 class AdminSaleRead(BaseModel):

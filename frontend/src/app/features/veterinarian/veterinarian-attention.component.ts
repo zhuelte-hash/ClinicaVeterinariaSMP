@@ -5,7 +5,7 @@ import { forkJoin, of } from 'rxjs';
 import { finalize, switchMap } from 'rxjs/operators';
 import { NoticeService } from '../../core/services/notice.service';
 import { VeterinarianApiService } from './veterinarian-api.service';
-import { ClinicalRecord, ExamOrder, PrescriptionDetail, VeterinarianAppointment } from './veterinarian.models';
+import { clinicToday, ClinicalRecord, ExamOrder, PrescriptionDetail, VeterinarianAppointment } from './veterinarian.models';
 
 @Component({
   selector: 'app-veterinarian-attention',
@@ -27,7 +27,7 @@ export class VeterinarianAttentionComponent {
   readonly saving = signal(false);
   readonly error = signal('');
   studyType = 'Radiografía';
-  studyDate = new Date().toISOString().slice(0, 10);
+   studyDate = clinicToday();
   readonly examForm = this.formBuilder.nonNullable.group({ tipo: ['Hemograma'], prioridad: ['rutina' as 'rutina' | 'urgente' | 'emergencia'] });
   readonly prescriptionForm = this.formBuilder.nonNullable.group({ medicamento: [''], presentacion: [''], dosis: [''], unidad: ['mg'], via: ['Oral'], frecuencia: [''], duracion: [''], cantidad: [''], indicaciones: [''], indicaciones_generales: [''] });
   readonly procedureForm = this.formBuilder.nonNullable.group({ nombre: [''], observaciones: [''] });
@@ -41,7 +41,15 @@ export class VeterinarianAttentionComponent {
       this.appointment.set(appointment);
       return appointment ? forkJoin({ history: this.api.getPetHistory(appointment.mascota.id), attention: this.api.startAttention(appointment.id) }) : of({ history: [], attention: null });
     }), finalize(() => this.loading.set(false))).subscribe({
-      next: ({ history, attention }) => { this.history.set(history); if (attention) { this.record.set(attention); this.attentionForm.patchValue({ motivo_consulta: attention.motivo_consulta || this.appointment()?.motivo || '' }); this.api.getExamOrders(attention.id).subscribe({ next: (exams) => this.exams.set(exams) }); } },
+      next: ({ history, attention }) => {
+        this.history.set(history);
+        if (attention) {
+          this.record.set(attention);
+          const saved = Object.fromEntries(Object.keys(this.attentionForm.controls).map(key => [key, attention[key as keyof ClinicalRecord] ?? '']));
+          this.attentionForm.patchValue({ ...saved, motivo_consulta: attention.motivo_consulta || this.appointment()?.motivo || '' });
+          this.api.getExamOrders(attention.id).subscribe({ next: (exams) => this.exams.set(exams), error: () => this.error.set('No se pudieron cargar las órdenes de examen.') });
+        }
+      },
       error: (error: { error?: { detail?: string } }) => this.error.set(error.error?.detail || 'No se pudo abrir la atención.'),
     });
   }
@@ -55,8 +63,10 @@ export class VeterinarianAttentionComponent {
     this.api.registerAttention(appointment.id, payload).pipe(
       switchMap((record) => {
         this.record.set(record);
-        const diagnosis = values.diagnostico.trim() ? this.api.addDiagnosis(record.id, { descripcion: values.diagnostico, es_principal: true }) : of(null);
-        const procedure = values.procedimientos.trim() ? this.api.addProcedure(record.id, { nombre: values.procedimientos, observaciones: values.observaciones || undefined }) : of(null);
+        const diagnosis = values.diagnostico.trim() && !record.diagnosticos.some((item) => item.descripcion === values.diagnostico.trim())
+          ? this.api.addDiagnosis(record.id, { descripcion: values.diagnostico.trim(), es_principal: true }) : of(null);
+        const procedure = values.procedimientos.trim() && !record.procedimientos_realizados.some((item) => item.nombre === values.procedimientos.trim())
+          ? this.api.addProcedure(record.id, { nombre: values.procedimientos.trim(), observaciones: values.observaciones || undefined }) : of(null);
         return forkJoin({ record: of(record), diagnosis, procedure });
       }),
       finalize(() => this.saving.set(false)),
@@ -77,7 +87,9 @@ export class VeterinarianAttentionComponent {
       this.error.set('Para laboratorio registra los datos del examen, no subas una imagen.');
       return;
     }
-    this.api.uploadClinicalImage(record.id, this.studyType, this.studyDate, file).subscribe({
+    const selectedStudy = this.examForm.controls.tipo.value;
+    const type = /ecograf/i.test(selectedStudy) ? 'Ecografía' : /radiograf|rayos/i.test(selectedStudy) ? 'Radiografía' : this.studyType;
+    this.api.uploadClinicalImage(record.id, type, this.studyDate, file).subscribe({
       next: (image) => { this.record.update((item) => item ? { ...item, archivos: [...item.archivos, image] } : item); this.notice.show('Imagen clínica cargada'); },
       error: (error: { error?: { detail?: string } }) => this.error.set(error.error?.detail || 'No se pudo cargar la imagen.'),
     });

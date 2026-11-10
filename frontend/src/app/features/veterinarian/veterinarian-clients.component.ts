@@ -1,14 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { VeterinarianClient, VeterinarianClientPayload } from './veterinarian.models';
+import { clinicalSearch, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianTableState } from './veterinarian-table';
 
 @Component({
   selector: 'app-veterinarian-clients',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink, VeterinarianIconComponent, VeterinarianPaginationComponent],
   templateUrl: './veterinarian-clients.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,18 +27,19 @@ export class VeterinarianClientsComponent {
   readonly errorMessage = signal('');
   readonly successMessage = signal('');
   readonly filteredClients = computed(() => {
-    const query = this.query().trim().toLocaleLowerCase('es');
+    const query = clinicalSearch(this.query());
     return this.clients().filter((client) =>
-      !query || `${client.nombre} ${client.correo} ${client.telefono || ''} ${client.direccion || ''}`.toLocaleLowerCase('es').includes(query),
+      !query || clinicalSearch(`${client.id} ${client.nombre} ${client.correo} ${client.telefono || ''} ${client.direccion || ''}`).includes(query),
     );
   });
+  readonly table = new VeterinarianTableState(this.filteredClients);
   readonly clientsWithPhone = computed(() => this.clients().filter((client) => !!client.telefono).length);
   readonly clientsWithAddress = computed(() => this.clients().filter((client) => !!client.direccion).length);
 
   readonly form = this.formBuilder.nonNullable.group({
     nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
     correo: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
-    telefono: ['', Validators.maxLength(30)],
+    telefono: ['', [Validators.required, Validators.minLength(9), Validators.maxLength(30)]],
     direccion: ['', Validators.maxLength(255)],
     contrasena: ['', Validators.maxLength(72)],
   });
@@ -58,6 +61,7 @@ export class VeterinarianClientsComponent {
 
   setQuery(value: string): void {
     this.query.set(value);
+    this.table.reset();
   }
 
   openCreate(): void {
@@ -90,11 +94,12 @@ export class VeterinarianClientsComponent {
   }
 
   save(): void {
+    if (this.saving()) return;
     const editing = this.editingClient();
     const password = this.form.controls.contrasena.value;
     if (this.form.invalid || (!editing && password.length < 8) || (password.length > 0 && password.length < 8)) {
       this.form.markAllAsTouched();
-      this.errorMessage.set('Revisa los campos. La contraseña debe tener entre 8 y 72 caracteres.');
+      this.errorMessage.set('Revisa nombre, correo y un número de WhatsApp válido. La contraseña debe tener entre 8 y 72 caracteres.');
       return;
     }
 

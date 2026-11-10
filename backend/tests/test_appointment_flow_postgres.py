@@ -23,7 +23,7 @@ from app.services.whatsapp_service import WhatsAppService
     or os.environ.get("DATABASE_URL") != os.environ.get("TEST_APPOINTMENT_DATABASE_URL"),
     reason="Se requiere una base PostgreSQL aislada indicada explícitamente",
 )
-def test_booking_shared_by_client_veterinarian_and_read_only_admin(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_booking_shared_by_client_veterinarian_and_admin(monkeypatch: pytest.MonkeyPatch) -> None:
     database = urlparse(os.environ["TEST_APPOINTMENT_DATABASE_URL"])
     assert database.hostname in {"localhost", "127.0.0.1", "clinica-citas-test-db"} and "test" in database.path, "Usa solo una base local aislada de pruebas"
     monkeypatch.setattr(WhatsAppService, "send_once", lambda *args, **kwargs: None)
@@ -86,7 +86,8 @@ def test_booking_shared_by_client_veterinarian_and_read_only_admin(monkeypatch: 
         assert any(item["id"] == appointment_id for item in admin_list(fecha=local_date.isoformat(), estado="pendiente_contacto"))
         assert all(item["id"] != appointment_id for item in admin_list(estado="confirmada"))
         assert all(item["id"] != appointment_id for item in admin_list(fecha=(local_date + datetime.timedelta(days=1)).isoformat()))
-        assert http.patch(f"/admin/citas/{appointment_id}", headers=headers("admin"), json={"estado": "confirmada"}).status_code in (404, 405)
+        admin_followup = http.patch(f"/admin/citas/{appointment_id}", headers=headers("admin"), json={"nota_coordinacion": "Seguimiento administrativo"})
+        assert admin_followup.status_code == 200, admin_followup.text
 
         followed = http.patch(f"/portal/veterinario/solicitudes/{appointment_id}", headers=headers("vet"), json={"estado": "contactando_cliente", "nota_coordinacion": "Llamada realizada"})
         assert followed.status_code == 200, followed.text

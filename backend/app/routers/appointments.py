@@ -18,6 +18,7 @@ from app.schemas.appointments import (
     AvailabilitySlot,
     ClinicalRecordCreate,
     ClinicalRecordRead,
+    ClinicalResultsUpdate,
     AttentionStatusUpdate,
     DiagnosisCreate,
     DiagnosisRead,
@@ -31,6 +32,8 @@ from app.schemas.appointments import (
     PreventiveApplicationCreate,
     PreventiveApplicationRead,
     VeterinarianAppointmentRead,
+    VeterinarianClinicalRecordRead,
+    VeterinarianPetRead,
     PetCreate,
     PetRead,
     VeterinarianWalkInCreate,
@@ -195,7 +198,7 @@ def get_veterinarian_clients(
     _veterinarian: CurrentVeterinarian,
     q: str | None = Query(default=None, max_length=100),
 ):
-    return UserService(db).get_clients(q)
+    return UserService(db).get_clients(q, limit=None)
 
 
 @router.post(
@@ -250,6 +253,28 @@ def start_veterinarian_walk_in(data: VeterinarianWalkInCreate, db: DbSession, ve
         raise HTTPException(status_code=404, detail="Servicio no encontrado") from exc
     except AppointmentConflictError as exc:
         raise HTTPException(status_code=409, detail="No hay un espacio inmediato; intenta nuevamente para buscar el siguiente horario disponible.") from exc
+
+
+@router.get("/veterinario/mascotas", response_model=list[VeterinarianPetRead], tags=["Portal veterinario"])
+def get_veterinarian_patients(db: DbSession, veterinarian: CurrentVeterinarian):
+    return AppointmentService(db).get_veterinarian_patients(veterinarian.id)
+
+
+@router.get("/veterinario/mascotas/{pet_id}", response_model=VeterinarianPetRead, tags=["Portal veterinario"])
+def get_veterinarian_patient(pet_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
+    patients = AppointmentService(db).get_veterinarian_patients(veterinarian.id, pet_id)
+    if not patients:
+        raise HTTPException(status_code=404, detail="Mascota no encontrada")
+    return patients[0]
+
+
+@router.get("/veterinario/atenciones", response_model=list[VeterinarianClinicalRecordRead], tags=["Portal veterinario"])
+def get_veterinarian_clinical_records(db: DbSession, veterinarian: CurrentVeterinarian):
+    records = AppointmentService(db).get_veterinarian_clinical_records(veterinarian.id)
+    result = []
+    for record in records:
+        result.append(_patient_clinical_read(record))
+    return result
 
 
 @router.patch(
@@ -427,6 +452,15 @@ def update_attention_status(process_id: int, data: AttentionStatusUpdate, db: Db
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+@router.patch("/veterinario/atenciones/{process_id}/resultados", response_model=ClinicalRecordRead, tags=["Portal veterinario"])
+def update_clinical_results(process_id: int, data: ClinicalResultsUpdate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        process = AppointmentService(db).update_clinical_results(veterinarian, process_id, data.examenes_resultados)
+        return _clinical_read(process)
+    except AppointmentNotFoundError as exc:
+        raise _clinical_not_found(exc) from exc
+
+
 @router.post("/veterinario/atenciones/{process_id}/diagnosticos", response_model=DiagnosisRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
 def add_diagnosis(process_id: int, data: DiagnosisCreate, db: DbSession, veterinarian: CurrentVeterinarian):
     try:
@@ -529,7 +563,7 @@ def mark_notification_read(notification_id: int, db: DbSession, user: CurrentUse
 def _clinical_read(process):
     medical = process.proceso_medico
     ficha = medical.ficha_clinica if medical else None
-    veterinarian = medical.veterinario if medical else None
+    veterinarian = medical.veterinario if medical else (process.cita.veterinario if process.cita else None)
     return ClinicalRecordRead(
         id=process.id,
         cita_id=process.cita_id,
@@ -539,7 +573,7 @@ def _clinical_read(process):
         fecha_fin=process.fecha_fin,
         estado=process.estado.value,
         fecha_cierre=process.fecha_cierre,
-        observaciones=process.observaciones,
+        observaciones=process.observaciones or (process.proceso_estetica.notas_especiales_estilista if process.proceso_estetica else None),
         motivo_consulta=process.motivo_consulta,
         anamnesis=process.anamnesis,
         diagnostico=medical.diagnostico if medical else None,
@@ -557,4 +591,18 @@ def _clinical_read(process):
         veterinario_nombre=veterinarian.usuario.nombre if veterinarian else "",
         servicio_nombre=process.cita.servicio.nombre if process.cita else "Ficha inicial",
         archivos=[{"id": item.id, "tipo_examen": item.tipo_examen, "archivo_ruta": item.archivo_ruta, "fecha_estudio": item.fecha_estudio} for item in (ficha.examenes if ficha else [])],
+        diagnosticos=[{"id": item.id, "proceso_id": item.proceso_id, "descripcion": item.descripcion, "codigo": item.codigo, "es_principal": item.es_principal, "observaciones": item.observaciones} for item in process.diagnosticos],
+        ordenes_examen=[{"id": item.id, "proceso_id": item.proceso_id, "veterinario_id": item.veterinario_id, "tipo": item.tipo, "prioridad": item.prioridad.value, "estado": item.estado.value, "resultado": item.resultado, "interpretacion": item.interpretacion, "revisado_por": item.revisado_por, "revisado_en": item.revisado_en, "fecha_solicitud": item.fecha_solicitud} for item in process.ordenes_examen],
+        receta={"id": process.receta.id, "proceso_id": process.receta.proceso_id, "veterinario_id": process.receta.veterinario_id, "indicaciones_generales": process.receta.indicaciones_generales, "fecha_emision": process.receta.fecha_emision, "detalles": [{"id": detail.id, "receta_id": detail.receta_id, "medicamento": detail.medicamento, "presentacion": detail.presentacion, "dosis": detail.dosis, "unidad": detail.unidad, "via": detail.via, "frecuencia": detail.frecuencia, "duracion": detail.duracion, "cantidad": detail.cantidad, "indicaciones": detail.indicaciones} for detail in process.receta.detalles]} if process.receta else None,
+        procedimientos_realizados=[{"id": item.id, "proceso_id": item.proceso_id, "veterinario_id": item.veterinario_id, "nombre": item.nombre, "fecha_realizacion": item.fecha_realizacion, "medicamentos_materiales": item.medicamentos_materiales, "observaciones": item.observaciones} for item in process.procedimientos_realizados],
+        aplicaciones_preventivas=[{"id": item.id, "proceso_id": item.proceso_id, "veterinario_id": item.veterinario_id, "tipo": item.tipo.value, "producto": item.producto, "lote": item.lote, "fecha_vencimiento": item.fecha_vencimiento, "fecha_aplicacion": item.fecha_aplicacion, "proxima_fecha": item.proxima_fecha, "observaciones": item.observaciones} for item in process.aplicaciones_preventivas],
+    )
+
+
+def _patient_clinical_read(process):
+    owner = process.mascota.cliente.usuario
+    return VeterinarianClinicalRecordRead(
+        **_clinical_read(process).model_dump(), mascota=PetRead.model_validate(process.mascota),
+        cliente_id=owner.id, cliente_nombre=owner.nombre, cliente_correo=owner.correo,
+        telefono_contacto=process.mascota.cliente.telefono,
     )

@@ -1,10 +1,13 @@
 .dashboard-hero { position: relative; display: flex; min-height: 13rem; align-items: center; justify-content: space-between; gap: 2rem; overflow: hidden; border-radius: 1.6rem; padding: clamp(1.5rem, 4vw, 2.5rem); background: linear-gradient(125deg, #030712 0%, #111827 58%, #263244 100%); box-shadow: 0 22px 55px rgb(3 7 18 / 24%); }
 .hero-pulse { align-items: center; gap: .8rem; min-width: 15rem; border: 1px solid rgb(255 255 255 / 14%); border-radius: 1.1rem; padding: 1rem; background: rgb(3 48 45 / 30%); backdrop-filter: blur(10px); }
 .pulse-icon { display: grid; width: 2.8rem; height: 2.8rem; flex: 0 0 auto; place-items: center; border-radius: .9rem; color: #56c4d8; background: rgb(86 196 216 / 14%); }
-.admin-panel h2 { margin-top: .15rem; color: #111827; font-size: 1rem; font-weight: 800; letter-spacing: -.015em; }
-.admin-panel h2 + p { margin-top: .2rem; color: #718582; font-size: .75rem; }
-.panel-kicker { color: #168ba1; font-size: .65rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-.panel-link { border-radius: .65rem; padding: .4rem .6rem; color: #168ba1; font-size: .7rem; font-weight: 800; transition: background .2s; }
+.admin-panel { min-width: 0; }
+.admin-panel > .flex { flex-wrap: wrap; gap: .75rem; }
+.admin-panel > .flex > div { min-width: 0; flex: 1 1 12rem; }
+.admin-panel h2 { margin-top: .15rem; color: var(--panel-heading, #111827); font-size: 1rem; font-weight: 700; letter-spacing: -.015em; }
+.admin-panel h2 + p { margin-top: .35rem; color: var(--panel-caption, #718582); font-size: .875rem; line-height: 1.6; }
+.panel-kicker { color: #168ba1; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.panel-link { flex-shrink: 0; border-radius: .65rem; padding: .4rem .6rem; color: #168ba1; font-size: .8125rem; font-weight: 600; white-space: nowrap; transition: background .2s; }
 .panel-link:hover { background: #eaf8fb; }
 .chart { border-bottom: 1px solid #dce8e5; background-image: linear-gradient(to top, #edf4f2 1px, transparent 1px); background-size: 100% 25%; }
 .bar { min-height: 12px; background: linear-gradient(180deg, #8bd7e5 0%, #56c4d8 55%, #111827 100%); box-shadow: 0 5px 12px rgb(86 196 216 / 22%); transition: height .45s ease, filter .2s; }
