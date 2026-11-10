@@ -1,0 +1,57 @@
+:host { display: block; position: sticky; top: 0; z-index: 30; }
+.panel-topbar { display: flex; height: 5rem; min-width: 0; align-items: center; gap: .75rem; border-bottom: 1px solid var(--admin-border); background: rgb(255 255 255 / 84%); padding-inline: clamp(1rem, 3vw, 2rem); box-shadow: 0 8px 30px rgb(17 24 39 / 5%); backdrop-filter: blur(18px); }
+.header-button { display: grid; flex: 0 0 auto; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid var(--admin-border); border-radius: .9rem; color: var(--admin-muted); background: rgb(255 255 255 / 82%); cursor: pointer; transition: border-color .2s, background-color .2s, color .2s; }
+.header-button:hover { border-color: var(--brand-turquoise); color: var(--admin-text); background: var(--brand-soft); }
+svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.panel-heading { flex: 1 1 auto; min-width: 0; }
+.panel-title { overflow: hidden; color: var(--panel-accent, var(--brand-action)); font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.panel-date { overflow: hidden; color: var(--admin-muted); font-size: .9375rem; font-weight: 600; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.panel-actions { display: flex; flex: 0 0 auto; align-items: center; gap: .5rem; margin-left: auto; }
+.panel-menu { position: relative; }
+.panel-bell { position: relative; }
+.panel-badge { position: absolute; top: -.3rem; right: -.3rem; display: grid; min-width: 1.25rem; height: 1.25rem; place-items: center; border: 2px solid var(--admin-surface); border-radius: 999px; background: #e11d48; padding-inline: .2rem; color: white; font-size: .625rem; font-weight: 800; }
+.panel-divider { width: 1px; height: 2rem; margin-inline: .25rem; background: var(--admin-border); }
+.panel-profile-button { display: flex; align-items: center; gap: .5rem; border-radius: 1rem; padding: .375rem .5rem .375rem .375rem; text-align: left; cursor: pointer; }
+.panel-profile-button:hover { background: rgb(var(--brand-turquoise-rgb) / 8%); }
+.panel-avatar { display: grid; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: .75rem; background: linear-gradient(135deg, #56c4d8, #168ba1); color: #111827; font-size: .875rem; font-weight: 800; box-shadow: 0 4px 8px rgb(var(--brand-ink-rgb) / 10%); }
+.panel-user b, .panel-user small { display: block; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-user b { color: var(--admin-text); font-size: .8125rem; font-weight: 700; }
+.panel-user small { margin-top: .15rem; color: var(--admin-muted); font-size: .75rem; font-weight: 500; }
+.panel-chevron { width: 1rem; height: 1rem; color: var(--admin-muted); }
+.panel-dropdown { position: absolute; top: calc(100% + .7rem); right: 0; max-width: calc(100vw - 1.5rem); overflow: hidden; border: 1px solid var(--admin-border); border-radius: 1rem; background: var(--admin-surface); color: var(--admin-text); box-shadow: 0 20px 55px rgb(var(--brand-ink-rgb) / 18%); animation: panel-dropdown-in .16s ease-out; }
+.panel-notifications { width: 23rem; }
+.panel-dropdown-heading { display: flex; align-items: start; justify-content: space-between; gap: .75rem; border-bottom: 1px solid var(--admin-border); padding: 1rem; }
+.panel-dropdown-heading h2 { font-size: .9375rem; font-weight: 800; }
+.panel-dropdown-heading p, .panel-profile-heading > p:not(:first-child) { margin-top: .25rem; color: var(--admin-muted); font-size: .75rem; }
+.panel-unread { flex-shrink: 0; border-radius: 999px; background: rgb(var(--brand-turquoise-rgb) / 12%); padding: .25rem .5rem; color: var(--panel-accent, var(--brand-action)); font-size: .75rem; font-weight: 700; }
+.panel-notification-list { max-height: min(25rem, calc(100dvh - 16rem)); overflow-y: auto; overscroll-behavior: contain; }
+.panel-notification { border-bottom: 1px solid var(--admin-border); padding: .9rem 1rem; }
+.panel-notification:last-child { border-bottom: 0; }
+.panel-notification-unread { border-left: 3px solid var(--brand-turquoise); background: rgb(var(--brand-turquoise-rgb) / 5%); }
+.panel-notification-title { overflow-wrap: anywhere; font-size: .875rem; font-weight: 700; }
+.panel-notification-message { margin-top: .3rem; color: var(--admin-muted); font-size: .8125rem; line-height: 1.55; overflow-wrap: anywhere; }
+.panel-notification-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .65rem; color: var(--admin-muted); font-size: .75rem; }
+.panel-link { color: var(--panel-accent, var(--brand-action)); font-size: .75rem; font-weight: 700; text-align: left; cursor: pointer; }
+.panel-link:hover { text-decoration: underline; }
+.panel-link:disabled { cursor: wait; opacity: .6; }
+.panel-notification-state { display: grid; gap: .6rem; padding: 1.25rem 1rem; color: var(--admin-muted); font-size: .8125rem; }
+.panel-dropdown-footer { display: block; border-top: 1px solid var(--admin-border); padding: .85rem 1rem; color: var(--panel-accent, var(--brand-action)); font-size: .8125rem; font-weight: 700; text-align: center; }
+.panel-dropdown-footer:hover { background: rgb(var(--brand-turquoise-rgb) / 8%); }
+.panel-profile { width: 17rem; padding: .5rem; }
+.panel-profile-heading { margin-bottom: .25rem; border-bottom: 1px solid var(--admin-border); padding: .5rem .75rem .75rem; }
+.panel-profile-email { overflow-wrap: anywhere; }
+.panel-profile-link { display: flex; width: 100%; min-height: 2.75rem; align-items: center; gap: .5rem; border-radius: .75rem; padding: .625rem .75rem; font-size: .875rem; font-weight: 500; text-align: left; cursor: pointer; }
+.panel-profile-link:hover { background: rgb(var(--brand-turquoise-rgb) / 8%); }
+.panel-logout { color: var(--admin-error); font-weight: 700; }
+.panel-logout svg { width: 1rem; height: 1rem; }
+@keyframes panel-dropdown-in { from { opacity: 0; transform: translateY(-6px); } }
+@media (max-width: 639px) {
+  .panel-topbar { gap: .5rem; padding-inline: .75rem; }
+  .panel-date { font-size: .75rem; }
+  .panel-actions { gap: .375rem; }
+  .panel-divider, .panel-user, .panel-chevron { display: none; }
+  .panel-profile-button { padding: .25rem; }
+  .panel-dropdown { position: fixed; top: 5.5rem; right: .75rem; }
+  .panel-notifications { left: .75rem; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .header-button { transition: none; } .panel-dropdown { animation: none; } }

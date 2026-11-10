@@ -1,0 +1,71 @@
+<header class="topbar panel-topbar" [attr.aria-label]="panel().title">
+  <button type="button" class="header-button" [attr.aria-label]="menuLabel()" [attr.title]="menuLabel()" [attr.aria-controls]="navigationId()" [attr.aria-expanded]="navigationExpanded()" (click)="toggleNavigation()">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+  </button>
+  <div class="panel-heading">
+    <p class="panel-title">{{ panel().title }}</p>
+    <p class="panel-date">{{ today }}</p>
+  </div>
+
+  <div class="panel-actions">
+    <app-theme-toggle />
+    <div class="panel-menu">
+      <button #notificationButton type="button" class="header-button panel-bell" [attr.aria-label]="'Notificaciones de ' + panel().roleName.toLowerCase() + ': ' + unread() + ' sin leer'" [attr.aria-controls]="notificationsId()" [attr.aria-expanded]="notificationOpen()" title="Notificaciones" (click)="toggleNotifications()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+        @if (unread()) { <span class="panel-badge" aria-hidden="true">{{ unread() > 99 ? '99+' : unread() }}</span> }
+      </button>
+      @if (notificationOpen()) {
+        <section [id]="notificationsId()" class="panel-dropdown panel-notifications" aria-label="Notificaciones recientes" [attr.aria-busy]="notificationsLoading()">
+          <div class="panel-dropdown-heading">
+            <div><h2>Notificaciones</h2><p>{{ panel().notifications }}</p></div>
+            <span class="panel-unread">{{ unread() }} nuevas</span>
+          </div>
+          <div class="panel-notification-list">
+            @if (notificationError()) {
+              <div class="panel-notification-state" role="alert"><p>{{ notificationError() }}</p><button type="button" class="panel-link" [disabled]="notificationsLoading()" (click)="refreshNotifications()">Volver a cargar</button></div>
+            }
+            @if (notificationsLoading()) {
+              <p class="panel-notification-state" role="status">Cargando notificaciones…</p>
+            } @else {
+              @for (note of notifications(); track note.id) {
+                <article class="panel-notification" [class.panel-notification-unread]="!note.leida">
+                  <p class="panel-notification-title">{{ note.titulo }}</p>
+                  <p class="panel-notification-message">{{ note.mensaje }}</p>
+                  <div class="panel-notification-meta">
+                    <time [attr.datetime]="note.fecha_creacion">{{ notificationDate(note.fecha_creacion) }}</time>
+                    @if (!note.leida) {
+                      <button type="button" class="panel-link" [disabled]="markingRead() !== null" [attr.aria-label]="'Marcar como leída: ' + note.titulo" (click)="markAsRead(note)">{{ markingRead() === note.id ? 'Guardando…' : 'Marcar leída' }}</button>
+                    } @else { <span>Leída</span> }
+                  </div>
+                </article>
+              } @empty {
+                @if (!notificationError()) { <p class="panel-notification-state">No tienes notificaciones.</p> }
+              }
+            }
+          </div>
+          <a [routerLink]="panel().home" class="panel-dropdown-footer" (click)="closeDropdowns()">{{ panel().homeLabel }}</a>
+        </section>
+      }
+    </div>
+
+    <span class="panel-divider" aria-hidden="true"></span>
+    <div class="panel-menu">
+      <button #profileButton type="button" class="panel-profile-button" [attr.aria-label]="'Menú de usuario: ' + userName() + ', ' + panel().roleName" [attr.aria-controls]="profileId()" [attr.aria-expanded]="profileOpen()" (click)="toggleProfile()">
+        <span class="panel-avatar" aria-hidden="true">{{ userInitials() }}</span>
+        <span class="panel-user"><b>{{ userName() }}</b><small>{{ panel().roleName }}</small></span>
+        <svg class="panel-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+      </button>
+      @if (profileOpen()) {
+        <section [id]="profileId()" class="panel-dropdown panel-profile" aria-label="Opciones de tu sesión">
+          <div class="panel-profile-heading"><p class="panel-notification-title">{{ userName() }}</p><p>{{ panel().session }}</p>@if (userEmail()) { <p class="panel-profile-email">{{ userEmail() }}</p> }</div>
+          <nav aria-label="Accesos de tu rol">
+            @for (link of panel().links; track link.path) { <a [routerLink]="link.path" class="panel-profile-link" (click)="closeDropdowns()">{{ link.label }}</a> }
+          </nav>
+          <button type="button" class="panel-profile-link panel-logout" (click)="logout()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></svg>Cerrar sesión
+          </button>
+        </section>
+      }
+    </div>
+  </div>
+</header>
