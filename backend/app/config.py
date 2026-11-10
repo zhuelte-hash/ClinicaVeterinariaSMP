@@ -1,6 +1,8 @@
 from functools import lru_cache
+from decimal import Decimal
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,14 @@ class Settings(BaseSettings):
     whatsapp_access_token: str | None = None
     whatsapp_template_confirmed: str | None = None
     whatsapp_template_no_show: str | None = None
+    purchase_whatsapp_number: str = ""
+    purchase_delivery_cost: Decimal = Field(default=Decimal("10.00"), ge=0, max_digits=12, decimal_places=2)
+    purchase_yape_holder: str = ""
+    purchase_yape_phone: str = ""
+    purchase_yape_qr_url: str = ""
+    purchase_plin_holder: str = ""
+    purchase_plin_phone: str = ""
+    purchase_plin_qr_url: str = ""
 
 @lru_cache
 def get_settings() -> Settings:

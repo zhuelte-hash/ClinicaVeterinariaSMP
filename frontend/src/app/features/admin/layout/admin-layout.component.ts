@@ -20,6 +20,7 @@ export class AdminLayoutComponent {
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly today = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   readonly navItems: NavItem[] = [
+    { label: 'Pedidos web', path: 'pedidos-web', icon: 'sale' },
     { label: 'Dashboard', path: 'dashboard', icon: 'grid' }, { label: 'Productos', path: 'productos', icon: 'box' },
     { label: 'Inventario', path: 'inventario', icon: 'stock' }, { label: 'Categorías', path: 'categorias', icon: 'tag' },
     { label: 'Citas', path: 'citas', icon: 'calendar' }, { label: 'Ventas', path: 'ventas', icon: 'sale' },

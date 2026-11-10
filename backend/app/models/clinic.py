@@ -783,6 +783,7 @@ class OrdenCobro(Base):
         nullable=True,
     )
     cliente_dni: Mapped[str | None] = mapped_column(String(8))
+    costo_delivery: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
     caja_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(f"{SCHEMA}.cajas.id", ondelete="RESTRICT"),

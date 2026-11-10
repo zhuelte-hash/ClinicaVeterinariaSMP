@@ -5,6 +5,7 @@ export const CASHIER_ROUTES: Routes = [{
   path: '',
   component: CashierLayoutComponent,
   children: [
+    { path: 'pedidos-web', title: 'Pedidos web | Clínica SMP', loadComponent: () => import('../purchase/purchase-orders.component').then(m => m.PurchaseOrdersComponent) },
     { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     {
       path: 'dashboard',

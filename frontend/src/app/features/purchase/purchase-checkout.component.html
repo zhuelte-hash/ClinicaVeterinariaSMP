@@ -38,6 +38,7 @@
                 <input type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com" />
                 @if (hasError(checkoutForm.controls.email)) { <small>Ingresa un correo válido.</small> }
               </label>
+              <label class="field sm:col-span-2"><span>Observaciones</span><textarea formControlName="observations" maxlength="1000" class="rounded-xl border border-slate-200 p-3"></textarea></label>
             </div>
 
             <fieldset class="mt-7">
@@ -112,9 +113,9 @@
 
             <div class="mt-7 grid gap-4 sm:grid-cols-2">
               @for (method of paymentMethods; track method) {
-                <button type="button" (click)="selectPayment(method)" class="payment-card" [class.selected]="paymentMethod() === method" [attr.aria-pressed]="paymentMethod() === method">
+                <button type="button" (click)="selectPayment(method)" [disabled]="!config().payment[method].enabled" class="payment-card disabled:opacity-50" [class.selected]="paymentMethod() === method" [attr.aria-pressed]="paymentMethod() === method">
                   <span class="payment-mark" [class.yape]="method === 'Yape'" [class.plin]="method === 'Plin'">{{ method.charAt(0) }}</span>
-                  <span><strong>{{ method }}</strong><small>Pago desde tu aplicación</small></span>
+                  <span><strong>{{ method }}</strong><small>{{ config().payment[method].enabled ? 'Pago desde tu aplicación' : 'Pendiente de configuración' }}</small></span>
                   <span class="check">✓</span>
                 </button>
               }
@@ -141,6 +142,7 @@
                     <div><dt>Celular</dt><dd>{{ paymentConfig()?.phone }}</dd></div>
                   </dl>
                   <p class="mt-5 inline-flex rounded-full bg-[#E0A71A]/15 px-3 py-1.5 text-xs font-extrabold text-[#521B32]">Pago pendiente de validación</p>
+                  <p class="mt-3 text-sm">{{ paymentConfig()?.instructions }}</p>
                 </div>
               </div>
 
@@ -156,7 +158,7 @@
                   @if (!proofFile()) {
                     <button type="button" (click)="proofInput.click()" class="upload-button">Subir JPG, PNG o PDF</button>
                   } @else {
-                    <div class="file-chip"><span class="min-w-0 flex-1 truncate">{{ proofFile()!.name }}</span><button type="button" (click)="removeProof()" aria-label="Eliminar comprobante">Eliminar</button></div>
+                    <div class="file-chip"><span class="min-w-0 flex-1 truncate">{{ proofFile()!.name }} ({{ (proofFile()!.size / 1024).toFixed(1) }} KB)</span><button type="button" (click)="proofInput.click()">Cambiar</button><button type="button" (click)="removeProof()" aria-label="Eliminar comprobante">Eliminar</button></div>
                   }
                   @if (fileError()) { <small class="mt-1 block text-xs font-semibold text-red-700">{{ fileError() }}</small> }
                   @if (submitted() && !proofFile()) { <small class="mt-1 block text-xs font-semibold text-red-700">Adjunta el comprobante para continuar.</small> }
@@ -186,13 +188,15 @@
           <a routerLink="/carrito" class="mt-4 inline-flex text-xs font-extrabold text-[#1A98A2] hover:underline">Editar productos y cantidades</a>
 
           <dl class="mt-6 space-y-3 border-t border-slate-200 pt-5 text-sm">
-            <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-bold">S/ {{ subtotal().toFixed(2) }}</dd></div>
+             <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-bold">S/ {{ subtotal().toFixed(2) }}</dd></div>
+             <div class="flex justify-between"><dt class="text-slate-500">Descuento</dt><dd class="font-bold">S/ 0.00</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Delivery</dt><dd class="font-bold">S/ {{ deliveryCost().toFixed(2) }}</dd></div>
             <div class="flex justify-between border-t border-dashed border-slate-200 pt-4 text-lg"><dt class="font-black text-[#1A1E27]">Total</dt><dd class="font-black text-[#521B32]">S/ {{ total().toFixed(2) }}</dd></div>
           </dl>
 
-           <button type="submit" [disabled]="catalog.loading() || !!catalog.error()" class="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[#1A1E27] px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#1A98A2] disabled:opacity-50">
-            Confirmar y enviar comprobante
+           @if (fileError()) { <p role="alert" class="mt-4 text-sm font-bold text-rose-700">{{ fileError() }}</p> }
+           <button type="submit" [disabled]="sending() || !configLoaded() || !paymentConfig()?.enabled || catalog.loading() || !!catalog.error()" class="mt-6 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-[#1A1E27] px-6 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-[#1A98A2] disabled:opacity-50">
+             {{ sending() ? 'Registrando pedido…' : 'Registrar pedido y enviar comprobante' }}
           </button>
           <p class="mt-4 text-center text-xs leading-5 text-slate-500">No se realizará ningún cobro automático. Caja validará el comprobante posteriormente.</p>
         </aside>

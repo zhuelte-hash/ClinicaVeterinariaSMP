@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { cashierGuard } from './core/guards/cashier.guard';
-import { purchaseGuard } from './core/guards/purchase.guard';
+import { clientGuard } from './core/guards/client.guard';
 import { veterinarianGuard } from './core/guards/veterinarian.guard';
 
 export const routes: Routes = [
@@ -51,14 +51,19 @@ export const routes: Routes = [
       import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'mis-compras',
+    canActivate: [clientGuard],
+    loadComponent: () => import('./features/purchase/purchase-orders.component').then(m => m.PurchaseOrdersComponent),
+  },
+  {
     path: 'checkout',
-    canActivate: [purchaseGuard],
+    canActivate: [clientGuard],
     loadComponent: () =>
       import('./features/purchase/purchase-checkout.component').then((m) => m.PurchaseCheckoutComponent),
   },
   {
     path: 'compra/confirmacion',
-    canActivate: [purchaseGuard],
+    canActivate: [clientGuard],
     loadComponent: () =>
       import('./features/purchase/purchase-confirmation.component').then((m) => m.PurchaseConfirmationComponent),
   },

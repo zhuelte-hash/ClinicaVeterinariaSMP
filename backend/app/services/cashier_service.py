@@ -291,7 +291,9 @@ class CashierService:
             self.db.rollback()
             raise
 
-    def _create_sale(self, cashier: Usuario, data: VentaCreate) -> BoletaRead:
+    def _create_sale(self, cashier: Usuario, data: VentaCreate, *, commit: bool = True,
+                     costo_delivery: Decimal = Decimal("0.00"),
+                     expected_prices: dict[int, Decimal] | None = None) -> BoletaRead:
         if data.clave_idempotencia:
             previous = self.db.scalar(select(OrdenCobro).where(OrdenCobro.clave_idempotencia == data.clave_idempotencia))
             if previous is not None:
@@ -338,6 +340,7 @@ class CashierService:
                 .where(Producto.id.in_(quantities), Producto.activo)
                 .order_by(Producto.id)
                 .with_for_update()
+                .execution_options(populate_existing=True)
             ).all()
         )
         if len(products) != len(quantities):
@@ -355,6 +358,8 @@ class CashierService:
         details: list[DetalleOrdenCobro] = []
         for product_id, quantity in quantities.items():
             product = product_by_id[product_id]
+            if expected_prices is not None and product.precio_venta != expected_prices.get(product_id):
+                raise VentaInvalidaError("El precio de un producto cambió. Rechaza el pedido y coordina con el cliente")
             if product.stock_actual < quantity:
                 raise StockInsuficienteError
             subtotal = (product.precio_venta * quantity).quantize(
@@ -386,6 +391,7 @@ class CashierService:
                 )
             )
 
+        total += costo_delivery
         if data.descuento > total:
             raise VentaInvalidaError("El descuento supera el importe de la venta")
         total = (total - data.descuento).quantize(Decimal("0.01"))
@@ -409,6 +415,7 @@ class CashierService:
             cajero_id=cashier.id,
             cliente_id=client.usuario_id if client else None,
             cliente_dni=data.cliente_dni,
+            costo_delivery=costo_delivery,
             proceso_atencion_id=data.proceso_atencion_id,
             caja_id=register.id,
             monto_total=total,
@@ -432,6 +439,9 @@ class CashierService:
         )
         self.db.add(receipt)
         register.total_ingresos_validados += total
+        if not commit:
+            self.db.flush()
+            return self.get_receipt(cashier.id, order.id)
         try:
             self.db.commit()
         except IntegrityError as exc:
@@ -481,6 +491,7 @@ class CashierService:
         if order is None or order.comprobante_venta is None:
             raise VentaNoEncontradaError
         return BoletaRead(
+            costo_delivery=order.costo_delivery,
             orden_id=order.id,
             codigo_orden=order.codigo_orden,
             serie_correlativo=order.comprobante_venta.serie_correlativo,

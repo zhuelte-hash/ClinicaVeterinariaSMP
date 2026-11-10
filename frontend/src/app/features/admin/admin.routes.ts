@@ -3,6 +3,7 @@ import { AdminLayoutComponent } from './layout/admin-layout.component';
 
 export const ADMIN_ROUTES: Routes = [{
   path: '', component: AdminLayoutComponent, children: [
+    { path: 'pedidos-web', title: 'Pedidos web | Clínica SMP', loadComponent: () => import('../purchase/purchase-orders.component').then(m => m.PurchaseOrdersComponent) },
     { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     { path: 'dashboard', title: 'Dashboard | Clinica SMP', loadComponent: () => import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent) },
     { path: 'productos', title: 'Productos | Clinica SMP', loadComponent: () => import('./pages/productos/productos.component').then((m) => m.ProductosComponent) },

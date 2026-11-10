@@ -19,6 +19,7 @@ import { AuthService } from '../../core/auth/auth.service';
           </div>
         </div>
         <nav class="flex-1 p-4" aria-label="Navegacion de caja">
+          <a routerLink="pedidos-web" routerLinkActive="active" (click)="drawerOpen.set(false)" class="nav-link mt-2 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold">Pedidos web / Pagos pendientes</a>
           <a routerLink="dashboard" routerLinkActive="active" (click)="drawerOpen.set(false)" class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13h6V4H4v9Zm0 7h6v-3H4v3Zm10 0h6v-9h-6v9Zm0-13h6V4h-6v3Z"/></svg>
             Resumen de caja

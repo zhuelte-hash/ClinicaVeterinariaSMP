@@ -10,9 +10,10 @@ import {
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { PURCHASE_CONFIG } from '../../core/config/purchase.config';
-import { DatosCliente, MetodoPago, PedidoTemporal } from '../../core/models/purchase.model';
+import { DatosCliente, MetodoPago } from '../../core/models/purchase.model';
 import { LocalPurchaseService } from '../../core/services/local-purchase.service';
-import { VisualSessionService } from '../../core/services/visual-session.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { finalize } from 'rxjs';
 import { CartService } from '../../services/cart.service';
 import { PublicProductsService } from '../../core/services/public-products.service';
 
@@ -31,10 +32,16 @@ export class PurchaseCheckoutComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly purchases = inject(LocalPurchaseService);
-  private readonly session = inject(VisualSessionService);
+  private readonly session = inject(AuthService);
   readonly cart = inject(CartService);
   readonly catalog = inject(PublicProductsService);
-  constructor() { this.catalog.load(); }
+  constructor() {
+    this.catalog.load();
+    this.purchases.configuration().subscribe({
+      next: config => { this.config.set(config); this.configLoaded.set(true); },
+      error: () => this.fileError.set('No se pudo cargar la configuración de pagos. Recarga la página.'),
+    });
+  }
   private readonly proofInput = viewChild<ElementRef<HTMLInputElement>>('proofInput');
 
   readonly items = this.cart.items;
@@ -42,9 +49,14 @@ export class PurchaseCheckoutComponent {
   readonly receiptType = signal<ReceiptOption>('boleta');
   readonly paymentMethod = signal<MetodoPago | null>(null);
   readonly paymentMethods: MetodoPago[] = ['Yape', 'Plin'];
+  readonly config = signal(PURCHASE_CONFIG);
+  readonly configLoaded = signal(false);
+  readonly sending = signal(false);
+  private requestKey: string = crypto.randomUUID();
+  private requestHash = '';
   readonly paymentConfig = computed(() => {
     const method = this.paymentMethod();
-    return method ? PURCHASE_CONFIG.payment[method] : null;
+    return method ? this.config().payment[method] : null;
   });
   readonly proofFile = signal<File | null>(null);
   readonly proofPreview = signal<string | null>(null);
@@ -52,17 +64,18 @@ export class PurchaseCheckoutComponent {
   readonly submitted = signal(false);
   readonly subtotal = this.cart.total;
   readonly deliveryCost = computed(() =>
-    this.deliveryType() === 'delivery' ? PURCHASE_CONFIG.deliveryCost : 0,
+    this.deliveryType() === 'delivery' ? Number(this.config().deliveryCost) : 0,
   );
   readonly total = computed(() => this.subtotal() + this.deliveryCost());
 
   readonly checkoutForm = this.formBuilder.nonNullable.group({
     fullName: [
-      this.session.user()?.nombre === 'Cliente' ? '' : (this.session.user()?.nombre ?? ''),
+      this.session.currentUser()?.nombre ?? '',
       [Validators.required, Validators.minLength(3), Validators.pattern(/\S/)],
     ],
-    phone: ['', [Validators.required, Validators.pattern(/^\d{9,15}$/)]],
-    email: [this.session.user()?.email ?? '', Validators.email],
+    phone: [this.session.currentUser()?.telefono ?? '', [Validators.required, Validators.pattern(/^\d{9,15}$/)]],
+    email: [this.session.currentUser()?.correo ?? '', Validators.email],
+    observations: [''],
     delivery: ['pickup' as DeliveryOption, Validators.required],
     address: [''],
     reference: [''],
@@ -111,6 +124,7 @@ export class PurchaseCheckoutComponent {
   }
 
   selectPayment(method: MetodoPago): void {
+    if (!this.config().payment[method].enabled) return;
     this.paymentMethod.set(method);
   }
 
@@ -124,7 +138,7 @@ export class PurchaseCheckoutComponent {
       this.removeProof();
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > this.config().maxProofBytes) {
       this.fileError.set('El archivo no debe superar los 5 MB.');
       this.removeProof();
       return;
@@ -153,7 +167,8 @@ export class PurchaseCheckoutComponent {
     return control.invalid && (control.touched || this.submitted());
   }
 
-  submitOrder(): void {
+  async submitOrder(): Promise<void> {
+    if (this.sending()) return;
     this.submitted.set(true);
     this.checkoutForm.markAllAsTouched();
     const items = this.items();
@@ -168,6 +183,8 @@ export class PurchaseCheckoutComponent {
       || hasInvalidQuantity
       || this.catalog.loading()
       || !!this.catalog.error()
+      || !this.configLoaded()
+      || !this.paymentConfig()?.enabled
     ) {
       return;
     }
@@ -185,30 +202,48 @@ export class PurchaseCheckoutComponent {
       ruc: values.ruc.trim(),
       razonSocial: values.businessName.trim(),
     };
-    const order: PedidoTemporal = {
-      codigo: this.purchases.createOrderCode(),
-      fechaIso: new Date().toISOString(),
+    const order = {
+      clave_idempotencia: this.requestKey,
       cliente: customer,
       items: items.map((item) => ({
-        id: item.id,
-        name: item.nombre,
-        price: item.precio,
-        stock: item.stock,
-        image: item.imagen,
-        imageAlt: item.imageAlt,
+        producto_id: Number(item.id),
         cantidad: item.cantidad,
-        subtotal: item.precio * item.cantidad,
       })),
-      subtotal: this.subtotal(),
-      costoDelivery: this.deliveryCost(),
-      total: this.total(),
-      metodoPago: this.paymentMethod()!,
-      numeroOperacion: values.operationNumber.trim(),
-      comprobanteNombre: this.proofFile()!.name,
-      estadoPago: 'Pago pendiente de validación',
+      total_esperado: this.total().toFixed(2),
+      metodo_pago: this.paymentMethod()!.toLowerCase(),
+      numero_operacion: values.operationNumber.trim(),
+      observaciones: values.observations.trim(),
     };
-    this.purchases.saveOrder(order);
-    this.cart.clear();
-    void this.router.navigate(['/compra/confirmacion']);
+    const file = this.proofFile()!;
+    this.sending.set(true);
+    this.fileError.set('');
+    // Solo se conserva la clave de reintento y una huella, nunca el pedido ni el
+    // archivo. Así un error de red o una recarga no duplica una solicitud idéntica.
+    try {
+      const fileHash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+      const bytes = new TextEncoder().encode(JSON.stringify({ ...order, clave_idempotencia: '',
+        user: this.session.currentUser()?.id, proof: Array.from(new Uint8Array(fileHash)) }));
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const hash = Array.from(new Uint8Array(digest)).map(value => value.toString(16).padStart(2, '0')).join('');
+      if (this.requestHash !== hash) this.requestKey = crypto.randomUUID();
+      this.requestHash = hash;
+      const storageKey = `purchase_retry_${hash}`;
+      try {
+        this.requestKey = sessionStorage.getItem(storageKey) || this.requestKey;
+        sessionStorage.setItem(storageKey, this.requestKey);
+      } catch { /* La API sigue protegiendo los reintentos de esta sesión. */ }
+      order.clave_idempotencia = this.requestKey;
+    } catch {
+      this.sending.set(false);
+      this.fileError.set('No se pudo preparar el comprobante. Utiliza HTTPS o localhost y vuelve a intentarlo.');
+      return;
+    }
+    this.purchases.create(order, file).pipe(finalize(() => this.sending.set(false))).subscribe({
+      next: saved => {
+        this.cart.clear();
+        void this.router.navigate(['/compra/confirmacion'], { queryParams: { pedido: saved.id } });
+      },
+      error: error => this.fileError.set(typeof error.error?.detail === 'string' ? error.error.detail : 'No se pudo registrar el pedido. Puedes reintentar sin duplicarlo.'),
+    });
   }
 }

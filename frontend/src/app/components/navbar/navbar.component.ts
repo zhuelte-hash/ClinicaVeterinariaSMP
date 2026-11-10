@@ -125,6 +125,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                 </div>
               }
             </div>
+            <a routerLink="/mis-compras" routerLinkActive="active" class="nav-link">Mis compras</a>
             <a routerLink="/productos" routerLinkActive="active" class="nav-link">Productos</a>
             <a routerLink="/farmacia" routerLinkActive="active" class="nav-link">Farmacia</a>
              <a routerLink="/contacto" routerLinkActive="active" class="nav-link">Contáctanos</a>
@@ -223,6 +224,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
             <svg class="h-3 w-3 transition" [class.rotate-180]="mobileServicesOpen()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></svg>
           </button>
           <a routerLink="/productos" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Productos</a>
+          <a routerLink="/mis-compras" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis compras</a>
           <a routerLink="/farmacia" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Farmacia</a>
            <a routerLink="/contacto" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Contáctanos</a>
           <a routerLink="/blog" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Blog</a>
