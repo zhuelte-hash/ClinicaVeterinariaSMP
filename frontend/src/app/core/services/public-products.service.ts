@@ -5,13 +5,15 @@ import { Product } from '../models/producto.model';
 import { CartService } from '../../services/cart.service';
 import { NoticeService } from './notice.service';
 
-interface CatalogProduct {
+export interface CatalogProduct {
   id: number;
   nombre: string;
   categoria_nombre: string;
   precio_venta: string;
   stock_actual: number;
   imagen_url: string;
+  descripcion: string | null;
+  especies: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +35,7 @@ export class PublicProductsService {
           id: String(item.id), name: item.nombre, category: item.categoria_nombre,
           price: Number(item.precio_venta), stock: item.stock_actual,
           image: item.imagen_url || '/logo.png', imageAlt: item.nombre,
+          description: item.descripcion || '', species: item.especies,
         }));
         this.productsState.set(products);
         if (this.cart.reconcile(products.map((item) => ({

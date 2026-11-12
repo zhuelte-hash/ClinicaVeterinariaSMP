@@ -23,8 +23,11 @@ import { VeterinaryService } from './service.model';
         <p class="text-xs font-bold uppercase tracking-[0.14em] text-[#1A98A2]">{{ service.category }}</p>
         <h2 id="service-dialog-title" class="mt-2 text-3xl font-extrabold text-[#1A1E27]">{{ service.name }}</h2>
         <p class="mt-4 leading-7 text-[#1A1E27]/75">{{ service.description }}</p>
+        <dl class="mt-5 grid grid-cols-2 gap-3 rounded-xl bg-brand-50 p-4"><div><dt class="text-sm">Precio referencial</dt><dd class="font-bold">S/ {{ service.price?.toFixed(2) }}</dd></div><div><dt class="text-sm">Duración estimada</dt><dd class="font-bold">{{ service.duration }} minutos</dd></div></dl>
+        <p class="mt-2 text-xs text-slate-500">Tarifa y duración del mismo catálogo utilizado en reservas y caja. El importe final depende de la evaluación.</p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
           <a href="tel:965939522" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-6 py-3 font-bold text-white transition hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">Llamar ahora</a>
+          <a [href]="whatsappUrl" target="_blank" rel="noopener" class="site-button">Consultar por WhatsApp</a>
           <a routerLink="/reservar-cita" [queryParams]="{ servicio: service.slug }" (click)="dialogRef.close()" class="inline-flex items-center justify-center rounded-full border-2 border-[#1A1E27] px-6 py-3 font-bold text-[#1A1E27] transition hover:bg-[#1A1E27] hover:text-white">Reservar cita</a>
         </div>
       </div>
@@ -34,4 +37,5 @@ import { VeterinaryService } from './service.model';
 export class ServiceDetailDialogComponent {
   readonly dialogRef = inject<DialogRef<void>>(DialogRef);
   readonly service = inject<VeterinaryService>(DIALOG_DATA);
+  readonly whatsappUrl = `https://wa.me/51965939522?text=${encodeURIComponent('Hola, deseo información sobre el servicio de ' + this.service.name + '.')}`;
 }

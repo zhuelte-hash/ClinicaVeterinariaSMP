@@ -29,6 +29,9 @@ from app.models.clinic import (
 )
 from app.models.user import Cliente, Usuario, Veterinario
 from app.config import get_settings
+from app.services.policy_service import PolicyService
+from app.services.access_service import aware
+from app.models.operations import DerivacionClinica
 from app.services.whatsapp_service import WhatsAppService
 from app.schemas.appointments import (
     AppointmentCoordinationUpdate,
@@ -149,7 +152,7 @@ class AppointmentService:
         if pet_id is not None:
             statement = statement.where(Mascota.id == pet_id)
         return [VeterinarianPetRead(
-            **{key: getattr(pet, key) for key in ("id", "nombre", "especie", "raza", "sexo", "fecha_nacimiento", "peso_actual", "caracteristicas")},
+            **{key: getattr(pet, key) for key in ("id", "nombre", "especie", "raza", "sexo", "fecha_nacimiento", "peso_actual", "caracteristicas", "alergias", "condiciones_especiales", "foto_url")},
             cliente_id=owner.id, cliente_nombre=owner.nombre, cliente_correo=owner.correo,
             telefono_contacto=client.telefono, direccion=client.direccion,
             citas=appointments_count or 0, atenciones=records_count or 0, ultima_atencion=last_record,
@@ -204,7 +207,7 @@ class AppointmentService:
         return self._get_appointment_with_details(appointment.id)
 
     def get_services(self) -> list[Servicio]:
-        return list(self.db.scalars(select(Servicio).order_by(Servicio.nombre)).all())
+        return list(self.db.scalars(select(Servicio).where(Servicio.activo).order_by(Servicio.nombre)).all())
 
     def get_appointments(self, client_id: int) -> list[Cita]:
         statement = (
@@ -226,7 +229,8 @@ class AppointmentService:
         schedules = list(
             self.db.scalars(
                 select(HorarioVeterinario)
-                .where(HorarioVeterinario.dia_semana == weekday, HorarioVeterinario.activo)
+                .where(HorarioVeterinario.dia_semana == weekday, HorarioVeterinario.activo,
+                       HorarioVeterinario.veterinario.has(Veterinario.usuario.has(Usuario.activo)))
                 .options(selectinload(HorarioVeterinario.veterinario).selectinload(Veterinario.usuario))
             ).all()
         )
@@ -263,7 +267,7 @@ class AppointmentService:
         if service is None:
             raise ServiceNotFoundError
         veterinarian = self.db.get(Veterinario, data.veterinario_id)
-        if veterinarian is None:
+        if veterinarian is None or not veterinarian.usuario.activo:
             raise InvalidScheduleError("El veterinario seleccionado no existe")
         self._validate_schedule(data.fecha_hora_programada, service.duracion_estimada_min)
         self.db.execute(text("SELECT pg_advisory_xact_lock(735291)"))
@@ -304,12 +308,16 @@ class AppointmentService:
             raise AppointmentConflictError from exc
         return self._get_appointment_with_details(appointment.id)
 
-    def cancel_appointment(self, client_id: int, appointment_id: int) -> Cita:
+    def cancel_appointment(self, client_id: int, appointment_id: int, reason: str = "Cancelada por el propietario") -> Cita:
         appointment = self._get_owned_appointment(client_id, appointment_id, for_update=True)
         if appointment is None:
             raise AppointmentNotFoundError
         if appointment.estado in {EstadoCita.CANCELADA, EstadoCita.ATENDIDA}:
             raise AppointmentNotCancelableError
+        if aware(appointment.fecha_hora_programada) - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(hours=PolicyService(self.db).get().horas_cancelacion):
+            raise AppointmentNotCancelableError
+        appointment.nota_coordinacion = reason
+        appointment.estado_actualizado_por = client_id
         appointment.estado = EstadoCita.CANCELADA
         self.db.add(
             Notificacion(
@@ -328,6 +336,8 @@ class AppointmentService:
         if appointment is None or appointment.estado != EstadoCita.REQUIERE_OTRO_HORARIO:
             raise AppointmentNotAcceptableError
         if appointment.veterinario_id is None or appointment.fecha_hora_propuesta is None:
+            raise AppointmentNotAcceptableError
+        if aware(appointment.fecha_hora_programada) - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(hours=PolicyService(self.db).get().horas_reprogramacion):
             raise AppointmentNotAcceptableError
         self._confirm_without_overlap(
             appointment,
@@ -363,6 +373,8 @@ class AppointmentService:
         state: EstadoCita | None = None,
         search: str | None = None,
         include_closed: bool = False,
+        start_date: datetime.date | None = None,
+        end_date: datetime.date | None = None,
     ) -> list[Cita]:
         statement = (
             select(Cita)
@@ -387,6 +399,12 @@ class AppointmentService:
             statement = statement.where(Cita.fecha_hora_programada >= start, Cita.fecha_hora_programada < end)
         if state:
             statement = statement.where(Cita.estado == state)
+        if start_date:
+            start = datetime.datetime.combine(start_date, datetime.time.min, CLINIC_TIMEZONE).astimezone(datetime.timezone.utc)
+            statement = statement.where(Cita.fecha_hora_programada >= start)
+        if end_date:
+            end = datetime.datetime.combine(end_date + datetime.timedelta(days=1), datetime.time.min, CLINIC_TIMEZONE).astimezone(datetime.timezone.utc)
+            statement = statement.where(Cita.fecha_hora_programada < end)
         if search:
             term = f"%{search.strip()}%"
             statement = statement.join(Cita.servicio).where(or_(Mascota.nombre.ilike(term), Servicio.nombre.ilike(term), Usuario.nombre.ilike(term)))
@@ -484,18 +502,6 @@ class AppointmentService:
         except IntegrityError as exc:
             self.db.rollback()
             raise AppointmentConflictError from exc
-        if data.estado == EstadoCita.CONFIRMADA:
-            settings = get_settings()
-            scheduled_at = appointment.fecha_hora_programada.astimezone(CLINIC_TIMEZONE)
-            message = f"Hola {appointment.mascota.cliente.usuario.nombre}, tu cita para {appointment.mascota.nombre} está confirmada para el {scheduled_at:%d/%m/%Y} a las {scheduled_at:%H:%M}."
-            WhatsAppService(self.db).send_once(
-                appointment,
-                "cita_confirmada",
-                message,
-                settings.whatsapp_template_confirmed,
-                [appointment.mascota.cliente.usuario.nombre, appointment.mascota.nombre, scheduled_at.strftime("%d/%m/%Y"), scheduled_at.strftime("%H:%M")],
-            )
-            self.db.commit()
         return self._get_appointment_with_details(appointment.id)
 
     def register_arrival(self, veterinarian: Usuario, appointment_id: int) -> Cita:
@@ -508,6 +514,32 @@ class AppointmentService:
             appointment.fecha_hora_llegada = datetime.datetime.now(datetime.timezone.utc)
             self.db.add(Notificacion(usuario_id=appointment.mascota.cliente_id, cita_id=appointment.id, tipo="llegada_registrada", titulo="Llegada registrada", mensaje=f"Registramos la llegada de {appointment.mascota.nombre}."))
             self.db.commit()
+        return self._get_appointment_with_details(appointment.id)
+
+    def mark_no_show(self, veterinarian: Usuario, appointment_id: int, reason: str) -> Cita:
+        appointment = self._get_appointment_with_details(appointment_id, for_update=True)
+        if appointment is None or appointment.veterinario_id != veterinarian.id:
+            raise AppointmentNotFoundError
+        if appointment.estado == EstadoCita.NO_ASISTIO:
+            return appointment
+        if appointment.estado not in ACTIVE_CONFIRMED_STATES or appointment.fecha_hora_llegada is not None:
+            raise CoordinationError("Solo puedes marcar una cita confirmada sin llegada registrada")
+        scheduled = appointment.fecha_hora_programada
+        if scheduled.tzinfo is None:
+            scheduled = scheduled.replace(tzinfo=datetime.timezone.utc)
+        tolerance = datetime.timedelta(minutes=get_settings().appointment_tolerance_minutes)
+        if datetime.datetime.now(datetime.timezone.utc) < scheduled + tolerance:
+            raise CoordinationError("Todavía no ha transcurrido el tiempo de tolerancia")
+        process = appointment.proceso_atencion
+        if process and process.estado in {EstadoProcesoAtencion.EN_ATENCION, EstadoProcesoAtencion.CERRADA}:
+            raise CoordinationError("La cita ya tiene una atención iniciada")
+        appointment.estado = EstadoCita.NO_ASISTIO
+        appointment.nota_coordinacion = reason
+        appointment.estado_actualizado_por = veterinarian.id
+        self.db.add(Notificacion(usuario_id=appointment.mascota.cliente_id, cita_id=appointment.id,
+                                 tipo="cita_no_asistio", titulo="Inasistencia registrada",
+                                 mensaje=f"El veterinario registró la inasistencia de {appointment.mascota.nombre}."))
+        self.db.commit()
         return self._get_appointment_with_details(appointment.id)
 
     def expire_unattended_appointments(self) -> list[Cita]:
@@ -739,6 +771,9 @@ class AppointmentService:
             process.fecha_fin = datetime.datetime.now(datetime.timezone.utc)
         else:
             process.fecha_fin = None
+        self._sync_pet_background(appointment.mascota, data)
+        if data.estado == EstadoProcesoAtencion.CERRADA:
+            self._create_billing_order(process, veterinarian)
         self.db.commit()
         return self.get_clinical_record_for_process(process.id)
 
@@ -801,8 +836,19 @@ class AppointmentService:
         self.db.add(process)
         self.db.flush()
         self._populate_medical_process(veterinarian, process, data)
+        self._sync_pet_background(pet, data)
         self.db.commit()
         return self.get_clinical_record_for_process(process.id)
+
+    @staticmethod
+    def _sync_pet_background(pet: Mascota, data: ClinicalRecordCreate) -> None:
+        if "peso" in data.model_fields_set and data.peso is not None:
+            pet.peso_actual = data.peso
+        # Un formulario de atención vacío no borra antecedentes del paciente.
+        if data.historial_alergias and data.historial_alergias.strip():
+            entries = list(dict.fromkeys(filter(None, [pet.alergias, data.historial_alergias.strip()])))
+            if not pet.alergias or data.historial_alergias.strip() not in pet.alergias:
+                pet.alergias = "\n".join(entries)
 
     def _populate_medical_process(
         self, veterinarian: Usuario, process: ProcesoAtencion, data: ClinicalRecordCreate
@@ -847,7 +893,7 @@ class AppointmentService:
             .outerjoin(ProcesoAtencion.proceso_medico)
             .where(
                 ProcesoAtencion.id == process_id,
-                or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id),
+                or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id, ProcesoAtencion.id.in_(select(DerivacionClinica.proceso_id).where(DerivacionClinica.receptor_id == veterinarian_id, DerivacionClinica.estado == "aceptada"))),
             )
         )
 
@@ -870,6 +916,7 @@ class AppointmentService:
             if process.cita is not None:
                 process.cita.estado = EstadoCita.ATENDIDA
                 process.cita.estado_actualizado_por = veterinarian.id
+            self._create_billing_order(process, veterinarian)
         self.db.commit()
         return process
 
@@ -941,8 +988,19 @@ class AppointmentService:
         return item
 
     def save_prescription(self, veterinarian: Usuario, process_id: int, data: PrescriptionCreate) -> Receta:
-        if self._owned_process(veterinarian.id, process_id) is None:
+        process = self._owned_process(veterinarian.id, process_id)
+        if process is None:
             raise AppointmentNotFoundError
+        from fastapi import HTTPException
+        if process.estado in {EstadoProcesoAtencion.CERRADA, EstadoProcesoAtencion.CANCELADA}:
+            raise HTTPException(409, "La atención está finalizada; su receta y orden de cobro ya no se pueden modificar")
+        from app.models.clinic import Producto
+        from app.services.operation_utils import branch_id
+        for detail in data.detalles:
+            if detail.producto_id:
+                product = self.db.get(Producto, detail.producto_id)
+                if not product or not product.activo or product.sucursal_id != branch_id(self.db) or (not product.fraccionable and detail.cantidad_producto != detail.cantidad_producto.to_integral_value()):
+                    raise HTTPException(422, "El producto de la receta no está disponible o su cantidad no es válida")
         recipe = self.db.scalar(select(Receta).where(Receta.proceso_id == process_id))
         if recipe is None:
             recipe = Receta(proceso_id=process_id, veterinario_id=veterinarian.id, indicaciones_generales=data.indicaciones_generales)
@@ -1084,6 +1142,7 @@ class AppointmentService:
             select(HorarioVeterinario.id, HorarioVeterinario.veterinario_id).where(
                 HorarioVeterinario.dia_semana == weekday,
                 HorarioVeterinario.activo,
+                HorarioVeterinario.veterinario.has(Veterinario.usuario.has(Usuario.activo)),
                 HorarioVeterinario.hora_inicio <= start.astimezone(CLINIC_TIMEZONE).time(),
                 HorarioVeterinario.hora_fin >= (
                     start.astimezone(CLINIC_TIMEZONE) + datetime.timedelta(minutes=duration_min)
@@ -1099,6 +1158,7 @@ class AppointmentService:
         has_schedule = self.db.scalar(
             select(HorarioVeterinario.id).where(
                 HorarioVeterinario.veterinario_id == veterinarian_id,
+                HorarioVeterinario.veterinario.has(Veterinario.usuario.has(Usuario.activo)),
                 HorarioVeterinario.dia_semana == local_start.weekday(),
                 HorarioVeterinario.activo,
                 HorarioVeterinario.hora_inicio <= local_start.time(),
@@ -1138,17 +1198,19 @@ class AppointmentService:
             statement = statement.with_for_update()
         return self.db.scalars(statement).one_or_none()
 
+    def _create_billing_order(self, process, veterinarian):
+        from app.services.billing_service import BillingService
+        self.db.flush()
+        self.db.expire(process, ["receta", "proceso_medico"])
+        if process.cita and process.cita.servicio.precio_referencial > 0:
+            BillingService(self.db).from_attention(veterinarian, process)
+
     def _validate_schedule(self, scheduled_at: datetime.datetime, duration_min: int) -> None:
         now = datetime.datetime.now(datetime.timezone.utc)
         if scheduled_at.astimezone(datetime.timezone.utc) <= now:
             raise InvalidScheduleError("La cita debe programarse en el futuro")
         if not self._within_booking_hours(scheduled_at, duration_min):
-            raise InvalidScheduleError("El horario de reservas es de lunes a sábado, de 08:00 a 12:00 y de 13:00 a 20:00")
+            raise InvalidScheduleError("La franja está fuera del horario de la clínica o corresponde a un cierre/excepción")
 
-    @staticmethod
-    def _within_booking_hours(start: datetime.datetime, duration_min: int) -> bool:
-        local_start = start.astimezone(CLINIC_TIMEZONE)
-        local_end = local_start + datetime.timedelta(minutes=duration_min)
-        morning = datetime.time(8) <= local_start.time() and local_end.time() <= datetime.time(12)
-        afternoon = datetime.time(13) <= local_start.time() and local_end.time() <= datetime.time(20)
-        return local_start.weekday() < 6 and (morning or afternoon)
+    def _within_booking_hours(self, start: datetime.datetime, duration_min: int) -> bool:
+        return PolicyService(self.db).within_hours(start, duration_min)

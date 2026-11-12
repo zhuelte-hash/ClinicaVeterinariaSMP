@@ -1,4 +1,5 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
+import { routeModule } from '../../core/guards/permission.guard';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { PanelHeaderComponent } from '../../shared/panel-header/panel-header.component';
@@ -31,7 +32,7 @@ interface NavigationGroup {
         </div>
 
         <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Navegación veterinaria">
-          @for (group of navigation; track group.label) {
+          @for (group of navigation(); track group.label) {
             @if (!collapsed()) { <p class="mb-2 mt-4 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#8bd7e5] first:mt-0">{{ group.label }}</p> }
             @for (item of group.items; track item.route) {
               <a [routerLink]="item.route" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: item.route === 'inicio' }" (click)="closeDrawer()" class="nav-link group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium" [title]="collapsed() ? item.label : ''">
@@ -90,16 +91,17 @@ interface NavigationGroup {
   `],
 })
 export class VeterinarianLayoutComponent {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly collapsed = signal(false);
   readonly drawerOpen = signal(false);
-  readonly navigation: NavigationGroup[] = [
+  private readonly allNavigation: NavigationGroup[] = [
     { label: 'Área de trabajo', items: [{ label: 'Inicio', route: 'inicio', icon: 'home' }, { label: 'Citas', route: 'agenda', icon: 'calendar' }, { label: 'Pacientes e historial', route: 'mascotas', icon: 'users' }, { label: 'Propietarios', route: 'clientes', icon: 'users' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: 'plus' }] },
     { label: 'Pacientes', items: [{ label: 'Hospedaje', route: 'hospedaje', icon: 'bed' }] },
     { label: 'Servicios clínicos', items: [{ label: 'Laboratorio', route: 'laboratorio', icon: 'lab' }, { label: 'Rayos X / Ecografía', route: 'imagenes', icon: 'image' }, { label: 'Vacunas y controles', route: 'vacunacion', icon: 'vaccine' }, { label: 'Cirugía', route: 'cirugia', icon: 'surgery' }, { label: 'Hospitalización', route: 'hospitalizacion', icon: 'bed' }, { label: 'Estética', route: 'estetica', icon: 'sparkle' }] },
-    { label: 'Otros servicios', items: [{ label: 'Documentos', route: 'documentos', icon: 'file' }] },
+    { label: 'Otros servicios', items: [{ label: 'Órdenes de cobro', route: 'ordenes', icon: 'file' }, { label: 'Documentos', route: 'documentos', icon: 'file' }] },
   ];
+  readonly navigation = computed(() => this.allNavigation.map(group => ({ ...group, items: group.items.filter(item => { const module = routeModule(`/veterinario/${item.route}`); return !module || this.auth.can(module); }) })).filter(group => group.items.length));
 
   closeDrawer(): void { this.drawerOpen.set(false); }
   toggleSidebar(): void {

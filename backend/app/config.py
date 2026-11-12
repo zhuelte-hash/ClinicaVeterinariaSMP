@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     purchase_plin_holder: str = ""
     purchase_plin_phone: str = ""
     purchase_plin_qr_url: str = ""
+    frontend_url: str = "http://localhost:4200"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_starttls: bool = True
+    smtp_ssl: bool = False
+    mail_from: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_verify_token: str = ""
+    login_lock_minutes: int = Field(default=15, ge=1, le=1440)
 
 @lru_cache
 def get_settings() -> Settings:

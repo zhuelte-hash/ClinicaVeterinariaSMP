@@ -9,13 +9,17 @@ import { VeterinarianApiService } from './veterinarian-api.service';
 import { clinicToday, ClinicalRecord, VeterinarianPatient } from './veterinarian.models';
 import { NoticeService } from '../../core/services/notice.service';
 import { clinicalDate, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, VeterinarianTableState } from './veterinarian-table';
+import { PetEditorComponent } from '../appointments/pet-editor.component';
+import { Pet } from '../appointments/appointments.models';
+import { WeightEvolutionComponent } from './weight-evolution.component';
+import { PatientAlertsComponent } from './patient-alerts.component';
 
 type HistoryTab = 'resumen' | 'historia' | 'preventivos' | 'examenes' | 'laboratorio';
 
 @Component({
   selector: 'app-veterinarian-pet-history',
   standalone: true,
-  imports: [RouterLink, FormsModule, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent],
+  imports: [RouterLink, FormsModule, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, PetEditorComponent, WeightEvolutionComponent, PatientAlertsComponent],
   templateUrl: './veterinarian-pet-history.component.html',
   styles: [`
     .field-label { font-size: .8125rem; font-weight: 600; color: var(--vet-muted); }
@@ -106,6 +110,7 @@ export class VeterinarianPetHistoryComponent {
   }
 
   setTab(tab: HistoryTab): void { this.tab.set(tab); }
+  updatePatient(pet: Pet): void { this.patient.update(current => current ? { ...current, ...pet } : current); }
   uploadImage(event: Event, record: ClinicalRecord, type = this.studyType): void {
     if (this.uploading()) return;
     if (type === 'Laboratorio') {

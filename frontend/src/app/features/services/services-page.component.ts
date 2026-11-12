@@ -9,6 +9,9 @@ import { SERVICE_CATEGORIES, ServiceCategoryFilter, VeterinaryService } from './
 import { VETERINARY_SERVICES } from './services.data';
 import { EstheticServiceCardComponent } from './esthetic-service-card.component';
 import { ESTHETIC_SERVICES } from './services-menu.data';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { ClinicService } from '../appointments/appointments.models';
 
 @Component({
   selector: 'app-services-page',
@@ -22,9 +25,11 @@ export class ServicesPageComponent {
   private readonly dialog = inject(Dialog);
   readonly categories = SERVICE_CATEGORIES;
   readonly selectedCategory = signal<ServiceCategoryFilter>('Todos');
-  readonly services = VETERINARY_SERVICES.filter((service) => !service.emergency);
+  readonly services = signal<VeterinaryService[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
   readonly emergencyService = VETERINARY_SERVICES.find((service) => service.emergency)!;
-  readonly featuredService = VETERINARY_SERVICES.find((service) => service.featured)!;
+  readonly featuredService = computed(() => this.services().find(service => service.featured) || this.services()[0]);
   readonly estheticGroups = ['Cuidado e higiene', 'Cortes y arreglo'].map((label) => ({
     label,
     services: ESTHETIC_SERVICES.filter((service) => service.group === label),
@@ -32,11 +37,21 @@ export class ServicesPageComponent {
   readonly filteredServices = computed(() => {
     const category = this.selectedCategory();
     return category === 'Todos'
-      ? this.services
-      : this.services.filter((service) => service.category === category);
+      ? this.services()
+      : this.services().filter((service) => service.category === category);
   });
 
   constructor() {
+    inject(HttpClient).get<ClinicService[]>(`${environment.apiUrl}/portal/servicios`).subscribe({
+      next: items => {
+        this.services.set(items.map(item => {
+          const design = VETERINARY_SERVICES.find(service => service.slug === item.codigo);
+          return { ...(design || VETERINARY_SERVICES[0]), slug: item.codigo, name: item.nombre,
+            summary: item.descripcion || 'Atención veterinaria profesional.', description: item.descripcion || 'Atención veterinaria profesional.',
+            price: Number(item.precio_referencial), duration: item.duracion_estimada_min, featured: design?.featured };
+        })); this.loading.set(false);
+      }, error: () => { this.error.set('No se pudo cargar el catálogo de servicios y tarifas. Intenta actualizar la página.'); this.loading.set(false); },
+    });
     inject(ActivatedRoute).fragment.pipe(takeUntilDestroyed()).subscribe((fragment) => {
       if (fragment) this.selectedCategory.set('Todos');
     });

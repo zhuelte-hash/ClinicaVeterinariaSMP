@@ -51,7 +51,8 @@ export class RegisterComponent {
       password: values.password,
       telefono: values.telefono || undefined,
     }).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
-      next: ({ user }) => {
+      next: ({ user, verification_required }) => {
+        if (verification_required) { void this.router.navigate(['/verificar-correo'], { queryParams: { correo: user.correo } }); return; }
         this.visualSession.login(user.correo, user.nombre);
         const destination = this.isSafePurchaseUrl(this.returnUrl) ? this.returnUrl! : '/inicio';
         void this.router.navigateByUrl(destination);

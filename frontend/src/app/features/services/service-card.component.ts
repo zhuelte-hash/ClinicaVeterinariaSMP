@@ -29,6 +29,7 @@ import { VeterinaryService } from './service.model';
         <p class="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-brand-600">{{ service().category }}</p>
         <h3 class="text-xl font-bold leading-snug text-pet-900">{{ service().name }}</h3>
         <p class="mt-3 flex-1 text-sm leading-6 text-[#1A1E27]/70">{{ service().summary }}</p>
+        <a [href]="whatsappUrl()" target="_blank" rel="noopener" class="mt-3 text-sm font-bold text-brand-600" [attr.aria-label]="'Consultar por WhatsApp sobre ' + service().name">Consultar por WhatsApp</a>
         <button
           type="button"
           class="mt-6 inline-flex min-h-11 items-center gap-2 self-start font-bold text-brand-600 transition hover:text-brand-700"
@@ -45,4 +46,5 @@ import { VeterinaryService } from './service.model';
 export class ServiceCardComponent {
   readonly service = input.required<VeterinaryService>();
   readonly showDetails = output<VeterinaryService>();
+  whatsappUrl(): string { return `https://wa.me/51965939522?text=${encodeURIComponent('Hola, deseo información sobre el servicio de ' + this.service().name + '.')}`; }
 }

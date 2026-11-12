@@ -22,7 +22,9 @@ import { PanelHeaderComponent } from '../../shared/panel-header/panel-header.com
           <button type="button" class="ml-auto rounded-xl p-2 text-[#8bd7e5] hover:bg-white/10 lg:hidden" aria-label="Cerrar menú" (click)="closeDrawer()"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
         <nav class="flex-1 space-y-2 overflow-y-auto px-3 py-5" aria-label="Navegación de caja">
+          @if (auth.can('ventas')) { <a routerLink="ordenes" routerLinkActive="active" (click)="closeDrawer()" class="nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold" title="Órdenes y pagos"><span aria-hidden="true">▤</span>@if (!collapsed()) { <span>Órdenes, pagos y descuentos</span> }</a> }
           @if (!collapsed()) { <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#8bd7e5]">Operación de caja</p> }
+          @if (auth.can('ventas')) {
           <a routerLink="pedidos-web" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeDrawer()" class="nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold" [attr.aria-label]="collapsed() ? 'Pedidos web / Pagos pendientes' : null" [title]="collapsed() ? 'Pedidos web / Pagos pendientes' : ''">
             <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 7h6M9 11h6M9 15h3" /></svg>
             @if (!collapsed()) { <span>Pedidos web / Pagos pendientes</span> }
@@ -35,6 +37,7 @@ import { PanelHeaderComponent } from '../../shared/panel-header/panel-header.com
             <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3h2l2 13h11l2-9H6M9 21h.01M18 21h.01"/></svg>
             @if (!collapsed()) { <span>Punto de venta</span> }
           </a>
+          }
         </nav>
         <div class="border-t border-white/10 p-3">
           @if (!collapsed()) { <div class="px-1 pb-3"><p class="truncate text-sm font-bold">{{ cashierName() }}</p><p class="text-xs text-[#8bd7e5]">Cajero</p></div> }
@@ -65,7 +68,7 @@ import { PanelHeaderComponent } from '../../shared/panel-header/panel-header.com
   `],
 })
 export class CashierLayoutComponent {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly collapsed = signal(false);
   readonly drawerOpen = signal(false);

@@ -6,9 +6,12 @@ from sqlalchemy import distinct, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.clinic import CategoriaProducto, Cita, ComprobanteVenta, ConfiguracionClinica, EstadoCita, EstadoPago, EstadoProcesoAtencion, Notificacion, OrdenCobro, Producto, ProcesoAtencion, Proveedor, Mascota
+from app.models.clinic import AjusteInventario, CategoriaProducto, Cita, ComprobanteVenta, ConfiguracionClinica, EstadoCita, EstadoPago, EstadoProcesoAtencion, Notificacion, OrdenCobro, Producto, ProcesoAtencion, Proveedor, Mascota
 from app.services.appointment_service import ACTIVE_BOOKING_STATES, AppointmentConflictError, AppointmentService, InvalidScheduleError
 from app.models.user import Cajero, Cliente, PermisoRol, TipoUsuario, Usuario, Veterinario
+from app.permissions import default_permission
+from app.services.operation_utils import branch_id
+from app.services.inventory_service import InventoryService
 from app.schemas.admin import (
     AdminAppointmentRead, AdminCatalogOption, AdminProductCatalog, AdminProductCreate,
     AdminProductRead,
@@ -27,6 +30,7 @@ from app.schemas.admin import (
     AdminSalesDayRead,
     RolePermissionRead,
     RolePermissionUpdate,
+    SupplierWrite, SupplierRead, InventoryAdjustmentRead, AppointmentReportRead,
 )
 
 CLINIC_TIMEZONE = ZoneInfo("America/Lima")
@@ -46,19 +50,23 @@ class AdminService:
         self.db = db
 
     def get_products(self, include_inactive: bool = False) -> list[AdminProductRead]:
-        statement = select(Producto).options(selectinload(Producto.categoria)).order_by(Producto.nombre)
+        statement = select(Producto).where(Producto.sucursal_id == branch_id(self.db)).options(selectinload(Producto.categoria)).order_by(Producto.nombre)
         if not include_inactive:
             statement = statement.where(Producto.activo)
         return [self._product_read(item) for item in self.db.scalars(statement).all()]
 
     def update_product(self, product_id: int, data: AdminProductUpdate) -> AdminProductRead:
-        product = self.db.get(Producto, product_id)
+        product = InventoryService(self.db).product(product_id)
         if product is None or not product.activo:
             raise AdminNotFoundError
         if data.categoria_id is not None and self.db.get(CategoriaProducto, data.categoria_id) is None:
             raise AdminNotFoundError
+        if data.proveedor_id is not None and self.db.get(Proveedor, data.proveedor_id) is None:
+            raise AdminNotFoundError
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(product, field, value)
+        self._validate_unit(product)
+        InventoryService(self.db).stock_alert(product)
         try:
             self.db.commit()
         except IntegrityError as exc:
@@ -70,9 +78,15 @@ class AdminService:
     def create_product(self, data: AdminProductCreate) -> AdminProductRead:
         if self.db.get(CategoriaProducto, data.categoria_id) is None or self.db.get(Proveedor, data.proveedor_id) is None:
             raise AdminNotFoundError
-        product = Producto(**data.model_dump())
+        product = Producto(**data.model_dump(), sucursal_id=branch_id(self.db))
+        self._validate_unit(product)
         self.db.add(product)
         try:
+            initial = product.stock_actual
+            product.stock_actual = 0
+            self.db.flush()
+            if initial:
+                InventoryService(self.db).increase(product, initial, "Alta del producto", "ingreso", lot_code="INICIAL", cost=product.costo_unitario)
             self.db.commit()
         except IntegrityError as exc:
             self.db.rollback()
@@ -140,14 +154,57 @@ class AdminService:
         product.activo = False
         self.db.commit()
 
-    def update_stock(self, product_id: int, data: InventoryStockUpdate) -> AdminProductRead:
-        product = self.db.scalar(select(Producto).where(Producto.id == product_id, Producto.activo).with_for_update())
+    def update_stock(self, product_id: int, data: InventoryStockUpdate, user_id: int) -> AdminProductRead:
+        product = self.db.scalar(select(Producto).where(Producto.id == product_id, Producto.activo, Producto.sucursal_id == branch_id(self.db)).with_for_update())
         if product is None:
             raise AdminNotFoundError
-        product.stock_actual = data.stock_actual
+        if product.stock_actual != data.stock_anterior:
+            raise AdminConflictError("El stock cambió desde que abriste el formulario. Actualiza el inventario e intenta de nuevo")
+        if product.stock_actual == data.stock_actual:
+            raise AdminConflictError("La nueva cantidad debe ser diferente de la actual")
+        self.db.add(AjusteInventario(producto_id=product.id, usuario_id=user_id,
+                                    cantidad_anterior=product.stock_actual, cantidad_nueva=data.stock_actual,
+                                    motivo=data.motivo))
+        delta = data.stock_actual - product.stock_actual
+        if delta > 0:
+            InventoryService(self.db).increase(product, delta, data.motivo, actor=user_id)
+        else:
+            InventoryService(self.db).consume(product, -delta, f"ajuste:{product.id}", physical_adjustment=True, reason=data.motivo, actor=user_id)
         self.db.commit()
         self.db.refresh(product)
         return self._product_read(product)
+
+    def get_stock_adjustments(self, product_id: int | None = None) -> list[InventoryAdjustmentRead]:
+        statement = select(AjusteInventario, Producto.nombre, Usuario.nombre).join(
+            Producto, Producto.id == AjusteInventario.producto_id
+        ).join(Usuario, Usuario.id == AjusteInventario.usuario_id)
+        if product_id is not None:
+            statement = statement.where(AjusteInventario.producto_id == product_id)
+        return [InventoryAdjustmentRead(
+            id=item.id, producto_id=item.producto_id, producto_nombre=product_name,
+            usuario_id=item.usuario_id, usuario_nombre=user_name, cantidad_anterior=item.cantidad_anterior,
+            cantidad_nueva=item.cantidad_nueva, motivo=item.motivo, fecha=item.fecha,
+        ) for item, product_name, user_name in self.db.execute(statement.order_by(AjusteInventario.id.desc())).all()]
+
+    def get_suppliers(self) -> list[SupplierRead]:
+        rows = self.db.execute(select(Proveedor, func.count(Producto.id)).outerjoin(
+            Producto, Producto.proveedor_id == Proveedor.id
+        ).group_by(Proveedor.id).order_by(Proveedor.razon_social)).all()
+        return [SupplierRead(id=item.id, razon_social=item.razon_social, productos=count) for item, count in rows]
+
+    def save_supplier(self, data: SupplierWrite, supplier_id: int | None = None) -> SupplierRead:
+        item = self.db.get(Proveedor, supplier_id) if supplier_id is not None else Proveedor()
+        if item is None:
+            raise AdminNotFoundError
+        duplicate = select(Proveedor.id).where(func.lower(Proveedor.razon_social) == data.razon_social.lower())
+        if supplier_id is not None:
+            duplicate = duplicate.where(Proveedor.id != supplier_id)
+        if self.db.scalar(duplicate) is not None:
+            raise AdminConflictError("El proveedor ya está registrado")
+        item.razon_social = data.razon_social
+        self.db.add(item)
+        self.db.commit()
+        return next(row for row in self.get_suppliers() if row.id == item.id)
 
     def get_clients(self) -> list[AdminClientRead]:
         rows = self.db.execute(
@@ -168,7 +225,9 @@ class AdminService:
         return [AdminClientRead.model_validate(row._mapping) for row in rows]
 
     def get_appointments(
-        self, date: datetime.date | None = None, status: str | None = None
+        self, date: datetime.date | None = None, status: str | None = None,
+        start_date: datetime.date | None = None, end_date: datetime.date | None = None,
+        urgent: bool = False,
     ) -> list[AdminAppointmentRead]:
         statement = select(Cita).options(
             selectinload(Cita.mascota).selectinload(Mascota.cliente).selectinload(Cliente.usuario),
@@ -181,12 +240,26 @@ class AdminService:
             statement = statement.where(Cita.fecha_hora_programada >= start, Cita.fecha_hora_programada < end)
         if status:
             statement = statement.where(Cita.estado == status)
-        appointments = self.db.scalars(statement.order_by(Cita.fecha_hora_programada.desc(), Cita.id.desc())).all()
+        if start_date:
+            statement = statement.where(Cita.fecha_hora_programada >= datetime.datetime.combine(start_date, datetime.time.min, CLINIC_TIMEZONE).astimezone(datetime.timezone.utc))
+        if end_date:
+            statement = statement.where(Cita.fecha_hora_programada < datetime.datetime.combine(end_date + datetime.timedelta(days=1), datetime.time.min, CLINIC_TIMEZONE).astimezone(datetime.timezone.utc))
+        if urgent:
+            statement = statement.where(Cita.es_urgente.is_(True))
+        appointments = self.db.scalars(statement.order_by(Cita.es_urgente.desc(), Cita.fecha_hora_programada.desc(), Cita.id.desc())).all()
         return [self._appointment_read(item) for item in appointments]
+
+    def get_appointment_report(self, start_date: datetime.date, end_date: datetime.date) -> AppointmentReportRead:
+        appointments = self.get_appointments(start_date=start_date, end_date=end_date)
+        counts = {state.value: 0 for state in EstadoCita}
+        for item in appointments:
+            counts[item.estado] += 1
+        return AppointmentReportRead(fecha_inicial=start_date, fecha_final=end_date,
+                                     total=len(appointments), urgentes=sum(item.es_urgente for item in appointments), por_estado=counts)
 
     def get_veterinarians(self) -> list[AdminCatalogOption]:
         return [AdminCatalogOption(id=user.id, nombre=user.nombre) for user in self.db.scalars(
-            select(Usuario).join(Usuario.veterinario).where(Usuario.tipo == TipoUsuario.VETERINARIO).order_by(Usuario.nombre)
+            select(Usuario).join(Usuario.veterinario).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo).order_by(Usuario.nombre)
         ).all()]
 
     def update_appointment(self, appointment_id: int, data: AdminAppointmentUpdate, admin_id: int) -> AdminAppointmentRead:
@@ -215,7 +288,7 @@ class AdminService:
                 raise ValueError("Solo puedes marcar inasistencia si pasó el horario y no se registró la llegada")
         veterinarian_id = values.get("veterinario_id", appointment.veterinario_id)
         if veterinarian_id is not None and self.db.scalar(select(Veterinario).join(Veterinario.usuario).where(
-            Veterinario.usuario_id == veterinarian_id, Usuario.tipo == TipoUsuario.VETERINARIO
+            Veterinario.usuario_id == veterinarian_id, Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo
         )) is None:
             raise ValueError("El veterinario seleccionado no existe")
         if state in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA} and veterinarian_id is None:
@@ -337,6 +410,17 @@ class AdminService:
             ventas=sales,
         )
 
+    def _validate_unit(self, product):
+        from app.models.operations import UnidadMedida
+        from fastapi import HTTPException
+        unit = self.db.get(UnidadMedida, product.unidad_medida)
+        if unit is None:
+            raise HTTPException(422, "Selecciona una unidad de medida configurada")
+        if product.fraccionable and not unit.fraccionable:
+            raise HTTPException(422, "Esta unidad no admite fracciones")
+        if not product.fraccionable and any(Decimal(str(value)) != Decimal(str(value)).to_integral_value() for value in (product.stock_actual, product.stock_minimo)):
+            raise HTTPException(422, "El stock debe ser entero para esta unidad")
+
     def get_role_permissions(self) -> list[RolePermissionRead]:
         records = {(item.rol, item.modulo): item for item in self.db.scalars(select(PermisoRol)).all()}
         return [
@@ -373,11 +457,8 @@ class AdminService:
                 if permission is None:
                     permission = PermisoRol(rol=current_role, modulo=module)
                     self.db.add(permission)
-                permission.puede_ver = admin
-                permission.puede_crear = admin
-                permission.puede_editar = admin
-                permission.puede_eliminar = admin
-                permission.puede_aprobar = admin
+                for action in ("ver", "crear", "editar", "eliminar", "aprobar"):
+                    setattr(permission, f"puede_{action}", default_permission(current_role, module, action))
                 result.append(permission)
         try:
             self.db.commit()
@@ -394,6 +475,8 @@ class AdminService:
             stock_minimo=product.stock_minimo, activo=product.activo,
             imagen_url=product.imagen_url, categoria_id=product.categoria_id,
             categoria_nombre=product.categoria.nombre,
+            proveedor_id=product.proveedor_id, descripcion=product.descripcion, especies=product.especies,
+            unidad_medida=product.unidad_medida, fraccionable=product.fraccionable, costo_unitario=product.costo_unitario, sucursal_id=product.sucursal_id,
         )
 
     @staticmethod
@@ -406,6 +489,7 @@ class AdminService:
             veterinario_id=item.veterinario_id,
             veterinario_nombre=item.veterinario.usuario.nombre if item.veterinario else None,
             nota_coordinacion=item.nota_coordinacion,
+            es_urgente=item.es_urgente,
         )
 
     @staticmethod
@@ -413,8 +497,6 @@ class AdminService:
         if permission is not None:
             return RolePermissionRead.model_validate(permission)
         # The pre-existing administrator role remains fully operational until explicit configuration.
-        full_access = role == TipoUsuario.ADMINISTRADOR
         return RolePermissionRead(
-            rol=role, modulo=module, puede_ver=full_access, puede_crear=full_access,
-            puede_editar=full_access, puede_eliminar=full_access, puede_aprobar=full_access,
+            rol=role, modulo=module, **{f"puede_{action}": default_permission(role, module, action) for action in ("ver", "crear", "editar", "eliminar", "aprobar")},
         )

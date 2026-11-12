@@ -47,7 +47,7 @@
 
       <div class="flex items-center justify-between gap-3 text-sm">
         <label class="flex cursor-pointer items-center gap-2 font-medium text-slate-600"><input type="checkbox" formControlName="remember" class="h-4 w-4 rounded border-slate-300 accent-[#0799AE]" />Recordarme</label>
-        <a href="#" (click)="showUpcomingFeature($event)" class="font-bold text-[#0799AE] hover:underline">¿Olvidaste tu contraseña?</a>
+        <a routerLink="/recuperar-clave" class="font-bold text-[#0799AE] hover:underline">¿Olvidaste tu contraseña?</a>
       </div>
 
       @if (errorMessage()) {
@@ -58,6 +58,7 @@
         @if (isSubmitting()) { <span class="spinner" aria-hidden="true"></span>Ingresando... } @else { Iniciar sesión }
       </button>
     </form>
+    <a routerLink="/verificar-correo" class="mt-4 block text-center text-sm font-semibold text-brand-600">Verificar mi correo o reenviar código</a>
 
     <div class="mt-7 border-t border-slate-200 pt-6 text-center">
       <p class="mb-3 text-sm text-slate-500">¿Aún no tienes cuenta?</p>

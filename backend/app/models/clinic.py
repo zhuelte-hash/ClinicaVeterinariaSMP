@@ -132,6 +132,9 @@ class Mascota(Base):
     fecha_nacimiento: Mapped[datetime.date | None] = mapped_column(Date)
     peso_actual: Mapped[Decimal | None] = mapped_column(Numeric(7, 2))
     caracteristicas: Mapped[str | None] = mapped_column(Text)
+    alergias: Mapped[str | None] = mapped_column(Text)
+    condiciones_especiales: Mapped[str | None] = mapped_column(Text)
+    foto_url: Mapped[str | None] = mapped_column(String(500))
 
     cliente: Mapped["Cliente"] = relationship(back_populates="mascotas")
     citas: Mapped[list["Cita"]] = relationship(back_populates="mascota")
@@ -154,6 +157,7 @@ class Servicio(Base):
     descripcion: Mapped[str | None] = mapped_column(Text)
     precio_referencial: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     duracion_estimada_min: Mapped[int] = mapped_column(Integer, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
 
     medico: Mapped["ServicioMedico | None"] = relationship(
         back_populates="servicio", cascade="all, delete-orphan", uselist=False
@@ -274,6 +278,8 @@ class Cita(Base):
     )
     fecha_hora_llegada: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
     cancelacion_automatica_at: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    asistencia_confirmada_en: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
 
     mascota: Mapped[Mascota] = relationship(back_populates="citas")
     servicio: Mapped[Servicio] = relationship(back_populates="citas")
@@ -309,6 +315,7 @@ class HorarioVeterinario(Base):
     hora_inicio: Mapped[datetime.time] = mapped_column(Time, nullable=False)
     hora_fin: Mapped[datetime.time] = mapped_column(Time, nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"), nullable=False)
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
 
     veterinario: Mapped["Veterinario"] = relationship(back_populates="horarios")
 
@@ -380,6 +387,7 @@ class ProcesoAtencion(Base):
     motivo_consulta: Mapped[str | None] = mapped_column(Text)
     anamnesis: Mapped[str | None] = mapped_column(Text)
     proxima_fecha_control: Mapped[datetime.date | None] = mapped_column(Date)
+    notas_privadas: Mapped[str | None] = mapped_column(Text)
 
     cita: Mapped[Cita] = relationship(
         back_populates="proceso_atencion", overlaps="procesos_atencion,mascota"
@@ -499,6 +507,8 @@ class DetalleReceta(Base):
     duracion: Mapped[str] = mapped_column(String(100), nullable=False)
     cantidad: Mapped[str | None] = mapped_column(String(50))
     indicaciones: Mapped[str | None] = mapped_column(Text)
+    producto_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.productos.id"))
+    cantidad_producto: Mapped[Decimal | None] = mapped_column(Numeric(14, 3))
 
     receta: Mapped[Receta] = relationship(back_populates="detalles")
 
@@ -714,11 +724,18 @@ class Producto(Base):
     sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     precio_venta: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    stock_actual: Mapped[int] = mapped_column(
-        Integer, server_default=text("0"), nullable=False
+    descripcion: Mapped[str | None] = mapped_column(Text)
+    especies: Mapped[list[str]] = mapped_column(JSON, default=list, server_default=text("'[]'"), nullable=False)
+    costo_unitario: Mapped[Decimal] = mapped_column(Numeric(14, 4), default=0, server_default="0", nullable=False)
+    unidad_medida: Mapped[str] = mapped_column(String(15), default="unidad", server_default="unidad", nullable=False)
+    fraccionable: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
+    alerta_stock_activa: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
+    stock_actual: Mapped[Decimal] = mapped_column(
+        Numeric(14, 3), server_default=text("0"), nullable=False
     )
-    stock_minimo: Mapped[int] = mapped_column(
-        Integer, server_default=text("0"), nullable=False
+    stock_minimo: Mapped[Decimal] = mapped_column(
+        Numeric(14, 3), server_default=text("0"), nullable=False
     )
     activo: Mapped[bool] = mapped_column(
         Boolean, server_default=text("true"), nullable=False
@@ -732,6 +749,22 @@ class Producto(Base):
     detalles_venta: Mapped[list["DetalleOrdenCobro"]] = relationship(
         back_populates="producto"
     )
+
+
+class AjusteInventario(Base):
+    __tablename__ = "ajustes_inventario"
+    __table_args__ = (
+        CheckConstraint("cantidad_anterior >= 0 AND cantidad_nueva >= 0", name="cantidades"),
+        {"schema": SCHEMA},
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    producto_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.productos.id", ondelete="RESTRICT"), nullable=False)
+    usuario_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.usuarios.id", ondelete="RESTRICT"), nullable=False)
+    cantidad_anterior: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
+    cantidad_nueva: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
+    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
+    fecha: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Caja(Base):
@@ -765,6 +798,7 @@ class Caja(Base):
     fecha_cierre: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
     efectivo_contado: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     diferencia: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
 
     cajero: Mapped["Cajero"] = relationship(back_populates="cajas")
     ordenes_cobro: Mapped[list["OrdenCobro"]] = relationship(back_populates="caja")
@@ -775,7 +809,7 @@ class OrdenCobro(Base):
     __table_args__ = (
         CheckConstraint("monto_total >= 0", name="monto"),
         CheckConstraint(
-            "medio_pago IS NULL OR medio_pago IN ('efectivo', 'yape', 'plin', 'tarjeta')",
+            "medio_pago IS NULL OR medio_pago IN ('efectivo', 'yape', 'plin', 'tarjeta', 'transferencia')",
             name="medio_pago",
         ),
         Index("idx_ordenes_cajero", "cajero_id"),
@@ -820,6 +854,11 @@ class OrdenCobro(Base):
     efectivo_recibido: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     vuelto: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default=text("0"), nullable=False)
     motivo_rechazo: Mapped[str | None] = mapped_column(String(500))
+    motivo_anulacion: Mapped[str | None] = mapped_column(String(500))
+    anulado_por: Mapped[int | None] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.usuarios.id"))
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
+    preorden_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.ordenes_pendientes.id"), unique=True)
+    autorizacion_descuento_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.autorizaciones_descuento.id"), unique=True)
 
     cajero: Mapped["Cajero"] = relationship(back_populates="ordenes_cobro")
     cliente: Mapped["Cliente"] = relationship(back_populates="ordenes_cobro")
@@ -864,7 +903,7 @@ class DetalleOrdenCobro(Base):
         BigInteger,
         ForeignKey(f"{SCHEMA}.servicios.id", ondelete="RESTRICT"),
     )
-    cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
+    cantidad: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
     precio_unitario: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 

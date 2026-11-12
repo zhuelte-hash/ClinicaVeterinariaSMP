@@ -13,6 +13,8 @@ export interface AdminUser {
   telefono: string | null;
   colegiatura: string | null;
   especialidad: string | null;
+  activo: boolean;
+  sucursal_id: number;
 }
 
 export interface CreateAdminUser {
@@ -56,6 +58,7 @@ export class AdminUsersApiService {
   updateUser(id: number, data: UpdateAdminUser): Observable<AdminUser> {
     return this.http.patch<AdminUser>(`${this.baseUrl}/${id}`, data);
   }
+  setActive(id: number, activo: boolean): Observable<AdminUser> { return this.http.patch<AdminUser>(`${this.baseUrl}/${id}/estado`, { activo }); }
 
   deleteUser(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);

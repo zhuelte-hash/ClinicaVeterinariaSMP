@@ -40,9 +40,30 @@ class ClientRegisterRequest(BaseModel):
 
 class TokenPayload(BaseModel):
     user_id: int
+    version: int = 0
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UsuarioRead
+    verification_required: bool = False
+
+
+class EmailRequest(BaseModel):
+    correo: EmailStr
+
+
+class VerifyEmailRequest(EmailRequest):
+    codigo: str = Field(pattern=r"^\d{6}$")
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=200)
+    password: str = Field(min_length=8, max_length=72)
+
+
+class OwnProfileUpdate(BaseModel):
+    nombre: str = Field(min_length=2, max_length=150)
+    telefono: str | None = Field(default=None, max_length=30)
+    direccion: str | None = Field(default=None, max_length=255)

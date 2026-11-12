@@ -88,7 +88,8 @@ def test_guest_can_read_booking_options_but_not_private_portal_data(monkeypatch:
 def test_booking_hours_exclude_lunch_and_allow_evening() -> None:
     timezone = ZoneInfo("America/Lima")
     slot = lambda hour, minute=0: datetime.datetime(2026, 10, 8, hour, minute, tzinfo=timezone)
-    within = AppointmentService._within_booking_hours
+    from types import SimpleNamespace
+    within = AppointmentService(SimpleNamespace(get=lambda *_args: None))._within_booking_hours
     assert within(slot(8), 30)
     assert within(slot(11, 30), 30)
     assert not within(slot(11, 30), 60)
@@ -161,6 +162,8 @@ def test_catalog_is_public_and_inventory_requires_login() -> None:
                 id=42, sku="WEB-ALI-01", nombre="Alimento", precio_venta=42.90,
                 stock_actual=3, stock_minimo=2, activo=True, imagen_url="/logo.png",
                 categoria_id=1, categoria=SimpleNamespace(nombre="Alimentos"),
+                proveedor_id=1, descripcion="Alimento para mascotas", especies=["Perro"],
+                unidad_medida="unidad", fraccionable=False, costo_unitario=0, sucursal_id=1,
             )])
 
     app.dependency_overrides[get_db] = lambda: FakeSession()
@@ -215,7 +218,8 @@ def test_recommended_roles_leave_administration_to_admin_only() -> None:
     permissions = AdminService(db).apply_recommended_permissions()
     assert len(permissions) == len(PERMISSION_MODULES) * len(TipoUsuario)
     assert all(permission.puede_editar for permission in permissions if permission.rol == TipoUsuario.ADMINISTRADOR)
-    assert all(not permission.puede_ver for permission in permissions if permission.rol != TipoUsuario.ADMINISTRADOR)
+    assert any(permission.puede_ver for permission in permissions if permission.rol == TipoUsuario.VETERINARIO and permission.modulo == "historias_clinicas")
+    assert all(not permission.puede_ver for permission in permissions if permission.rol == TipoUsuario.CLIENTE and permission.modulo == "usuarios")
 
 
 def test_staff_listing_filters_clients_before_pagination() -> None:

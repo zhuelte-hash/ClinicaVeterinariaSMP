@@ -1,16 +1,22 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, of } from 'rxjs';
 import { NoticeService } from '../../../../core/services/notice.service';
-import { AdminApiService, AdminAppointment, CatalogOption } from '../../services/admin-api.service';
+import { AdminApiService, AdminAppointment, AppointmentReport, CatalogOption } from '../../services/admin-api.service';
+import { clinicToday } from '../../../veterinarian/veterinarian.models';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 
 @Component({ selector: 'app-admin-citas', standalone: true, imports: [FormsModule, PageHeaderComponent], templateUrl: './citas.component.html', styleUrl: '../../shared/admin-ui.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class CitasComponent {
   private readonly api = inject(AdminApiService);
   private readonly notice = inject(NoticeService);
-  readonly date = signal(''); readonly status = signal(''); readonly appointments = signal<AdminAppointment[]>([]); readonly loading = signal(true); readonly error = signal('');
+  readonly date = signal(clinicToday().slice(0, 7) + '-01'); readonly status = signal(''); readonly appointments = signal<AdminAppointment[]>([]); readonly loading = signal(true); readonly error = signal('');
+  readonly endDate = signal(clinicToday());
+  readonly onlyUrgent = signal(false);
+  readonly report = signal<AppointmentReport | null>(null);
+  readonly reportRows = computed(() => Object.entries(this.report()?.por_estado || {}).map(([state, count]) => ({ state, count, label: this.statusLabel(state) })));
+  readonly urgentPending = computed(() => this.appointments().filter(item => item.es_urgente && this.canEdit(item)).length);
   readonly veterinarians = signal<CatalogOption[]>([]);
   readonly editing = signal<AdminAppointment | null>(null);
   readonly saving = signal(false);
@@ -26,11 +32,12 @@ export class CitasComponent {
   private loadVersion = 0;
   constructor() { this.load(); }
   load(): void {
+    if (this.date() && this.endDate() && this.date() > this.endDate()) { this.error.set('La fecha inicial debe ser anterior o igual a la final.'); return; }
     const version = ++this.loadVersion;
     this.loading.set(true);
-    forkJoin({ appointments: this.api.getAppointments(this.date() || undefined, this.status() || undefined), veterinarians: this.api.getAppointmentVeterinarians() })
+    forkJoin({ appointments: this.api.getAppointments(this.date() || undefined, this.status() || undefined, this.endDate() || undefined, this.onlyUrgent()), veterinarians: this.api.getAppointmentVeterinarians(), report: this.date() && this.endDate() ? this.api.getAppointmentReport(this.date(), this.endDate()) : of(null) })
       .pipe(finalize(() => { if (version === this.loadVersion) this.loading.set(false); })).subscribe({
-        next: ({ appointments, veterinarians }) => { if (version !== this.loadVersion) return; this.appointments.set(appointments); this.veterinarians.set(veterinarians); this.error.set(''); },
+        next: ({ appointments, veterinarians, report }) => { if (version !== this.loadVersion) return; this.appointments.set(appointments); this.veterinarians.set(veterinarians); this.report.set(report); this.error.set(''); },
         error: (error: unknown) => { if (version === this.loadVersion) this.error.set(this.errorText(error)); },
       });
   }

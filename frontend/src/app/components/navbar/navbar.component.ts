@@ -126,6 +126,8 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
               }
             </div>
             <a routerLink="/mis-compras" routerLinkActive="active" class="nav-link">Mis compras</a>
+            <a routerLink="/mis-pagos" routerLinkActive="active" class="nav-link">Mis pagos</a>
+            <a routerLink="/mis-mascotas" routerLinkActive="active" class="nav-link">Mis mascotas</a>
             <a routerLink="/productos" routerLinkActive="active" class="nav-link">Productos</a>
             <a routerLink="/farmacia" routerLinkActive="active" class="nav-link">Farmacia</a>
              <a routerLink="/contacto" routerLinkActive="active" class="nav-link">Contáctanos</a>
@@ -225,6 +227,8 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </button>
           <a routerLink="/productos" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Productos</a>
           <a routerLink="/mis-compras" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis compras</a>
+          <a routerLink="/mis-pagos" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis pagos y boletas</a>
+          <a routerLink="/mis-mascotas" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis mascotas</a>
           <a routerLink="/farmacia" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Farmacia</a>
            <a routerLink="/contacto" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Contáctanos</a>
           <a routerLink="/blog" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Blog</a>

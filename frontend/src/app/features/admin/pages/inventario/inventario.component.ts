@@ -1,9 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../../../core/services/notice.service';
-import { AdminApiService, AdminProduct } from '../../services/admin-api.service';
+import { AdminApiService, AdminProduct, InventoryAdjustment } from '../../services/admin-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 
 @Component({ selector: 'app-admin-inventario', standalone: true, imports: [FormsModule, PageHeaderComponent], templateUrl: './inventario.component.html', styleUrl: '../../shared/admin-ui.css' })
@@ -18,6 +18,8 @@ export class InventarioComponent {
   readonly saving = signal(false);
   readonly error = signal('');
   stock = 0;
+  reason = '';
+  readonly adjustments = signal<InventoryAdjustment[]>([]);
   readonly items = computed(() => {
     const q = this.query().trim().toLowerCase();
     return this.products().filter((item) =>
@@ -30,24 +32,26 @@ export class InventarioComponent {
   constructor() { this.load(); }
   load(): void {
     this.loading.set(true);
-    this.api.getInventory().pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (products) => { this.products.set(products); this.error.set(''); },
+    forkJoin({ products: this.api.getInventory(), adjustments: this.api.getStockAdjustments() }).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: ({ products, adjustments }) => { this.products.set(products); this.adjustments.set(adjustments); this.error.set(''); },
       error: (error: unknown) => this.error.set(this.errorText(error)),
     });
   }
-  edit(item: AdminProduct): void { this.editing.set(item); this.stock = item.stock_actual; this.error.set(''); }
+  edit(item: AdminProduct): void { this.editing.set(item); this.stock = item.stock_actual; this.reason = ''; this.error.set(''); }
   save(): void {
     const item = this.editing();
     if (!item || this.saving() || !Number.isInteger(this.stock) || this.stock < 0) {
       this.error.set('Ingresa una cantidad entera mayor o igual a cero.');
       return;
     }
+    if (this.reason.trim().length < 3) { this.error.set('Indica el motivo del ajuste (mínimo 3 caracteres).'); return; }
     this.saving.set(true);
-    this.api.updateStock(item.id, this.stock).pipe(finalize(() => this.saving.set(false))).subscribe({
+    this.api.updateStock(item.id, this.stock, item.stock_actual, this.reason.trim()).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (updated) => {
         this.products.update((items) => items.map((product) => product.id === updated.id ? updated : product));
         this.editing.set(null);
         this.notice.show('Existencia actualizada');
+        this.load();
       },
       error: (error: unknown) => this.error.set(this.errorText(error)),
     });

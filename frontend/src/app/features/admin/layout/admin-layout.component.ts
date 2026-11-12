@@ -4,6 +4,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminApiService, AdminUserNotification } from '../services/admin-api.service';
 import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.component';
+import { routeModule } from '../../../core/guards/permission.guard';
 
 interface NavItem { label: string; path: string; icon: 'grid' | 'box' | 'stock' | 'tag' | 'calendar' | 'sale' | 'bell' | 'users' | 'settings'; }
 
@@ -21,16 +22,20 @@ export class AdminLayoutComponent {
   readonly administratorName = computed(() => this.auth.currentUser()?.nombre || 'Administrador');
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly today = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-  readonly navItems: NavItem[] = [
+  private readonly allNavItems: NavItem[] = [
+    { label: 'Reportes Excel', path: 'reportes', icon: 'sale' },
+    { label: 'Órdenes y pagos', path: 'ordenes', icon: 'sale' },
     { label: 'Pedidos web', path: 'pedidos-web', icon: 'sale' },
     { label: 'Dashboard', path: 'dashboard', icon: 'grid' }, { label: 'Productos', path: 'productos', icon: 'box' },
     { label: 'Inventario', path: 'inventario', icon: 'stock' }, { label: 'Categorías', path: 'categorias', icon: 'tag' },
+    { label: 'Proveedores', path: 'proveedores', icon: 'box' },
     { label: 'Citas', path: 'citas', icon: 'calendar' }, { label: 'Ventas', path: 'ventas', icon: 'sale' },
     { label: 'Notificaciones', path: 'notificaciones', icon: 'bell' },
     { label: 'Usuarios', path: 'usuarios', icon: 'users' }, { label: 'Clientes', path: 'clientes', icon: 'users' },
     { label: 'Historial clínico', path: 'historial-clinico', icon: 'stock' },
     { label: 'Configuración', path: 'configuracion', icon: 'settings' },
   ];
+  readonly navItems = computed(() => this.allNavItems.filter(item => { if (item.path === 'reportes') return ['ventas', 'citas', 'inventario'].some(module => this.auth.can(module)); const module = routeModule(`/admin/${item.path}`); return !module || this.auth.can(module); }));
 
   private readonly api = inject(AdminApiService);
   constructor(readonly auth: AuthService, private readonly router: Router) {

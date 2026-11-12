@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { CashierApiService } from './cashier-api.service';
+import { DiscountAuthorizationsComponent } from '../billing/discount-authorizations.component';
+import { DiscountAuthorization } from '../billing/billing-api.service';
 import {
   CashierAttention,
   CashierCategory,
@@ -24,12 +26,12 @@ interface SaleCartItem {
   quantity: number;
 }
 
-type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
+type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
 
 @Component({
   selector: 'app-cashier-sales',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-[1500px]">
@@ -85,7 +87,8 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta';
             @if (clientDni() && !validDni()) { <p class="text-xs font-semibold text-rose-600">Ingresa un DNI de 8 dígitos.</p> }
             @if (selectedClientId()) { <label class="grid gap-2 text-sm font-bold">Atención asociada (opcional)<select [ngModel]="attentionId()" (ngModelChange)="attentionId.set(+$event)" class="rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal"><option [ngValue]="0">Sin atención</option>@for (attention of attentions(); track attention.id) { <option [ngValue]="attention.id">#{{ attention.id }} · {{ attention.mascota_nombre }} · {{ attention.servicio_nombre }}</option> }</select></label> }
             <div><p class="mb-2 text-sm font-bold">Método de pago</p><div class="grid grid-cols-2 gap-2">@for (method of paymentMethods; track method.value) {<button (click)="paymentMethod.set(method.value)" class="payment-button" [class.payment-active]="paymentMethod() === method.value">{{ method.label }}</button>}</div></div>
-            <label class="grid gap-2 text-sm font-bold">Descuento (S/)<input type="number" min="0" step="0.01" [ngModel]="discount()" (ngModelChange)="discount.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label>
+            <app-discount-authorizations [clienteId]="selectedClientId() || null" (selected)="applyDiscount($event)" />
+            <p class="text-sm font-bold">Descuento autorizado: S/ {{ discount().toFixed(2) }} @if (authorizationId()) { <button type="button" class="ml-2 text-rose-700" (click)="clearDiscount()">Quitar #{{ authorizationId() }}</button> }</p>
             @if (cashAmount() > 0) { <label class="grid gap-2 text-sm font-bold">Efectivo recibido (S/)<input type="number" min="0" step="0.01" [ngModel]="cashReceived()" (ngModelChange)="cashReceived.set(+$event)" class="rounded-xl border border-slate-300 px-3 py-3 font-normal"></label><p class="text-sm font-bold">Vuelto: S/ {{ change() }}</p> }
             <div class="rounded-2xl bg-[#111827] p-4 text-white shadow-lg"><div class="flex justify-between text-sm text-slate-300"><span>Subtotal tras descuento</span><span>S/ {{ subtotalWithoutTax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>IGV (18%)</span><span>S/ {{ tax() }}</span></div><div class="mt-2 flex justify-between text-sm text-slate-300"><span>Descuento</span><span>− S/ {{ discount().toFixed(2) }}</span></div><div class="mt-3 flex justify-between border-t border-white/15 pt-3 text-xl font-black"><span>Total</span><span class="text-[#56c4d8]">S/ {{ total() }}</span></div></div>
             <button (click)="charge()" [disabled]="!canCharge() || charging()" class="w-full rounded-xl bg-[#56c4d8] px-5 py-3.5 font-black text-[#111827] transition hover:bg-[#111827] hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{{ charging() ? 'Procesando...' : 'Cobrar y generar boleta' }}</button>
@@ -141,6 +144,7 @@ export class CashierSalesComponent {
   readonly validDni = computed(() => !this.clientDni() || /^[0-9]{8}$/.test(this.clientDni()));
   readonly paymentMethod = signal<PaymentMethod>('efectivo');
   readonly discount = signal(0);
+  readonly authorizationId = signal<number | null>(null);
   readonly cashReceived = signal(0);
   readonly registerOpen = signal(false);
   readonly loading = signal(true);
@@ -152,6 +156,7 @@ export class CashierSalesComponent {
   readonly paymentMethods: { value: PaymentMethod; label: string }[] = [
     { value: 'efectivo', label: 'Efectivo' }, { value: 'yape', label: 'Yape' },
     { value: 'plin', label: 'Plin' }, { value: 'tarjeta', label: 'Tarjeta' },
+    { value: 'transferencia', label: 'Transferencia bancaria' },
   ];
   readonly filteredProducts = computed(() => {
     const query = this.search().trim().toLowerCase();
@@ -204,6 +209,7 @@ export class CashierSalesComponent {
   }
 
   selectClient(id: number): void {
+    this.clearDiscount();
     this.selectedClientId.set(id);
     this.attentionId.set(0);
     this.attentions.set([]);
@@ -211,6 +217,9 @@ export class CashierSalesComponent {
       if (this.selectedClientId() === id) this.attentions.set(items);
     }, error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
   }
+
+  applyDiscount(item: DiscountAuthorization): void { this.authorizationId.set(item.id); this.discount.set(Number(item.monto)); }
+  clearDiscount(): void { this.authorizationId.set(null); this.discount.set(0); }
 
   reopenReceipt(order: CashierOrder): void {
     this.api.getReceipt(order.id).subscribe({ next: (receipt) => this.receipt.set(receipt), error: (error: unknown) => this.errorMessage.set(this.errorText(error)) });
@@ -258,6 +267,7 @@ export class CashierSalesComponent {
       cliente_dni: this.clientDni() || null,
       medio_pago: this.paymentMethod(),
       descuento: this.discount(), pagos: payments,
+      autorizacion_descuento_id: this.authorizationId(),
       efectivo_recibido: this.cashAmount() > 0 ? this.cashReceived() : undefined,
       proceso_atencion_id: this.attentionId() || null,
       items: this.cart().map((item) => item.type === 'product'
@@ -267,7 +277,7 @@ export class CashierSalesComponent {
     const payload = JSON.stringify(sale);
     if (this.pendingSale?.payload !== payload) this.pendingSale = { payload, key: crypto.randomUUID() };
     this.api.createSale({ ...sale, clave_idempotencia: this.pendingSale.key }).pipe(finalize(() => this.charging.set(false))).subscribe({
-      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.discount.set(0); this.clientDni.set(''); this.cashReceived.set(0); this.attentionId.set(0); this.loadData(); },
+      next: (receipt) => { this.receipt.set(receipt); this.cart.set([]); this.pendingSale = null; this.clearDiscount(); this.clientDni.set(''); this.cashReceived.set(0); this.attentionId.set(0); this.loadData(); },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
     });
   }

@@ -41,7 +41,7 @@ def create(data: VentaCreate, db: Db, user: Annotated[Usuario, Depends(get_curre
 def summary(db: Db, _admin: Admin, fecha_inicial: datetime.date | None = None,
             fecha_final: datetime.date | None = None, numero_venta: str | None = None,
             estado: Literal["PAGADA", "ANULADA", "PENDIENTE"] | None = None,
-            metodo_pago: Literal["efectivo", "yape", "plin", "tarjeta"] | None = None,
+            metodo_pago: Literal["efectivo", "yape", "plin", "tarjeta", "transferencia"] | None = None,
             cajero_id: int | None = None, producto_id: int | None = None):
     return SalesService(db).summary(fecha_inicial=fecha_inicial, fecha_final=fecha_final,
         numero_venta=numero_venta, estado=estado, metodo_pago=metodo_pago,
@@ -52,7 +52,7 @@ def summary(db: Db, _admin: Admin, fecha_inicial: datetime.date | None = None,
 def list_sales(db: Db, _admin: Admin, fecha_inicial: datetime.date | None = None,
                fecha_final: datetime.date | None = None, numero_venta: str | None = Query(default=None, max_length=50),
                estado: Literal["PAGADA", "ANULADA", "PENDIENTE"] | None = None,
-               metodo_pago: Literal["efectivo", "yape", "plin", "tarjeta"] | None = None,
+               metodo_pago: Literal["efectivo", "yape", "plin", "tarjeta", "transferencia"] | None = None,
                cajero_id: int | None = None, producto_id: int | None = None,
                pagina: int = Query(default=1, ge=1), tamano_pagina: int = Query(default=20, ge=1, le=100)):
     if fecha_inicial and fecha_final and fecha_inicial > fecha_final:

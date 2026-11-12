@@ -4,13 +4,16 @@ import { Observable, Subject, map, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { VeterinarianClinicalRecord } from '../../veterinarian/veterinarian.models';
 
-export interface AdminProduct { id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; activo: boolean; imagen_url: string; categoria_id: number; categoria_nombre: string; }
+export interface AdminProduct { id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; activo: boolean; imagen_url: string; categoria_id: number; categoria_nombre: string; proveedor_id: number; descripcion: string | null; especies: string[]; }
 export interface AdminClient { id: number; nombre: string; correo: string; telefono: string | null; direccion: string | null; mascotas: number; citas: number; ultima_cita: string | null; }
 export interface CatalogOption { id: number; nombre: string; }
 export interface ProductCatalog { categorias: CatalogOption[]; proveedores: CatalogOption[]; }
 export interface AdminCategory { id: number; nombre: string; productos: number; }
-export interface ProductCreate { categoria_id: number; proveedor_id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; imagen_url: string; }
-export interface AdminAppointment { id: number; fecha_hora_programada: string; fecha_hora_fin_programada: string; estado: string; cliente_nombre: string; mascota_nombre: string; servicio_nombre: string; veterinario_id: number | null; veterinario_nombre: string | null; nota_coordinacion: string | null; }
+export interface ProductCreate { categoria_id: number; proveedor_id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; imagen_url: string; descripcion?: string | null; especies?: string[]; }
+export interface AdminAppointment { id: number; fecha_hora_programada: string; fecha_hora_fin_programada: string; estado: string; cliente_nombre: string; mascota_nombre: string; servicio_nombre: string; veterinario_id: number | null; veterinario_nombre: string | null; nota_coordinacion: string | null; es_urgente: boolean; }
+export interface AppointmentReport { fecha_inicial: string; fecha_final: string; total: number; urgentes: number; por_estado: Record<string, number>; }
+export interface Supplier { id: number; razon_social: string; productos: number; }
+export interface InventoryAdjustment { id: number; producto_id: number; producto_nombre: string; usuario_id: number; usuario_nombre: string; cantidad_anterior: number; cantidad_nueva: number; motivo: string; fecha: string; }
 export interface AdminNotification { id: number; cita_id: number | null; tipo: string; titulo: string; mensaje: string; leida: boolean; fecha_creacion: string; }
 export interface AdminSale { id: number; codigo_orden: string; fecha_emision: string; cajero_nombre: string; cliente_nombre: string | null; total: number; medio_pago: string | null; }
 export interface SalesDay { fecha: string; total: number; ventas: AdminSale[]; }
@@ -38,13 +41,18 @@ export class AdminApiService {
   updateCategory(id: number, nombre: string): Observable<AdminCategory> { return this.http.patch<AdminCategory>(`${this.baseUrl}/categorias/${id}`, { nombre }); }
   deleteCategory(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/categorias/${id}`); }
   createProduct(data: ProductCreate): Observable<AdminProduct> { return this.http.post<AdminProduct>(`${this.baseUrl}/productos`, data).pipe(map((item) => this.normalizeProduct(item))); }
-  updateProduct(id: number, data: Partial<Pick<ProductCreate, 'categoria_id' | 'sku' | 'nombre' | 'precio_venta' | 'stock_minimo' | 'imagen_url'>>): Observable<AdminProduct> { return this.http.patch<AdminProduct>(`${this.baseUrl}/productos/${id}`, data).pipe(map((item) => this.normalizeProduct(item))); }
+  updateProduct(id: number, data: Partial<Omit<ProductCreate, 'stock_actual'>>): Observable<AdminProduct> { return this.http.patch<AdminProduct>(`${this.baseUrl}/productos/${id}`, data).pipe(map((item) => this.normalizeProduct(item))); }
   getInventory(): Observable<AdminProduct[]> { return this.http.get<AdminProduct[]>(`${this.baseUrl}/inventario`).pipe(map((items) => items.map((item) => this.normalizeProduct(item)))); }
   getClients(): Observable<AdminClient[]> { return this.http.get<AdminClient[]>(`${this.baseUrl}/clientes`); }
-  updateStock(id: number, stock: number): Observable<AdminProduct> { return this.http.patch<AdminProduct>(`${this.baseUrl}/inventario/${id}`, { stock_actual: stock }).pipe(map((item) => this.normalizeProduct(item))); }
+  updateStock(id: number, stock: number, previous: number, reason: string): Observable<AdminProduct> { return this.http.patch<AdminProduct>(`${this.baseUrl}/inventario/${id}`, { stock_actual: stock, stock_anterior: previous, motivo: reason }).pipe(map((item) => this.normalizeProduct(item))); }
+  getStockAdjustments(): Observable<InventoryAdjustment[]> { return this.http.get<InventoryAdjustment[]>(`${this.baseUrl}/ajustes-inventario`); }
+  getSuppliers(): Observable<Supplier[]> { return this.http.get<Supplier[]>(`${this.baseUrl}/proveedores`); }
+  createSupplier(razon_social: string): Observable<Supplier> { return this.http.post<Supplier>(`${this.baseUrl}/proveedores`, { razon_social }); }
+  updateSupplier(id: number, razon_social: string): Observable<Supplier> { return this.http.patch<Supplier>(`${this.baseUrl}/proveedores/${id}`, { razon_social }); }
   uploadProductImage(image: File): Observable<{ url: string }> { const form = new FormData(); form.append('image', image); return this.http.post<{ url: string }>(`${this.baseUrl}/productos/imagen`, form); }
   deactivateProduct(id: number): Observable<void> { return this.http.delete<void>(`${this.baseUrl}/productos/${id}`); }
-  getAppointments(date?: string, status?: string): Observable<AdminAppointment[]> { const params: Record<string, string> = {}; if (date) params['fecha'] = date; if (status) params['estado'] = status; return this.http.get<AdminAppointment[]>(`${this.baseUrl}/citas`, { params }); }
+  getAppointments(date?: string, status?: string, endDate?: string, urgent = false): Observable<AdminAppointment[]> { const params: Record<string, string> = {}; if (date) params[endDate ? 'fecha_inicial' : 'fecha'] = date; if (endDate) params['fecha_final'] = endDate; if (status) params['estado'] = status; if (urgent) params['solo_urgentes'] = 'true'; return this.http.get<AdminAppointment[]>(`${this.baseUrl}/citas`, { params }); }
+  getAppointmentReport(start: string, end: string): Observable<AppointmentReport> { return this.http.get<AppointmentReport>(`${this.baseUrl}/citas/reporte`, { params: { fecha_inicial: start, fecha_final: end } }); }
   getNotifications(): Observable<AdminNotification[]> { return this.http.get<AdminNotification[]>(`${environment.apiUrl}/portal/notificaciones`); }
   getAppointmentVeterinarians(): Observable<CatalogOption[]> { return this.http.get<CatalogOption[]>(`${this.baseUrl}/citas/veterinarios`); }
   updateAppointment(id: number, data: { estado?: string; fecha_hora_programada?: string; veterinario_id?: number | null; nota_coordinacion?: string }): Observable<AdminAppointment> { return this.http.patch<AdminAppointment>(`${this.baseUrl}/citas/${id}`, data); }

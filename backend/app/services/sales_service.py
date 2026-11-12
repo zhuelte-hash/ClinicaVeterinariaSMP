@@ -72,7 +72,7 @@ class SalesService:
             raise LookupError("Venta no encontrada")
         return self.serialize(order, details=True)
 
-    def void(self, order_id):
+    def void(self, order_id, reason="Anulación administrativa", actor_id=None):
         try:
             order = self.db.scalar(select(OrdenCobro).where(OrdenCobro.id == order_id).with_for_update())
             if order is None or order.comprobante_venta is None:
@@ -80,10 +80,12 @@ class SalesService:
             if order.estado_pago != EstadoPago.VALIDADO_CONFIRMADO:
                 raise ValueError("Solo se puede anular una venta pagada")
             register = self.db.scalar(select(Caja).where(Caja.id == order.caja_id).with_for_update())
-            for detail in sorted(order.detalles, key=lambda item: item.producto_id or 0):
-                if detail.producto_id is not None:
-                    product = self.db.scalar(select(Producto).where(Producto.id == detail.producto_id).with_for_update())
-                    product.stock_actual += detail.cantidad
+            if register.estado_caja != "abierta" or order.preorden_id is not None:
+                raise ValueError("La venta pertenece a una caja cerrada o tiene abonos; requiere conciliación de devolución")
+            order.motivo_anulacion = reason
+            order.anulado_por = actor_id or self.db.info.get("actor_id")
+            from app.services.inventory_service import InventoryService
+            InventoryService(self.db).reverse_sale(order, order.anulado_por)
             register.total_ingresos_validados -= order.monto_total
             order.estado_pago = EstadoPago.ANULADO
             self.db.commit()

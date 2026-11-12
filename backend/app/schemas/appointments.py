@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.clinic import (
     EstadoCita, EstadoOrdenExamen, EstadoProcesoAtencion, PrioridadExamen,
@@ -17,6 +17,15 @@ class PetCreate(BaseModel):
     fecha_nacimiento: datetime.date | None = None
     peso_actual: Decimal | None = Field(default=None, ge=0, max_digits=7, decimal_places=2)
     caracteristicas: str | None = Field(default=None, max_length=2000)
+    alergias: str | None = Field(default=None, max_length=5000)
+    condiciones_especiales: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("fecha_nacimiento")
+    @classmethod
+    def birth_not_in_future(cls, value):
+        if value is not None and value > datetime.date.today():
+            raise ValueError("La fecha de nacimiento no puede ser futura")
+        return value
 
     @field_validator("nombre", "especie", "raza", mode="before")
     @classmethod
@@ -28,6 +37,22 @@ class PetCreate(BaseModel):
     @classmethod
     def empty_optional_values(cls, value):
         return None if value == "" else value
+
+
+class PetUpdate(PetCreate):
+    nombre: str | None = Field(default=None, min_length=1, max_length=100)
+    especie: str | None = Field(default=None, min_length=2, max_length=80)
+
+    @model_validator(mode="after")
+    def required_identification(self):
+        if any(field in self.model_fields_set and getattr(self, field) is None for field in ("nombre", "especie")):
+            raise ValueError("Nombre y especie no pueden quedar vacíos")
+        return self
+
+
+class NoShowUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    motivo: str = Field(min_length=3, max_length=500)
 
 
 class VeterinarianWalkInCreate(BaseModel):
@@ -48,6 +73,9 @@ class PetRead(BaseModel):
     fecha_nacimiento: datetime.date | None
     peso_actual: Decimal | None
     caracteristicas: str | None
+    alergias: str | None = None
+    condiciones_especiales: str | None = None
+    foto_url: str | None = None
 
 
 class ServiceRead(BaseModel):
@@ -124,6 +152,7 @@ class AvailabilitySlot(BaseModel):
 
 
 class VeterinarianAppointmentRead(AppointmentRead):
+    tolerancia_minutos: int = 15
     cliente_id: int
     cliente_nombre: str
     cliente_correo: str
@@ -329,6 +358,8 @@ class ExamOrderRead(ExamOrderCreate, ExamOrderUpdate):
 
 
 class PrescriptionDetailCreate(BaseModel):
+    producto_id: int | None = Field(default=None, ge=1)
+    cantidad_producto: Decimal | None = Field(default=None, gt=0, le=10000, max_digits=14, decimal_places=3)
     medicamento: str = Field(min_length=1, max_length=150)
     presentacion: str | None = Field(default=None, max_length=150)
     dosis: str = Field(min_length=1, max_length=100)
@@ -338,6 +369,12 @@ class PrescriptionDetailCreate(BaseModel):
     duracion: str = Field(min_length=1, max_length=100)
     cantidad: str | None = Field(default=None, max_length=50)
     indicaciones: str | None = Field(default=None, max_length=5000)
+
+    @model_validator(mode="after")
+    def validate_product_link(self):
+        if (self.producto_id is None) != (self.cantidad_producto is None):
+            raise ValueError("Selecciona producto y cantidad a cobrar, o deja ambos vacíos")
+        return self
 
 
 class PrescriptionCreate(BaseModel):

@@ -3,13 +3,14 @@ import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PublicProductsService } from '../../core/services/public-products.service';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
+import { FormsModule } from '@angular/forms';
 
 type CategoryFilter = string;
 
 @Component({
   selector: 'app-products-page',
   standalone: true,
-  imports: [ProductCardComponent],
+  imports: [ProductCardComponent, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
      <section class="border-b border-brand-100 bg-brand-50">
@@ -31,8 +32,14 @@ type CategoryFilter = string;
              <input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar productos" class="site-input rounded-full pl-12" />
           </label>
         </div>
-      </div>
-    </section>
+         <div class="mt-4 grid gap-3 sm:grid-cols-3">
+           <label class="text-sm font-semibold">Especie<select class="site-input mt-1" [ngModel]="species()" (ngModelChange)="species.set($event)"><option value="">Todas las especies</option>@for (item of availableSpecies(); track item) { <option [value]="item">{{ item }}</option> }</select></label>
+           <label class="text-sm font-semibold">Precio mínimo (S/)<input type="number" min="0" step="0.01" class="site-input mt-1" [ngModel]="minPrice()" (ngModelChange)="minPrice.set($event)"></label>
+           <label class="text-sm font-semibold">Precio máximo (S/)<input type="number" min="0" step="0.01" class="site-input mt-1" [ngModel]="maxPrice()" (ngModelChange)="maxPrice.set($event)"></label>
+         </div>
+         @if (invalidPrices()) { <p class="mt-3 text-sm text-rose-700" role="alert">El precio mínimo no puede ser mayor que el máximo ni ser negativo.</p> }
+       </div>
+     </section>
     <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
        <div class="mb-7 flex flex-wrap items-end justify-between gap-2"><h2 class="text-2xl font-bold text-pet-900">Nuestro catálogo</h2><p class="text-sm text-slate-600" aria-live="polite">{{ filteredProducts().length }} productos</p></div>
        @if (catalog.loading()) { <p class="py-10 text-center text-slate-600">Cargando productos...</p> }
@@ -52,9 +59,18 @@ export class ProductsPageComponent {
   readonly categories = computed(() => ['Todos', ...new Set(this.catalog.products().map((product) => product.category))]);
   readonly selectedCategory = signal<CategoryFilter>('Todos');
   readonly search = signal('');
+  readonly species = signal('');
+  readonly minPrice = signal<number | null>(null);
+  readonly maxPrice = signal<number | null>(null);
+  readonly availableSpecies = computed(() => [...new Set(this.catalog.products().flatMap(item => item.species || []))].sort());
+  readonly invalidPrices = computed(() => (this.minPrice() ?? 0) < 0 || (this.maxPrice() ?? 0) < 0 || (this.minPrice() !== null && this.maxPrice() !== null && this.minPrice()! > this.maxPrice()!));
   readonly filteredProducts = computed(() => {
     const term = this.search().trim().toLocaleLowerCase('es');
-    return this.catalog.products().filter((product) => (this.selectedCategory() === 'Todos' || product.category === this.selectedCategory()) && (!term || `${product.name} ${product.category}`.toLocaleLowerCase('es').includes(term)));
+    if (this.invalidPrices()) return [];
+    return this.catalog.products().filter((product) => (this.selectedCategory() === 'Todos' || product.category === this.selectedCategory())
+      && (!term || `${product.name} ${product.category} ${product.description || ''}`.toLocaleLowerCase('es').includes(term))
+      && (!this.species() || !product.species?.length || product.species.includes(this.species()))
+      && (this.minPrice() === null || product.price >= this.minPrice()!) && (this.maxPrice() === null || product.price <= this.maxPrice()!));
   });
 
   constructor() {
@@ -66,5 +82,5 @@ export class ProductsPageComponent {
   }
 
   setSearch(event: Event): void { this.search.set((event.target as HTMLInputElement).value); }
-  clearFilters(): void { this.search.set(''); this.selectedCategory.set('Todos'); }
+  clearFilters(): void { this.search.set(''); this.selectedCategory.set('Todos'); this.species.set(''); this.minPrice.set(null); this.maxPrice.set(null); }
 }

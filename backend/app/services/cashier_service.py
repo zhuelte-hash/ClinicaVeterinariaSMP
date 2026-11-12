@@ -20,6 +20,9 @@ from app.models.clinic import (
     Mascota,
 )
 from app.models.user import Cajero, Cliente, TipoUsuario, Usuario
+from app.models.operations import AutorizacionDescuento, MovimientoCaja, OrdenPendiente
+from app.services.operation_utils import branch_id
+from app.services.inventory_service import InventoryService
 from app.schemas.cashier import (
     BoletaDetalleRead,
     BoletaRead,
@@ -70,7 +73,7 @@ class CashierService:
     def get_open_register(self, cashier_id: int) -> Caja | None:
         statement = (
             select(Caja)
-            .where(Caja.cajero_id == cashier_id, Caja.estado_caja == "abierta")
+            .where(Caja.cajero_id == cashier_id, Caja.estado_caja == "abierta", Caja.sucursal_id == branch_id(self.db))
             .order_by(Caja.id.desc())
         )
         return self.db.scalar(statement)
@@ -121,6 +124,8 @@ class CashierService:
         cash = Decimal("0.00")
         digital = Decimal("0.00")
         for order in orders:
+            if getattr(order, "preorden_id", None) is not None:
+                continue
             payments = order.pagos or [{"medio": order.medio_pago, "monto": str(order.monto_total)}]
             for payment in payments:
                 amount = Decimal(str(payment["monto"]))
@@ -128,6 +133,12 @@ class CashierService:
                     cash += amount
                 else:
                     digital += amount
+        if hasattr(self.db, "info"):
+            for movement in self.db.scalars(select(MovimientoCaja).where(MovimientoCaja.caja_id == register_id)).all():
+                if movement.medio == "efectivo":
+                    cash += movement.monto
+                else:
+                    digital += movement.monto
         return cash, digital
 
     def open_register(self, cashier: Usuario, data: CajaAbrir) -> Caja:
@@ -138,6 +149,7 @@ class CashierService:
             fondo_inicial=data.fondo_inicial,
             total_ingresos_validados=0,
             estado_caja="abierta",
+            sucursal_id=branch_id(self.db),
         )
         self.db.add(register)
         try:
@@ -178,7 +190,7 @@ class CashierService:
     def get_products(
         self, query: str | None = None, category_id: int | None = None
     ) -> list[Producto]:
-        statement = select(Producto).options(selectinload(Producto.categoria)).where(Producto.activo)
+        statement = select(Producto).options(selectinload(Producto.categoria)).where(Producto.activo, Producto.sucursal_id == branch_id(self.db))
         if query:
             pattern = f"%{query.strip()}%"
             statement = statement.where(
@@ -207,7 +219,7 @@ class CashierService:
         ]
 
     def get_services(self, query: str | None = None) -> list[Servicio]:
-        statement = select(Servicio)
+        statement = select(Servicio).where(Servicio.activo)
         if query:
             pattern = f"%{query.strip()}%"
             statement = statement.where(
@@ -293,7 +305,7 @@ class CashierService:
 
     def _create_sale(self, cashier: Usuario, data: VentaCreate, *, commit: bool = True,
                      costo_delivery: Decimal = Decimal("0.00"),
-                     expected_prices: dict[int, Decimal] | None = None) -> BoletaRead:
+                     expected_prices: dict[int, Decimal] | None = None, pre_order=None) -> BoletaRead:
         if data.clave_idempotencia:
             previous = self.db.scalar(select(OrdenCobro).where(OrdenCobro.clave_idempotencia == data.clave_idempotencia))
             if previous is not None:
@@ -319,13 +331,22 @@ class CashierService:
             process = self.db.get(ProcesoAtencion, data.proceso_atencion_id)
             if (client is None or process is None or process.mascota.cliente_id != client.usuario_id):
                 raise VentaInvalidaError("La atención no pertenece al cliente seleccionado")
+            if pre_order is None and self.db.scalar(select(OrdenPendiente.id).where(
+                OrdenPendiente.proceso_id == process.id, OrdenPendiente.estado != "anulada"
+            ).limit(1)) is not None:
+                raise VentaInvalidaError("Esta atención tiene una orden pendiente; registra su pago desde Órdenes y pagos")
             if self.db.scalar(select(OrdenCobro.id).where(
                 OrdenCobro.proceso_atencion_id == process.id,
                 OrdenCobro.estado_pago == EstadoPago.VALIDADO_CONFIRMADO,
             ).limit(1)) is not None:
                 raise VentaInvalidaError("Esta atención ya tiene una venta pagada")
 
-        quantities: dict[int, int] = {}
+        authorization = None
+        if data.descuento > 0:
+            authorization = self.db.scalar(select(AutorizacionDescuento).where(AutorizacionDescuento.id == data.autorizacion_descuento_id).with_for_update())
+            if not authorization or authorization.estado != "aprobada" or authorization.monto != data.descuento or authorization.cliente_id != data.cliente_id or (authorization.usada and (pre_order is None or pre_order.autorizacion_id != authorization.id)) or (pre_order is None and authorization.solicitante_id != cashier.id):
+                raise VentaInvalidaError("El descuento requiere una autorización aprobada y vinculada al cliente")
+        quantities: dict[int, Decimal] = {}
         service_quantities: dict[int, int] = {}
         for item in data.items:
             if item.producto_id is not None:
@@ -337,7 +358,7 @@ class CashierService:
         products = list(
             self.db.scalars(
                 select(Producto)
-                .where(Producto.id.in_(quantities), Producto.activo)
+                .where(Producto.id.in_(quantities), Producto.activo, Producto.sucursal_id == branch_id(self.db))
                 .order_by(Producto.id)
                 .with_for_update()
                 .execution_options(populate_existing=True)
@@ -347,13 +368,16 @@ class CashierService:
             raise ProductoNoDisponibleError
         services = list(
             self.db.scalars(
-                select(Servicio).where(Servicio.id.in_(service_quantities))
+                select(Servicio).where(Servicio.id.in_(service_quantities), Servicio.activo)
             ).all()
         )
         if len(services) != len(service_quantities):
             raise ProductoNoDisponibleError
 
         product_by_id = {product.id: product for product in products}
+        quoted_products = {row["producto_id"]: Decimal(row["precio_unitario"]) for row in pre_order.detalles if row["producto_id"]} if pre_order else {}
+        quoted_services = {row["servicio_id"]: Decimal(row["precio_unitario"]) for row in pre_order.detalles if row["servicio_id"]} if pre_order else {}
+        code = f"VTA-{datetime.datetime.now(datetime.timezone.utc):%Y%m%d%H%M%S}-{secrets.token_hex(3).upper()}"
         total = Decimal("0.00")
         details: list[DetalleOrdenCobro] = []
         for product_id, quantity in quantities.items():
@@ -362,23 +386,27 @@ class CashierService:
                 raise VentaInvalidaError("El precio de un producto cambió. Rechaza el pedido y coordina con el cliente")
             if product.stock_actual < quantity:
                 raise StockInsuficienteError
-            subtotal = (product.precio_venta * quantity).quantize(
+            price = quoted_products.get(product_id, product.precio_venta)
+            subtotal = (price * quantity).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             total += subtotal
-            product.stock_actual -= quantity
+            InventoryService(self.db).consume(product, quantity, code, actor=cashier.id)
             details.append(
                 DetalleOrdenCobro(
                     producto_id=product.id,
                     cantidad=quantity,
-                    precio_unitario=product.precio_venta,
+                    precio_unitario=price,
                     subtotal=subtotal,
                 )
             )
         service_by_id = {service.id: service for service in services}
         for service_id, quantity in service_quantities.items():
+            if quantity != quantity.to_integral_value():
+                raise VentaInvalidaError("Los servicios se cobran en cantidades enteras")
             service = service_by_id[service_id]
-            subtotal = (service.precio_referencial * quantity).quantize(
+            price = quoted_services.get(service_id, service.precio_referencial)
+            subtotal = (price * quantity).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             total += subtotal
@@ -386,7 +414,7 @@ class CashierService:
                 DetalleOrdenCobro(
                     servicio_id=service.id,
                     cantidad=quantity,
-                    precio_unitario=service.precio_referencial,
+                    precio_unitario=price,
                     subtotal=subtotal,
                 )
             )
@@ -395,6 +423,8 @@ class CashierService:
         if data.descuento > total:
             raise VentaInvalidaError("El descuento supera el importe de la venta")
         total = (total - data.descuento).quantize(Decimal("0.01"))
+        if pre_order is not None and total != pre_order.total:
+            raise VentaInvalidaError("El detalle no coincide con el total de la orden")
         if total <= 0:
             raise VentaInvalidaError("El total de la venta debe ser mayor que cero")
         payments = data.pagos or [PagoCreate(medio=data.medio_pago, monto=total)]
@@ -406,10 +436,6 @@ class CashierService:
         if data.efectivo_recibido is not None and data.efectivo_recibido < cash_amount:
             raise VentaInvalidaError("El efectivo recibido no alcanza para el cobro")
         change = (data.efectivo_recibido - cash_amount) if data.efectivo_recibido is not None else Decimal("0.00")
-        code = (
-            f"VTA-{datetime.datetime.now(datetime.timezone.utc):%Y%m%d%H%M%S}-"
-            f"{secrets.token_hex(2).upper()}"
-        )
         order = OrdenCobro(
             codigo_orden=code,
             cajero_id=cashier.id,
@@ -429,7 +455,12 @@ class CashierService:
             efectivo_recibido=data.efectivo_recibido,
             vuelto=change,
             detalles=details,
+            sucursal_id=branch_id(self.db),
+            preorden_id=pre_order.id if pre_order else None,
+            autorizacion_descuento_id=authorization.id if authorization else None,
         )
+        if authorization:
+            authorization.usada = True
         self.db.add(order)
         self.db.flush()
         receipt = ComprobanteVenta(

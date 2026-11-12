@@ -72,6 +72,7 @@ class UserService:
             correo=str(data.correo),
             contrasena=self._hash_password(data.contrasena),
             tipo=data.tipo,
+            sucursal_id=data.sucursal_id,
         )
         self._apply_role_profile(user, data)
         self.db.add(user)
@@ -99,6 +100,7 @@ class UserService:
         }
         if "contrasena" in update_data:
             update_data["contrasena"] = self._hash_password(update_data["contrasena"])
+            user.version_sesion += 1
         for field, value in update_data.items():
             setattr(user, field, value)
         self._apply_role_profile(user, profile_data, allow_existing=True)
@@ -160,3 +162,5 @@ class UserService:
             user.cajero = Cajero()
         elif user.tipo == TipoUsuario.ADMINISTRADOR and user.administrador is None:
             user.administrador = Administrador()
+        if user.tipo != TipoUsuario.CLIENTE and "telefono" in values:
+            user.telefono_personal = values["telefono"]

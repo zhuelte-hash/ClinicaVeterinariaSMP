@@ -77,11 +77,12 @@ export class CashierApiService {
   createSale(data: {
     cliente_id: number | null;
     cliente_dni?: string | null;
-    medio_pago: 'efectivo' | 'yape' | 'plin' | 'tarjeta';
+    medio_pago: 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
     items: { producto_id?: number; servicio_id?: number; cantidad: number }[];
     clave_idempotencia: string;
     descuento?: number;
-    pagos?: { medio: 'efectivo' | 'yape' | 'plin' | 'tarjeta'; monto: number }[];
+    autorizacion_descuento_id?: number | null;
+    pagos?: { medio: 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia'; monto: number }[];
     efectivo_recibido?: number;
     proceso_atencion_id?: number | null;
   }): Observable<Receipt> {

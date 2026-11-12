@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.config import get_settings
+from app.services import audit_service
+from app.routers import operations, clinical_operations, messaging, reports
 from app.routers import admin, appointments, auth, cashier, catalog, sales, users, purchases
 
 settings = get_settings()
@@ -25,7 +27,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+class PublicUploads(StaticFiles):
+    async def get_response(self, path, scope):
+        if path.replace("\\", "/").split("/")[0] == "clinical":
+            from starlette.exceptions import HTTPException
+            raise HTTPException(404)
+        return await super().get_response(path, scope)
+
+
+app.mount("/uploads", PublicUploads(directory=UPLOADS_DIR), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -35,6 +45,10 @@ app.include_router(sales.router)
 app.include_router(appointments.router)
 app.include_router(catalog.router)
 app.include_router(purchases.router)
+app.include_router(operations.router)
+app.include_router(clinical_operations.router)
+app.include_router(messaging.router)
+app.include_router(reports.router)
 
 
 @app.get("/")

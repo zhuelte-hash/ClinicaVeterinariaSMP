@@ -32,7 +32,7 @@
 
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="Navegación administrativa">
       @if (!collapsed()) { <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#8bd7e5]">Administración</p> }
-      @for (item of navItems; track item.path) {
+      @for (item of navItems(); track item.path) {
         <a
           [routerLink]="item.path"
           routerLinkActive="active-link"

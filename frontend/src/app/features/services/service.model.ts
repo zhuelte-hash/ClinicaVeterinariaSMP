@@ -21,4 +21,6 @@ export interface VeterinaryService {
   readonly icon: string;
   readonly featured?: boolean;
   readonly emergency?: boolean;
+  readonly price?: number;
+  readonly duration?: number;
 }

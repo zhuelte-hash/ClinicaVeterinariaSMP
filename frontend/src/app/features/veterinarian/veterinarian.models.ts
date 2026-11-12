@@ -7,6 +7,7 @@ export function clinicToday(): string {
 }
 
 export interface VeterinarianAppointment extends Appointment {
+  tolerancia_minutos: number;
   cliente_id: number;
   cliente_nombre: string;
   cliente_correo: string;

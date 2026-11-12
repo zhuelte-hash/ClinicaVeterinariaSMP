@@ -16,6 +16,7 @@ from app.models.clinic import (
     Mascota, Notificacion, Producto, Proveedor, Servicio, ServicioMedico,
 )
 from app.models.user import Cliente, TipoUsuario, Usuario, Veterinario
+from app.models.operations import Sucursal, UnidadMedida
 from app.security import get_current_active_user
 
 
@@ -36,6 +37,9 @@ def clinic():
         deregister(BigInteger)
 
     with Session(engine) as db:
+        db.add(Sucursal(id=1, nombre="Sede de pruebas"))
+        db.add_all([UnidadMedida(codigo=code, nombre=name, dimension=dimension, factor_base=factor, fraccionable=fractional) for code, name, dimension, factor, fractional in [("unidad", "Unidad", "conteo", 1, False), ("kg", "Kilogramo", "masa", 1000, True), ("g", "Gramo", "masa", 1, True), ("ml", "Mililitro", "volumen", 1, True)]])
+        db.commit()
         owner = Usuario(id=1, nombre="María Pérez", correo="owner@example.com", contrasena="hash", tipo=TipoUsuario.CLIENTE)
         vet = Usuario(id=2, nombre="Dra. Ana", correo="vet@example.com", contrasena="hash", tipo=TipoUsuario.VETERINARIO)
         other_vet = Usuario(id=3, nombre="Dr. Luis", correo="other@example.com", contrasena="hash", tipo=TipoUsuario.VETERINARIO)

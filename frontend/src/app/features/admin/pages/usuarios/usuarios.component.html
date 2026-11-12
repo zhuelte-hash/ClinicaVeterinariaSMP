@@ -37,7 +37,7 @@
               </div>
             </td>
             <td>{{ user.correo }}</td>
-            <td><admin-status-badge status="Activo" /> <span class="ml-1">{{ roleLabel(user.tipo) }}</span></td>
+            <td><admin-status-badge [status]="user.activo ? 'Activo' : 'Inactivo'" /> <span class="ml-1">{{ roleLabel(user.tipo) }}</span></td>
             <td>
               @if (user.tipo === 'veterinario') {
                 <span>{{ user.colegiatura || 'Sin colegiatura' }} · {{ user.especialidad || 'Sin especialidad' }}</span>
@@ -50,6 +50,7 @@
             <td>
               <div class="flex justify-end gap-2">
                 <button type="button" class="admin-secondary" (click)="openEdit(user)">Editar</button>
+                <button type="button" class="admin-secondary" [disabled]="isCurrentUser(user) || deletingId() !== null" (click)="toggleActive(user)">{{ user.activo ? 'Desactivar' : 'Activar' }}</button>
                 <button
                   type="button"
                   class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"

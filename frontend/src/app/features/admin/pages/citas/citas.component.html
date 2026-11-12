@@ -1,17 +1,23 @@
 <admin-page-header title="Citas" description="Filtra las reservas, confirma su estado y coordina horarios y veterinarios." />
 @if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700" role="alert">{{ error() }}</p> }
 <form class="admin-card mb-4 flex flex-wrap items-end gap-3 p-4" (ngSubmit)="load()">
-  <label class="text-sm font-semibold">Fecha<input type="date" class="admin-input mt-1" [ngModel]="date()" (ngModelChange)="date.set($event)" name="fecha"></label>
+  <label class="text-sm font-semibold">Desde<input type="date" class="admin-input mt-1" [ngModel]="date()" (ngModelChange)="date.set($event)" name="fecha"></label>
+  <label class="text-sm font-semibold">Hasta<input type="date" class="admin-input mt-1" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" name="fecha-final"></label>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="urgentes" [ngModel]="onlyUrgent()" (ngModelChange)="onlyUrgent.set($event)">Solo urgentes</label>
   <label class="text-sm font-semibold">Estado<select class="admin-input mt-1" [ngModel]="status()" (ngModelChange)="status.set($event)" name="estado"><option value="">Todos</option>@for (state of states; track state.value) { <option [value]="state.value">{{ state.label }}</option> }<option value="atendida">Atendida</option></select></label>
   <button class="admin-primary" [disabled]="loading()">Filtrar</button>
-  <button type="button" class="admin-secondary" (click)="date.set(''); status.set(''); load()">Limpiar</button>
+  <button type="button" class="admin-secondary" (click)="date.set(''); endDate.set(''); status.set(''); onlyUrgent.set(false); load()">Limpiar</button>
 </form>
+@if (report(); as report) {
+  <section class="admin-card mb-4 p-5" aria-labelledby="appointment-report-title"><h2 id="appointment-report-title" class="text-lg font-bold">Reporte de citas por estado</h2><p class="mt-1 text-sm text-slate-500">{{ report.fecha_inicial }} al {{ report.fecha_final }} · {{ report.total }} citas · {{ report.urgentes }} urgentes. Resumen del rango completo, antes del filtro por estado.</p><div class="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-4">@for (row of reportRows(); track row.state) { <div class="rounded-xl border border-slate-200 p-3"><span class="text-sm">{{ row.label }}</span><b class="float-right">{{ row.count }}</b><div class="mt-2 h-2 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-teal-600" [style.width.%]="report.total ? row.count / report.total * 100 : 0"></div></div></div> }</div></section>
+}
+<p class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{{ urgentPending() }} urgentes por gestionar en el listado. Se muestran primero para coordinar su confirmación, horario o asignación.</p>
 <div class="admin-card overflow-x-auto" [attr.aria-busy]="loading()">
   @if (loading()) { <p class="p-10 text-center text-slate-500" role="status">Cargando citas…</p> }
   @else {
     <table class="admin-table"><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Mascota</th><th>Servicio</th><th>Veterinario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
       @for (item of appointments(); track item.id) {
-        <tr><td>{{ formatDate(item.fecha_hora_programada) }}</td><td>{{ item.cliente_nombre }}</td><td><b>{{ item.mascota_nombre }}</b></td><td>{{ item.servicio_nombre }}</td><td>{{ item.veterinario_nombre || 'Sin asignar' }}</td><td><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ statusLabel(item.estado) }}</span></td><td>@if (canEdit(item)) { <button type="button" class="admin-secondary" (click)="edit(item)">Gestionar</button> } @else { <span class="text-xs text-slate-500">Finalizada</span> }</td></tr>
+        <tr><td>{{ formatDate(item.fecha_hora_programada) }}</td><td>{{ item.cliente_nombre }}</td><td><b>{{ item.mascota_nombre }}</b>@if (item.es_urgente) { <span class="ml-2 rounded-full bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Urgente</span> }</td><td>{{ item.servicio_nombre }}</td><td>{{ item.veterinario_nombre || 'Sin asignar' }}</td><td><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{{ statusLabel(item.estado) }}</span></td><td>@if (canEdit(item)) { <button type="button" class="admin-secondary" (click)="edit(item)">Gestionar</button> } @else { <span class="text-xs text-slate-500">Finalizada</span> }</td></tr>
       } @empty { <tr><td colspan="7" class="p-8 text-center text-slate-500">No hay citas para los filtros aplicados.</td></tr> }
     </tbody></table>
   }

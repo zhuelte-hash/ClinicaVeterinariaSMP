@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.database import get_db
 from app.models.user import Usuario
@@ -12,11 +13,25 @@ from app.services.user_service import (
     UserService,
     UsuarioReferenciadoError,
 )
+from pydantic import BaseModel
+from app.services.access_service import AccessService
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentAdmin = Annotated[Usuario, Depends(require_permission("usuarios", "eliminar"))]
+
+
+class ActiveUpdate(BaseModel):
+    activo: bool
+
+
+@router.patch("/{user_id}/estado", response_model=UsuarioRead)
+def set_user_active(user_id: int, data: ActiveUpdate, db: DbSession, actor: Annotated[Usuario, Depends(require_permission("usuarios", "editar"))]):
+    user = db.scalar(select(Usuario).where(Usuario.id == user_id).with_for_update())
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    return AccessService(db).set_active(actor, user, data.activo)
 
 
 @router.get(

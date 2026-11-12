@@ -4,6 +4,7 @@ from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
+from fastapi import Request
 
 settings = get_settings()
 
@@ -29,9 +30,13 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db(request: Request) -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
+        try:
+            db.info["sucursal_id"] = max(1, int(request.headers.get("X-Sucursal-ID", "1")))
+        except ValueError:
+            db.info["sucursal_id"] = 1
         yield db
     finally:
         db.close()

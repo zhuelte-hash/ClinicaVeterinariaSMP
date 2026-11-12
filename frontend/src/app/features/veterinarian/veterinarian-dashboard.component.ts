@@ -6,7 +6,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../core/services/notice.service';
 import { AppointmentStatus } from '../appointments/appointments.models';
 import { VeterinarianApiService } from './veterinarian-api.service';
-import { AppointmentSummary, ClinicalRecord, Notification, ScheduleBlock, VeterinarianAppointment, VeterinarianSchedule } from './veterinarian.models';
+import { AppointmentSummary, clinicToday, ClinicalRecord, Notification, ScheduleBlock, VeterinarianAppointment, VeterinarianSchedule } from './veterinarian.models';
 import { VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, VeterinarianTableState } from './veterinarian-table';
 
 @Component({
@@ -24,6 +24,14 @@ export class VeterinarianDashboardComponent {
   private readonly notice = inject(NoticeService);
 
   readonly requests = signal<VeterinarianAppointment[]>([]);
+  readonly view = signal<'lista' | 'semana'>('lista');
+  readonly weekStart = signal(this.monday(clinicToday()));
+  readonly weekDays = computed(() => Array.from({ length: 7 }, (_, index) => {
+    const date = this.shiftDate(this.weekStart(), index);
+    return { date, label: this.dayLabel(index), requests: this.requests().filter(item => this.dateOnly(item.fecha_hora_programada) === date) };
+  }));
+  readonly noShowRequest = signal<VeterinarianAppointment | null>(null);
+  noShowReason = '';
   readonly loading = signal(true);
   readonly savingId = signal<number | null>(null);
   readonly coordinationId = signal<number | null>(null);
@@ -84,7 +92,7 @@ export class VeterinarianDashboardComponent {
     const { fecha, estado, busqueda, asignacion } = this.filterForm.getRawValue();
     this.loading.set(true);
     forkJoin({
-      requests: this.api.getRequests(fecha || undefined, estado && estado !== 'todas' ? estado : undefined, busqueda || undefined, estado === 'todas'),
+      requests: this.api.getRequests(this.view() === 'semana' ? this.weekStart() : fecha || undefined, estado && estado !== 'todas' ? estado : undefined, busqueda || undefined, estado === 'todas', this.view() === 'semana' ? this.shiftDate(this.weekStart(), 6) : undefined),
       summary: this.api.getSummary(),
       schedules: this.api.getSchedules(),
       blocks: this.api.getBlocks(),
@@ -152,6 +160,22 @@ export class VeterinarianDashboardComponent {
         this.load();
       },
       error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+    });
+  }
+
+  setView(value: 'lista' | 'semana'): void { this.view.set(value); if (value === 'semana') this.weekStart.set(this.monday(this.filterForm.controls.fecha.value || clinicToday())); this.applyFilters(); }
+  moveWeek(direction: number): void { this.weekStart.update(value => this.shiftDate(value, direction * 7)); this.applyFilters(); }
+  private shiftDate(value: string, days: number): string { const date = new Date(`${value}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
+  private monday(value: string): string { const day = new Date(`${value}T12:00:00Z`).getUTCDay(); return this.shiftDate(value, -((day + 6) % 7)); }
+  private dateOnly(value: string): string { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value)); }
+  canMarkNoShow(request: VeterinarianAppointment): boolean { return request.veterinario_id !== null && ['confirmada', 'reprogramada'].includes(request.estado) && !request.fecha_hora_llegada && Date.now() >= Date.parse(request.fecha_hora_programada) + request.tolerancia_minutos * 60_000; }
+  openNoShow(request: VeterinarianAppointment): void { this.noShowRequest.set(request); this.noShowReason = ''; }
+  markNoShow(): void {
+    const request = this.noShowRequest(); if (!request || this.savingId() !== null || this.noShowReason.trim().length < 3) return;
+    this.savingId.set(request.id);
+    this.api.markNoShow(request.id, this.noShowReason.trim()).pipe(finalize(() => this.savingId.set(null))).subscribe({
+      next: () => { this.noShowRequest.set(null); this.notice.show('Inasistencia registrada'); this.load(); },
+      error: error => this.errorMessage.set(this.errorText(error)),
     });
   }
 

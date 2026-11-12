@@ -37,6 +37,7 @@ class UsuarioCreate(UsuarioBase):
     direccion: str | None = Field(default=None, max_length=255)
     colegiatura: str | None = Field(default=None, max_length=50)
     especialidad: str | None = Field(default=None, max_length=100)
+    sucursal_id: int = Field(default=1, ge=1)
 
     @model_validator(mode="after")
     def validate_veterinarian_profile(self) -> Self:
@@ -54,6 +55,7 @@ class UsuarioUpdate(BaseModel):
     direccion: str | None = Field(default=None, max_length=255)
     colegiatura: str | None = Field(default=None, max_length=50)
     especialidad: str | None = Field(default=None, max_length=100)
+    sucursal_id: int | None = Field(default=None, ge=1)
 
     @field_validator("nombre")
     @classmethod
@@ -81,6 +83,9 @@ class UsuarioRead(UsuarioBase):
     direccion: str | None = None
     colegiatura: str | None = None
     especialidad: str | None = None
+    activo: bool = True
+    correo_verificado: bool = True
+    sucursal_id: int = 1
 
 
 class UsuarioLogin(BaseModel):

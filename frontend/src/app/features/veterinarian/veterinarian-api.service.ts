@@ -11,9 +11,10 @@ export class VeterinarianApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/portal/veterinario`;
 
-  getRequests(date?: string, status?: AppointmentStatus, search?: string, includeClosed = false): Observable<VeterinarianAppointment[]> {
+  getRequests(date?: string, status?: AppointmentStatus, search?: string, includeClosed = false, endDate?: string): Observable<VeterinarianAppointment[]> {
     const params: Record<string, string> = {};
-    if (date) params['fecha'] = date;
+    if (date) params[endDate ? 'fecha_inicial' : 'fecha'] = date;
+    if (endDate) params['fecha_final'] = endDate;
     if (status) params['estado'] = status;
     if (search) params['busqueda'] = search;
     if (includeClosed) params['incluir_finalizadas'] = 'true';
@@ -27,6 +28,7 @@ export class VeterinarianApiService {
   registerArrival(id: number): Observable<VeterinarianAppointment> {
     return this.http.post<VeterinarianAppointment>(`${this.baseUrl}/solicitudes/${id}/llegada`, {});
   }
+  markNoShow(id: number, motivo: string): Observable<VeterinarianAppointment> { return this.http.post<VeterinarianAppointment>(`${this.baseUrl}/solicitudes/${id}/inasistencia`, { motivo }); }
 
   getClients(): Observable<VeterinarianClient[]> {
     return this.http.get<VeterinarianClient[]>(`${this.baseUrl}/clientes`);

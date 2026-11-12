@@ -7,6 +7,7 @@ import { NoticeService } from '../../core/services/notice.service';
 import { ClinicService, Pet } from '../appointments/appointments.models';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { clinicToday, ClinicalRecord, VeterinarianClient } from './veterinarian.models';
+import { PatientAlertsComponent } from './patient-alerts.component';
 
 interface ClinicalField {
   key: 'anamnesis' | 'observaciones' | 'diagnostico' | 'tratamiento' | 'historial_alergias' | 'vacunas' | 'desparasitaciones' | 'medicamentos' | 'procedimientos' | 'examenes_resultados';
@@ -51,7 +52,7 @@ const DEFAULT_PROFILE: ClinicalProfile = {
 @Component({
   selector: 'app-veterinarian-new-attention',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent],
   templateUrl: './veterinarian-new-attention.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -194,7 +195,7 @@ export class VeterinarianNewAttentionComponent {
 
   goToAttention(): void {
     if (!this.selectedService()) return;
-    this.attentionForm.patchValue({ motivo_consulta: this.selectedService()?.nombre || '' });
+    this.attentionForm.patchValue({ motivo_consulta: this.selectedService()?.nombre || '', historial_alergias: this.selectedPet()?.alergias || '' });
     this.step.set(4);
   }
 

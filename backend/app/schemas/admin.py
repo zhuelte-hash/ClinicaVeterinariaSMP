@@ -12,35 +12,69 @@ class AdminProductRead(BaseModel):
     sku: str
     nombre: str
     precio_venta: Decimal
-    stock_actual: int
-    stock_minimo: int
+    stock_actual: float
+    stock_minimo: float
     activo: bool
     imagen_url: str
     categoria_id: int
     categoria_nombre: str
+    proveedor_id: int
+    descripcion: str | None = None
+    especies: list[str] = Field(default_factory=list)
+    unidad_medida: str = "unidad"
+    fraccionable: bool = False
+    costo_unitario: Decimal = Decimal("0")
+    sucursal_id: int = 1
 
 
-class AdminProductUpdate(BaseModel):
+class ProductDescription(BaseModel):
+    descripcion: str | None = Field(default=None, max_length=5000)
+    especies: list[str] = Field(default_factory=list, max_length=12)
+    unidad_medida: str = Field(default="unidad", min_length=1, max_length=15)
+    fraccionable: bool = False
+    costo_unitario: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=4)
+
+    @field_validator("especies")
+    @classmethod
+    def normalize_species(cls, values: list[str]) -> list[str]:
+        result = list(dict.fromkeys(value.strip().capitalize() for value in values))
+        if any(not value or len(value) > 80 for value in result):
+            raise ValueError("Cada especie debe contener entre 1 y 80 caracteres")
+        return result
+
+
+class AdminProductUpdate(ProductDescription):
     categoria_id: int | None = None
+    proveedor_id: int | None = None
     sku: str | None = Field(default=None, min_length=2, max_length=50)
     nombre: str | None = Field(default=None, min_length=2, max_length=150)
     precio_venta: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
-    stock_minimo: int | None = Field(default=None, ge=0)
+    stock_minimo: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=3)
     imagen_url: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def non_null_product_fields(self):
+        for field in self.model_fields_set - {"descripcion"}:
+            if getattr(self, field) is None:
+                raise ValueError(f"{field} no puede ser nulo")
+        return self
 
 
 class InventoryStockUpdate(BaseModel):
-    stock_actual: int = Field(ge=0)
+    model_config = ConfigDict(str_strip_whitespace=True)
+    stock_actual: Decimal = Field(ge=0, max_digits=14, decimal_places=3)
+    motivo: str = Field(min_length=3, max_length=500)
+    stock_anterior: Decimal = Field(ge=0, max_digits=14, decimal_places=3)
 
 
-class AdminProductCreate(BaseModel):
+class AdminProductCreate(ProductDescription):
     categoria_id: int
     proveedor_id: int
     sku: str = Field(min_length=2, max_length=50)
     nombre: str = Field(min_length=2, max_length=150)
     precio_venta: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
-    stock_actual: int = Field(ge=0)
-    stock_minimo: int = Field(default=0, ge=0)
+    stock_actual: Decimal = Field(ge=0, max_digits=14, decimal_places=3)
+    stock_minimo: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=3)
     imagen_url: str = Field(default="/logo.png", max_length=500)
 
 
@@ -70,6 +104,28 @@ class AdminCategoryUpdate(AdminCategoryCreate):
     pass
 
 
+class SupplierWrite(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    razon_social: str = Field(min_length=2, max_length=180)
+
+
+class SupplierRead(SupplierWrite):
+    id: int
+    productos: int = 0
+
+
+class InventoryAdjustmentRead(BaseModel):
+    id: int
+    producto_id: int
+    producto_nombre: str
+    usuario_id: int
+    usuario_nombre: str
+    cantidad_anterior: float
+    cantidad_nueva: float
+    motivo: str
+    fecha: datetime.datetime
+
+
 class AdminClientRead(BaseModel):
     id: int
     nombre: str
@@ -92,6 +148,15 @@ class AdminAppointmentRead(BaseModel):
     veterinario_id: int | None
     fecha_hora_fin_programada: datetime.datetime
     nota_coordinacion: str | None
+    es_urgente: bool = False
+
+
+class AppointmentReportRead(BaseModel):
+    fecha_inicial: datetime.date
+    fecha_final: datetime.date
+    total: int
+    urgentes: int
+    por_estado: dict[str, int]
 
 
 class AdminNotificationRead(BaseModel):

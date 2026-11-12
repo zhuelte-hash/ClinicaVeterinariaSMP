@@ -12,6 +12,7 @@ from app.schemas.admin import (
     AdminAppointmentRead, AdminAppointmentUpdate, AdminCategoryCreate, AdminCategoryRead, AdminCategoryUpdate, AdminClientRead, AdminNotificationCreate, AdminNotificationRead, AdminProductCatalog, AdminProductCreate, AdminProductRead, AdminProductUpdate, AdminSalesDayRead, AdminSettingsRead, AdminSettingsUpdate,
     RolePermissionRead, RolePermissionUpdate,
     InventoryStockUpdate,
+    SupplierRead, SupplierWrite, InventoryAdjustmentRead, AppointmentReportRead,
 )
 from app.schemas.appointments import VeterinarianClinicalRecordRead
 from app.routers.appointments import _patient_clinical_read
@@ -120,11 +121,41 @@ def get_inventory(db: DbSession, _user: Annotated[Usuario, Depends(require_permi
 
 
 @router.patch("/inventario/{product_id}", response_model=AdminProductRead)
-def update_inventory(product_id: int, data: InventoryStockUpdate, db: DbSession, _user: Annotated[Usuario, Depends(require_permission("inventario", "editar"))]):
+def update_inventory(product_id: int, data: InventoryStockUpdate, db: DbSession, user: Annotated[Usuario, Depends(require_permission("inventario", "editar"))]):
     try:
-        return AdminService(db).update_stock(product_id, data)
+        return AdminService(db).update_stock(product_id, data, user.id)
     except AdminNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Producto no encontrado") from exc
+    except AdminConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/ajustes-inventario", response_model=list[InventoryAdjustmentRead])
+def get_stock_adjustments(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("inventario"))], producto_id: int | None = None):
+    return AdminService(db).get_stock_adjustments(producto_id)
+
+
+@router.get("/proveedores", response_model=list[SupplierRead])
+def get_suppliers(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("productos"))]):
+    return AdminService(db).get_suppliers()
+
+
+@router.post("/proveedores", response_model=SupplierRead, status_code=201)
+def create_supplier(data: SupplierWrite, db: DbSession, _user: Annotated[Usuario, Depends(require_permission("productos", "crear"))]):
+    try:
+        return AdminService(db).save_supplier(data)
+    except AdminConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.patch("/proveedores/{supplier_id}", response_model=SupplierRead)
+def update_supplier(supplier_id: int, data: SupplierWrite, db: DbSession, _user: Annotated[Usuario, Depends(require_permission("productos", "editar"))]):
+    try:
+        return AdminService(db).save_supplier(data, supplier_id)
+    except AdminNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Proveedor no encontrado") from exc
+    except AdminConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/clientes", response_model=list[AdminClientRead])
@@ -133,8 +164,20 @@ def get_clients(db: DbSession, _user: Annotated[Usuario, Depends(require_permiss
 
 
 @router.get("/citas", response_model=list[AdminAppointmentRead], dependencies=[Depends(get_current_admin_user)])
-def get_appointments(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("citas"))], fecha: datetime.date | None = None, estado: str | None = Query(default=None, max_length=50)):
-    return AdminService(db).get_appointments(fecha, estado)
+def get_appointments(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("citas"))], fecha: datetime.date | None = None, estado: str | None = Query(default=None, max_length=50), fecha_inicial: datetime.date | None = None, fecha_final: datetime.date | None = None, solo_urgentes: bool = False):
+    if fecha_inicial and fecha_final and fecha_inicial > fecha_final:
+        raise HTTPException(status_code=422, detail="El rango de fechas no es válido")
+    from app.models.clinic import EstadoCita
+    if estado and estado not in {item.value for item in EstadoCita}:
+        raise HTTPException(status_code=422, detail="Estado no válido")
+    return AdminService(db).get_appointments(fecha, estado, fecha_inicial, fecha_final, solo_urgentes)
+
+
+@router.get("/citas/reporte", response_model=AppointmentReportRead)
+def get_appointment_report(fecha_inicial: datetime.date, fecha_final: datetime.date, db: DbSession, _user: Annotated[Usuario, Depends(require_permission("citas"))]):
+    if fecha_inicial > fecha_final:
+        raise HTTPException(status_code=422, detail="El rango de fechas no es válido")
+    return AdminService(db).get_appointment_report(fecha_inicial, fecha_final)
 
 
 @router.patch("/citas/{appointment_id}", response_model=AdminAppointmentRead)

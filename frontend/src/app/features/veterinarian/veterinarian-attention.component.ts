@@ -6,11 +6,13 @@ import { finalize, switchMap } from 'rxjs/operators';
 import { NoticeService } from '../../core/services/notice.service';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { clinicToday, ClinicalRecord, ExamOrder, PrescriptionDetail, VeterinarianAppointment } from './veterinarian.models';
+import { PatientAlertsComponent } from './patient-alerts.component';
+import { PrescriptionProductsComponent } from '../billing/prescription-products.component';
 
 @Component({
   selector: 'app-veterinarian-attention',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent, PrescriptionProductsComponent],
   templateUrl: './veterinarian-attention.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -46,7 +48,7 @@ export class VeterinarianAttentionComponent {
         if (attention) {
           this.record.set(attention);
           const saved = Object.fromEntries(Object.keys(this.attentionForm.controls).map(key => [key, attention[key as keyof ClinicalRecord] ?? '']));
-          this.attentionForm.patchValue({ ...saved, motivo_consulta: attention.motivo_consulta || this.appointment()?.motivo || '' });
+          this.attentionForm.patchValue({ ...saved, motivo_consulta: attention.motivo_consulta || this.appointment()?.motivo || '', historial_alergias: attention.historial_alergias || this.appointment()?.mascota.alergias || '' });
           this.api.getExamOrders(attention.id).subscribe({ next: (exams) => this.exams.set(exams), error: () => this.error.set('No se pudieron cargar las órdenes de examen.') });
         }
       },

@@ -10,6 +10,8 @@ export interface Product {
   image: string;
   imageAlt: string;
   featured?: boolean;
+  description?: string;
+  species?: string[];
 }
 
 export type PharmacyCategory = 'Medicamentos veterinarios' | 'Alimento medicado' | 'Higiene y cuidado' | 'Suplementos';

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { VeterinarianLayoutComponent } from './veterinarian-layout.component';
+import { permissionGuard } from '../../core/guards/permission.guard';
 
 const moduleRoute = (path: string, module: string, title: string) => ({
   path,
@@ -11,7 +12,9 @@ const moduleRoute = (path: string, module: string, title: string) => ({
 export const VETERINARIAN_ROUTES: Routes = [{
   path: '',
   component: VeterinarianLayoutComponent,
+  canActivateChild: [permissionGuard],
   children: [
+    { path: 'ordenes', title: 'Órdenes clínicas | Clínica SMP', loadComponent: () => import('../billing/billing-orders.component').then(m => m.BillingOrdersComponent) },
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     { path: 'inicio', title: 'Inicio | Clínica SMP', loadComponent: () => import('./veterinarian-home.component').then((m) => m.VeterinarianHomeComponent) },
     { path: 'nueva-atencion', title: 'Nueva atención | Clínica SMP', loadComponent: () => import('./veterinarian-new-attention.component').then((m) => m.VeterinarianNewAttentionComponent) },

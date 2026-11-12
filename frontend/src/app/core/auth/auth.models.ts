@@ -6,6 +6,10 @@ export interface AuthUser {
   correo: string;
   tipo: 'cliente' | 'veterinario' | 'cajero' | 'administrador';
   telefono?: string | null;
+  direccion?: string | null;
+  activo?: boolean;
+  correo_verificado?: boolean;
+  sucursal_id?: number;
 }
 
 export interface LoginCredentials {
@@ -24,4 +28,5 @@ export interface LoginResponse {
   access_token: string;
   token_type: string;
   user: AuthUser;
+  verification_required?: boolean;
 }

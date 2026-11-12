@@ -1,14 +1,17 @@
 import datetime
 import secrets
+from io import BytesIO
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
+from PIL import Image, UnidentifiedImageError
 
 from app.database import get_db
-from app.models.clinic import ExamenMedicoAdjunto, FichaClinica
+from app.models.clinic import ExamenMedicoAdjunto, FichaClinica, Mascota
+from app.config import get_settings
 from app.models.user import TipoUsuario, Usuario
 from app.schemas.appointments import (
     AppointmentCreate,
@@ -36,6 +39,7 @@ from app.schemas.appointments import (
     VeterinarianPetRead,
     PetCreate,
     PetRead,
+    PetUpdate, NoShowUpdate,
     VeterinarianWalkInCreate,
     NotificationRead,
     ScheduleBlockCreate,
@@ -51,6 +55,8 @@ from app.schemas.user import (
     VeterinarianClientCreate,
     VeterinarianClientUpdate,
 )
+from app.schemas.operations import Reason
+from app.routers.clinical_operations import attachment_url
 from app.security import get_current_active_user, get_current_client_user, get_current_veterinarian_user
 from app.services.appointment_service import (
     AppointmentConflictError,
@@ -72,6 +78,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 CurrentClient = Annotated[Usuario, Depends(get_current_client_user)]
 CurrentVeterinarian = Annotated[Usuario, Depends(get_current_veterinarian_user)]
 CurrentUser = Annotated[Usuario, Depends(get_current_active_user)]
+PET_PHOTOS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "pets"
 
 
 @router.get("/mascotas", response_model=list[PetRead])
@@ -82,6 +89,52 @@ def get_pets(db: DbSession, client: CurrentClient):
 @router.post("/mascotas", response_model=PetRead, status_code=status.HTTP_201_CREATED)
 def create_pet(data: PetCreate, db: DbSession, client: CurrentClient):
     return AppointmentService(db).create_pet(client, data)
+
+
+def _editable_pet(pet_id: int, db: Session, user: Usuario) -> Mascota:
+    pet = db.get(Mascota, pet_id)
+    if user.tipo not in {TipoUsuario.CLIENTE, TipoUsuario.VETERINARIO}:
+        raise HTTPException(status_code=403, detail="No puedes editar mascotas")
+    if pet is None or (user.tipo == TipoUsuario.CLIENTE and pet.cliente_id != user.id):
+        raise HTTPException(status_code=404, detail="Mascota no encontrada")
+    return pet
+
+
+@router.patch("/mascotas/{pet_id}", response_model=PetRead)
+@router.patch("/veterinario/mascotas/{pet_id}", response_model=PetRead)
+def update_pet(pet_id: int, data: PetUpdate, db: DbSession, user: CurrentUser):
+    pet = _editable_pet(pet_id, db, user)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(pet, field, value)
+    db.commit()
+    db.refresh(pet)
+    return pet
+
+
+@router.post("/mascotas/{pet_id}/foto", response_model=PetRead)
+@router.post("/veterinario/mascotas/{pet_id}/foto", response_model=PetRead)
+async def upload_pet_photo(pet_id: int, db: DbSession, user: CurrentUser, archivo: UploadFile = File(...)):
+    pet = _editable_pet(pet_id, db, user)
+    content = await archivo.read(5 * 1024 * 1024 + 1)
+    if archivo.content_type not in {"image/jpeg", "image/png", "image/webp"} or not content or len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail="La foto debe ser JPG, PNG o WEBP y pesar hasta 5 MB")
+    try:
+        with Image.open(BytesIO(content)) as image:
+            if image.width * image.height > 20_000_000:
+                raise ValueError("Imagen demasiado grande")
+            image.thumbnail((1000, 1000))
+            result = BytesIO()
+            image.convert("RGB").save(result, format="JPEG", quality=85)
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as exc:
+        raise HTTPException(status_code=422, detail="El archivo no contiene una imagen válida") from exc
+    directory = PET_PHOTOS_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid4().hex}.jpg"
+    (directory / filename).write_bytes(result.getvalue())
+    pet.foto_url = f"/uploads/pets/{filename}"
+    db.commit()
+    db.refresh(pet)
+    return pet
 
 
 @router.get("/servicios", response_model=list[ServiceRead])
@@ -129,9 +182,9 @@ def create_appointment(data: AppointmentCreate, db: DbSession, client: CurrentCl
 
 
 @router.patch("/citas/{appointment_id}/cancelar", response_model=AppointmentRead)
-def cancel_appointment(appointment_id: int, db: DbSession, client: CurrentClient):
+def cancel_appointment(appointment_id: int, data: Reason, db: DbSession, client: CurrentClient):
     try:
-        return AppointmentService(db).cancel_appointment(client.id, appointment_id)
+        return AppointmentService(db).cancel_appointment(client.id, appointment_id, data.motivo)
     except AppointmentNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Cita no encontrada") from exc
     except AppointmentNotCancelableError as exc:
@@ -154,6 +207,7 @@ def _veterinarian_read(appointment):
     client = appointment.mascota.cliente.usuario
     data = AppointmentRead.model_validate(appointment).model_dump()
     data.update(
+        tolerancia_minutos=get_settings().appointment_tolerance_minutes,
         cliente_id=client.id,
         cliente_nombre=client.nombre,
         cliente_correo=client.correo,
@@ -173,7 +227,11 @@ def get_veterinarian_appointments(
     estado: str | None = None,
     busqueda: str | None = None,
     incluir_finalizadas: bool = False,
+    fecha_inicial: datetime.date | None = None,
+    fecha_final: datetime.date | None = None,
 ):
+    if fecha_inicial and fecha_final and fecha_inicial > fecha_final:
+        raise HTTPException(status_code=422, detail="El rango de fechas no es válido")
     parsed_state = None
     if estado:
         try:
@@ -183,7 +241,7 @@ def get_veterinarian_appointments(
         except ValueError as exc:
             raise HTTPException(status_code=422, detail="Estado no válido") from exc
     appointments = AppointmentService(db).get_veterinarian_appointments(
-        veterinarian.id, fecha, parsed_state, busqueda, incluir_finalizadas
+        veterinarian.id, fecha, parsed_state, busqueda, incluir_finalizadas, fecha_inicial, fecha_final
     )
     return [_veterinarian_read(appointment) for appointment in appointments]
 
@@ -308,6 +366,16 @@ def get_veterinarian_summary(db: DbSession, veterinarian: CurrentVeterinarian):
 def register_veterinarian_arrival(appointment_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
     try:
         return _veterinarian_read(AppointmentService(db).register_arrival(veterinarian, appointment_id))
+    except AppointmentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Cita no encontrada") from exc
+    except CoordinationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/veterinario/solicitudes/{appointment_id}/inasistencia", response_model=VeterinarianAppointmentRead)
+def mark_veterinarian_no_show(appointment_id: int, data: NoShowUpdate, db: DbSession, veterinarian: CurrentVeterinarian):
+    try:
+        return _veterinarian_read(AppointmentService(db).mark_no_show(veterinarian, appointment_id, data.motivo))
     except AppointmentNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Cita no encontrada") from exc
     except CoordinationError as exc:
@@ -503,6 +571,14 @@ def save_prescription(process_id: int, data: PrescriptionCreate, db: DbSession, 
         raise _clinical_not_found(exc) from exc
 
 
+@router.get("/veterinario/atenciones/{process_id}/receta", response_model=PrescriptionRead, tags=["Portal veterinario"])
+def get_prescription(process_id: int, db: DbSession, veterinarian: CurrentVeterinarian):
+    process = AppointmentService(db)._owned_process(veterinarian.id, process_id)
+    if process is None or process.receta is None:
+        raise HTTPException(404, "Emite primero la receta de esta atención")
+    return process.receta
+
+
 @router.post("/veterinario/atenciones/{process_id}/procedimientos", response_model=ProcedureRead, status_code=status.HTTP_201_CREATED, tags=["Portal veterinario"])
 def add_procedure(process_id: int, data: ProcedureCreate, db: DbSession, veterinarian: CurrentVeterinarian):
     try:
@@ -532,7 +608,7 @@ async def upload_clinical_image(process_id: int, tipo_examen: str, fecha_estudio
         ficha = FichaClinica(proceso_medico_id=process.proceso_medico.proceso_id)
         db.add(ficha)
         db.flush()
-    folder = Path(__file__).resolve().parents[2] / "uploads" / "clinical"
+    folder = Path(__file__).resolve().parents[2] / "clinical_private"
     folder.mkdir(parents=True, exist_ok=True)
     suffix = Path(archivo.filename or "imagen").suffix.lower() or ".jpg"
     filename = f"{uuid4().hex}{suffix}"
@@ -590,7 +666,7 @@ def _clinical_read(process):
         veterinario_id=veterinarian.usuario_id if veterinarian else 0,
         veterinario_nombre=veterinarian.usuario.nombre if veterinarian else "",
         servicio_nombre=process.cita.servicio.nombre if process.cita else "Ficha inicial",
-        archivos=[{"id": item.id, "tipo_examen": item.tipo_examen, "archivo_ruta": item.archivo_ruta, "fecha_estudio": item.fecha_estudio} for item in (ficha.examenes if ficha else [])],
+        archivos=[{"id": item.id, "tipo_examen": item.tipo_examen, "archivo_ruta": attachment_url(item, process.mascota.cliente.usuario), "fecha_estudio": item.fecha_estudio} for item in (ficha.examenes if ficha else [])],
         diagnosticos=[{"id": item.id, "proceso_id": item.proceso_id, "descripcion": item.descripcion, "codigo": item.codigo, "es_principal": item.es_principal, "observaciones": item.observaciones} for item in process.diagnosticos],
         ordenes_examen=[{"id": item.id, "proceso_id": item.proceso_id, "veterinario_id": item.veterinario_id, "tipo": item.tipo, "prioridad": item.prioridad.value, "estado": item.estado.value, "resultado": item.resultado, "interpretacion": item.interpretacion, "revisado_por": item.revisado_por, "revisado_en": item.revisado_en, "fecha_solicitud": item.fecha_solicitud} for item in process.ordenes_examen],
         receta={"id": process.receta.id, "proceso_id": process.receta.proceso_id, "veterinario_id": process.receta.veterinario_id, "indicaciones_generales": process.receta.indicaciones_generales, "fecha_emision": process.receta.fecha_emision, "detalles": [{"id": detail.id, "receta_id": detail.receta_id, "medicamento": detail.medicamento, "presentacion": detail.presentacion, "dosis": detail.dosis, "unidad": detail.unidad, "via": detail.via, "frecuencia": detail.frecuencia, "duracion": detail.duracion, "cantidad": detail.cantidad, "indicaciones": detail.indicaciones} for detail in process.receta.detalles]} if process.receta else None,

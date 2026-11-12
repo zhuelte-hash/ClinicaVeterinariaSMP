@@ -2,10 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angu
 import { PharmacyProduct, Product } from '../../core/models/producto.model';
 import { NoticeService } from '../../core/services/notice.service';
 import { CartService } from '../../services/cart.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-product-card',
   standalone: true,
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full' },
   template: `
@@ -19,7 +21,8 @@ import { CartService } from '../../services/cart.service';
       </div>
       <div class="flex flex-1 flex-col p-5">
         <p class="text-xs font-bold uppercase tracking-[0.08em] text-brand-600">{{ item().category }}</p>
-        <h3 class="mt-2 text-lg font-bold leading-6 text-pet-900">{{ item().name }}</h3>
+        <h3 class="mt-2 text-lg font-bold leading-6 text-pet-900"><a [routerLink]="['/productos', item().id]" class="hover:underline">{{ item().name }}</a></h3>
+        <a [routerLink]="['/productos', item().id]" class="mt-2 text-sm font-semibold text-brand-600">Ver detalle y disponibilidad</a>
         @if (presentation()) { <p class="mt-2 text-sm text-slate-500">Presentación: {{ presentation() }}</p> }
         <div class="mt-auto flex items-end gap-2 pt-5">
           <strong class="text-xl text-pet-900">S/ {{ item().price.toFixed(2) }}</strong>

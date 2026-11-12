@@ -73,7 +73,9 @@ class ProductoCajaRead(BaseModel):
     sku: str
     nombre: str
     precio_venta: Decimal
-    stock_actual: int
+    stock_actual: float
+    unidad_medida: str = "unidad"
+    fraccionable: bool = False
     categoria: CategoriaCajaRead
 
 
@@ -98,7 +100,7 @@ class ClienteCajaRead(BaseModel):
 class VentaItemCreate(BaseModel):
     producto_id: int | None = None
     servicio_id: int | None = None
-    cantidad: int = Field(ge=1, le=100)
+    cantidad: Decimal = Field(gt=0, le=10000, max_digits=14, decimal_places=3)
 
     @model_validator(mode="after")
     def validate_item_type(self):
@@ -108,20 +110,21 @@ class VentaItemCreate(BaseModel):
 
 
 class PagoCreate(BaseModel):
-    medio: Literal["efectivo", "yape", "plin", "tarjeta"]
+    medio: Literal["efectivo", "yape", "plin", "tarjeta", "transferencia"]
     monto: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
 
 
 class VentaCreate(BaseModel):
     cliente_id: int | None = None
     cliente_dni: str | None = Field(default=None, pattern=r"^[0-9]{8}$")
-    medio_pago: Literal["efectivo", "yape", "plin", "tarjeta"]
+    medio_pago: Literal["efectivo", "yape", "plin", "tarjeta", "transferencia"]
     items: list[VentaItemCreate] = Field(min_length=1, max_length=50)
     clave_idempotencia: str | None = Field(default=None, min_length=8, max_length=80)
     descuento: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=12, decimal_places=2)
-    pagos: list[PagoCreate] | None = Field(default=None, min_length=1, max_length=4)
+    pagos: list[PagoCreate] | None = Field(default=None, min_length=1, max_length=5)
     efectivo_recibido: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     proceso_atencion_id: int | None = None
+    autorizacion_descuento_id: int | None = None
 
     @model_validator(mode="after")
     def validate_payments(self):
@@ -139,7 +142,7 @@ class BoletaDetalleRead(BaseModel):
     codigo: str
     tipo: Literal["producto", "servicio"]
     nombre: str
-    cantidad: int
+    cantidad: float
     precio_unitario: Decimal
     subtotal: Decimal
 

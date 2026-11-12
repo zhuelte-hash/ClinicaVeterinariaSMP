@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    Integer,
     String,
     UniqueConstraint,
     func,
@@ -46,6 +47,13 @@ class Usuario(Base):
     correo: Mapped[str] = mapped_column(String(254), nullable=False, unique=True)
     contrasena: Mapped[str] = mapped_column(String(255), nullable=False)
     tipo: Mapped[TipoUsuario] = mapped_column(tipo_usuario_db, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
+    correo_verificado: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
+    version_sesion: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    intentos_fallidos: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    bloqueado_hasta: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    telefono_personal: Mapped[str | None] = mapped_column(String(30))
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
 
     cliente: Mapped["Cliente | None"] = relationship(
         back_populates="usuario", cascade="all, delete-orphan", uselist=False
@@ -65,7 +73,7 @@ class Usuario(Base):
 
     @property
     def telefono(self) -> str | None:
-        return self.cliente.telefono if self.cliente is not None else None
+        return self.cliente.telefono if self.cliente is not None else self.telefono_personal
 
     @property
     def direccion(self) -> str | None:

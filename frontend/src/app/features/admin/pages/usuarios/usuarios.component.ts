@@ -137,6 +137,11 @@ export class UsuariosComponent {
       error: (error: unknown) => this.error.set(this.errorText(error)),
     });
   }
+  toggleActive(user: AdminUser): void {
+    if (this.isCurrentUser(user) || this.deletingId() !== null) return;
+    this.deletingId.set(user.id);
+    this.api.setActive(user.id, !user.activo).pipe(finalize(() => this.deletingId.set(null))).subscribe({ next: updated => this.users.update(items => items.map(item => item.id === updated.id ? updated : item)), error: error => this.error.set(this.errorText(error)) });
+  }
 
   isCurrentUser(user: AdminUser): boolean {
     return this.auth.currentUser()?.id === user.id;

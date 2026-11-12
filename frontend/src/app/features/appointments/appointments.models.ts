@@ -7,6 +7,9 @@ export interface Pet {
   fecha_nacimiento?: string | null;
   peso_actual?: string | null;
   caracteristicas?: string | null;
+  alergias?: string | null;
+  condiciones_especiales?: string | null;
+  foto_url?: string | null;
 }
 
 export interface ClinicService {

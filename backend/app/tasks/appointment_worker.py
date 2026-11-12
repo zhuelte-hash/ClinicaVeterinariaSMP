@@ -4,6 +4,7 @@ import time
 from app.config import get_settings
 from app.database import SessionLocal
 from app.services.appointment_service import AppointmentService
+from app.services.automation_service import run_automations
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,9 +16,9 @@ def run() -> None:
     while True:
         db = SessionLocal()
         try:
-            expired = AppointmentService(db).expire_unattended_appointments()
-            if expired:
-                logger.info("Citas canceladas automáticamente por inasistencia: %s", len(expired))
+            result = run_automations(db)
+            if result["mensajes_procesados"]:
+                logger.info("Mensajes automáticos procesados: %s", result["mensajes_procesados"])
         except Exception:
             db.rollback()
             logger.exception("Error procesando vencimiento de citas")

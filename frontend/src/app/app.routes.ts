@@ -5,6 +5,10 @@ import { clientGuard } from './core/guards/client.guard';
 import { veterinarianGuard } from './core/guards/veterinarian.guard';
 
 export const routes: Routes = [
+  { path: 'verificar-correo', loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
+  { path: 'recuperar-clave', loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
+  { path: 'mi-perfil', canActivate: [clientGuard], loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
+  { path: 'mis-pagos', canActivate: [clientGuard], loadComponent: () => import('./features/billing/billing-orders.component').then(m => m.BillingOrdersComponent) },
   {
     path: '',
     pathMatch: 'full',
@@ -19,6 +23,10 @@ export const routes: Routes = [
     path: 'productos',
     loadComponent: () =>
       import('./features/products/products-page.component').then((m) => m.ProductsPageComponent),
+  },
+  {
+    path: 'productos/:id',
+    loadComponent: () => import('./features/products/product-detail.component').then(m => m.ProductDetailComponent),
   },
   {
     path: 'farmacia',
@@ -49,6 +57,10 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./pages/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'mis-mascotas', canActivate: [clientGuard],
+    loadComponent: () => import('./features/appointments/my-pets.component').then(m => m.MyPetsComponent),
   },
   {
     path: 'mis-compras',
