@@ -60,9 +60,7 @@ def reset(data: ResetPasswordRequest, correo: str, db: Session = Depends(get_db)
 
 @router.patch("/me", response_model=UsuarioRead)
 def update_me(data: OwnProfileUpdate, db: Session = Depends(get_db), user: Usuario = Depends(get_current_active_user)):
-    user.nombre = " ".join(data.nombre.split())
-    if len(user.nombre) < 2:
-        raise HTTPException(422, "El nombre es obligatorio")
+    user.nombre = data.nombre
     if user.cliente:
         user.cliente.telefono, user.cliente.direccion = data.telefono, data.direccion
     else:

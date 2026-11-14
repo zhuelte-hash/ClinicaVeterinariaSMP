@@ -23,6 +23,7 @@ class AdminProductRead(BaseModel):
     especies: list[str] = Field(default_factory=list)
     unidad_medida: str = "unidad"
     fraccionable: bool = False
+    requiere_vencimiento: bool = False
     costo_unitario: Decimal = Decimal("0")
     sucursal_id: int = 1
 
@@ -32,6 +33,7 @@ class ProductDescription(BaseModel):
     especies: list[str] = Field(default_factory=list, max_length=12)
     unidad_medida: str = Field(default="unidad", min_length=1, max_length=15)
     fraccionable: bool = False
+    requiere_vencimiento: bool = False
     costo_unitario: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=4)
 
     @field_validator("especies")

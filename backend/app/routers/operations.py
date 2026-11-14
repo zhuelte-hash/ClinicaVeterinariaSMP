@@ -9,11 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.clinic import Caja, Mascota, OrdenCobro, Producto, ProcesoAtencion, Servicio, ServicioMedico, ServicioEstetica
+from app.models.clinic import Caja, Mascota, OrdenCobro, Producto, ProcesoAtencion, Proveedor, Servicio, ServicioMedico, ServicioEstetica
 from app.models.purchase import PedidoWeb
 from app.models.operations import AbonoOrden, AutorizacionDescuento, CompraProveedor, Egreso, LoteInventario, MensajeSalida, Sucursal, UnidadMedida
 from app.models.user import TipoUsuario, Usuario
-from app.schemas.operations import BranchWrite, ClinicPolicy, DiscountRequest, ExpenseWrite, InstallmentWrite, PendingOrderCreate, Reason, ReceivePurchase, ServiceWrite, TemplateWrite, UnitWrite
+from app.schemas.operations import BranchWrite, ClinicHours, ClinicPolicy, DiscountRequest, ExpenseWrite, InstallmentWrite, PendingOrderCreate, Reason, ReceivePurchase, ServiceWrite, TemplateWrite, UnitWrite
 from app.security import check_permission, get_current_active_user, require_permission
 from app.services.billing_service import BillingService
 from app.services.cashier_service import CashierService
@@ -24,6 +24,8 @@ from app.services.operation_utils import branch_id, row_data
 from app.services.policy_service import PolicyService
 from app.services.user_service import UserService
 from app.services.sales_service import SalesService
+from app.schemas.appointments import ScheduleRead, ScheduleUpdate
+from app.services.appointment_service import AppointmentService, InvalidScheduleError, ScheduleBlockNotFoundError
 
 router = APIRouter(tags=["Operaciones clínicas"])
 Db = Annotated[Session, Depends(get_db)]
@@ -31,6 +33,36 @@ User = Annotated[Usuario, Depends(get_current_active_user)]
 Admin = Annotated[Usuario, Depends(require_permission("usuarios"))]
 InventoryAdmin = Annotated[Usuario, Depends(require_permission("inventario"))]
 SalesAdmin = Annotated[Usuario, Depends(require_permission("ventas"))]
+ScheduleAdmin = Annotated[Usuario, Depends(require_permission("citas"))]
+
+
+def active_veterinarian(db, veterinarian_id):
+    vet = db.get(Usuario, veterinarian_id)
+    if vet is None or vet.tipo != TipoUsuario.VETERINARIO or not vet.activo or vet.sucursal_id != branch_id(db):
+        raise HTTPException(404, "Veterinario activo no encontrado en esta sede")
+
+
+@router.get("/admin/operaciones/horarios/{veterinarian_id}", response_model=list[ScheduleRead])
+def admin_schedules(veterinarian_id: int, db: Db, user: ScheduleAdmin):
+    active_veterinarian(db, veterinarian_id)
+    return AppointmentService(db).get_schedules(veterinarian_id)
+
+
+@router.post("/admin/operaciones/horarios/{veterinarian_id}", response_model=ScheduleRead, status_code=201)
+@router.put("/admin/operaciones/horarios/{veterinarian_id}/{schedule_id}", response_model=ScheduleRead)
+def write_schedule(veterinarian_id: int, data: ScheduleUpdate, db: Db, user: ScheduleAdmin, schedule_id: int | None = None):
+    check_permission(db, user, "citas", "editar" if schedule_id else "crear")
+    active_veterinarian(db, veterinarian_id)
+    service = AppointmentService(db)
+    try:
+        return service.update_schedule(veterinarian_id, schedule_id, data) if schedule_id else service.create_schedule(veterinarian_id, data)
+    except InvalidScheduleError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ScheduleBlockNotFoundError as exc:
+        raise HTTPException(404, "Horario no encontrado") from exc
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "Esta franja ya existe; edítala o reactívala") from exc
 
 
 def staff(user, db, module="ventas", action="ver"):
@@ -71,6 +103,12 @@ def update_configuration(data: ClinicPolicy, db: Db, user: Admin):
     return PolicyService(db).save(data)
 
 
+@router.put("/admin/operaciones/horario-clinica", response_model=ClinicPolicy)
+def update_clinic_hours(data: ClinicHours, db: Db, user: ScheduleAdmin):
+    check_permission(db, user, "citas", "editar")
+    return PolicyService(db).save_hours(data)
+
+
 @router.post("/admin/operaciones/instalaciones")
 async def upload_installation(db: Db, user: Admin, archivo: UploadFile = File(...)):
     check_permission(db, user, "usuarios", "editar")
@@ -87,14 +125,13 @@ async def upload_installation(db: Db, user: Admin, archivo: UploadFile = File(..
 
 
 @router.get("/admin/operaciones/servicios")
-def services(db: Db, user: Admin):
-    check_permission(db, user, "citas")
+def services(db: Db, user: ScheduleAdmin):
     return [{**row_data(row), "tipo": "medica" if row.medico else "estetica", "tipo_medico": row.medico.tipo_atencion_medica if row.medico else None} for row in db.scalars(select(Servicio).order_by(Servicio.nombre)).all()]
 
 
 @router.post("/admin/operaciones/servicios", status_code=201)
 @router.put("/admin/operaciones/servicios/{service_id}")
-def write_service(data: ServiceWrite, db: Db, user: Admin, service_id: int | None = None):
+def write_service(data: ServiceWrite, db: Db, user: ScheduleAdmin, service_id: int | None = None):
     check_permission(db, user, "citas", "editar" if service_id else "crear")
     item = db.get(Servicio, service_id) if service_id else Servicio()
     if item is None:
@@ -135,6 +172,11 @@ def write_branch(data: BranchWrite, db: Db, user: Admin, location_id: int | None
 @router.get("/admin/operaciones/unidades")
 def units(db: Db, _user: InventoryAdmin):
     return [row_data(row) for row in db.scalars(select(UnidadMedida).order_by(UnidadMedida.codigo)).all()]
+
+
+@router.get("/admin/operaciones/proveedores")
+def receiving_suppliers(db: Db, _user: InventoryAdmin):
+    return [{"id": row.id, "razon_social": row.razon_social} for row in db.scalars(select(Proveedor).order_by(Proveedor.razon_social)).all()]
 
 
 @router.post("/admin/operaciones/unidades", status_code=201)

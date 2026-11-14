@@ -42,7 +42,9 @@ def occupancy(desde: dt.date, hasta: dt.date, db: Db, _user: Admin, veterinario_
 
 @router.get("/auditoria")
 def audit(db: Db, _user: Admin, desde: dt.date | None = None, hasta: dt.date | None = None, usuario_id: int | None = None, entidad: str | None = None):
-    statement = select(EventoAuditoria)
+    statement = select(EventoAuditoria).where(EventoAuditoria.sucursal_id == branch_id(db))
+    if (desde is None) != (hasta is None):
+        raise HTTPException(422, "Completa ambas fechas del rango")
     if desde and hasta:
         initial, final = bounds(desde, hasta)
         statement = statement.where(EventoAuditoria.fecha >= initial, EventoAuditoria.fecha < final)

@@ -38,6 +38,8 @@ export interface CashierProduct {
   nombre: string;
   precio_venta: string;
   stock_actual: number;
+  unidad_medida: string;
+  fraccionable: boolean;
   categoria: CashierCategory;
 }
 

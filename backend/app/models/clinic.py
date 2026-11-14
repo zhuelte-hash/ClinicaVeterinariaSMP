@@ -729,6 +729,7 @@ class Producto(Base):
     costo_unitario: Mapped[Decimal] = mapped_column(Numeric(14, 4), default=0, server_default="0", nullable=False)
     unidad_medida: Mapped[str] = mapped_column(String(15), default="unidad", server_default="unidad", nullable=False)
     fraccionable: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
+    requiere_vencimiento: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
     sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", nullable=False)
     alerta_stock_activa: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
     stock_actual: Mapped[Decimal] = mapped_column(

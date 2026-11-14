@@ -18,6 +18,7 @@
 @if (error()) {
   <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700">{{ error() }}</p>
 }
+@if (statusMessage()) { <p class="mb-4 rounded-xl bg-teal-50 p-4 text-teal-800" role="status">{{ statusMessage() }}</p> }
 
 <div class="admin-card overflow-x-auto">
   @if (loading()) {
@@ -50,14 +51,14 @@
             <td>
               <div class="flex justify-end gap-2">
                 <button type="button" class="admin-secondary" (click)="openEdit(user)">Editar</button>
-                <button type="button" class="admin-secondary" [disabled]="isCurrentUser(user) || deletingId() !== null" (click)="toggleActive(user)">{{ user.activo ? 'Desactivar' : 'Activar' }}</button>
+                <button type="button" class="admin-secondary" [disabled]="isCurrentUser(user) || deletingId() !== null || !auth.can('usuarios', 'editar')" (click)="toggleActive(user)">{{ user.activo ? 'Desactivar' : 'Activar' }}</button>
                 <button
                   type="button"
                   class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
                   [disabled]="isCurrentUser(user) || deletingId() === user.id"
                   [title]="isCurrentUser(user) ? 'No puedes eliminar tu propia cuenta' : 'Eliminar usuario'"
                   (click)="deleteUser(user)"
-                >{{ deletingId() === user.id ? 'Eliminando...' : 'Eliminar' }}</button>
+                >{{ deletingId() === user.id ? 'Procesando...' : 'Eliminar' }}</button>
               </div>
             </td>
           </tr>

@@ -4,6 +4,11 @@ import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const ADMIN_ROUTES: Routes = [{
   path: '', component: AdminLayoutComponent, canActivateChild: [permissionGuard], children: [
+    { path: 'servicios', title: 'Tarifas y servicios | Clínica SMP', loadComponent: () => import('./pages/servicios/servicios.component').then(m => m.ServiciosComponent) },
+    { path: 'horarios', title: 'Horarios | Clínica SMP', loadComponent: () => import('./pages/horarios/horarios.component').then(m => m.HorariosComponent) },
+    { path: 'recepciones', title: 'Lotes y unidades | Clínica SMP', loadComponent: () => import('./pages/recepciones/recepciones.component').then(m => m.RecepcionesComponent) },
+    { path: 'finanzas', title: 'Finanzas | Clínica SMP', loadComponent: () => import('./pages/finanzas/finanzas.component').then(m => m.FinanzasComponent) },
+    { path: 'auditoria', title: 'Auditoría | Clínica SMP', loadComponent: () => import('./pages/auditoria/auditoria.component').then(m => m.AuditoriaComponent) },
     { path: 'reportes', title: 'Reportes Excel | Clínica SMP', loadComponent: () => import('./pages/reportes/reportes.component').then(m => m.ReportesComponent) },
     { path: 'ordenes', title: 'Órdenes y pagos | Clínica SMP', loadComponent: () => import('../billing/billing-orders.component').then(m => m.BillingOrdersComponent) },
     { path: 'pedidos-web', title: 'Pedidos web | Clínica SMP', loadComponent: () => import('../purchase/purchase-orders.component').then(m => m.PurchaseOrdersComponent) },

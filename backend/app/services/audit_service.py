@@ -10,8 +10,9 @@ from app.models.user import Usuario
 from app.services.operation_utils import json_value
 
 SCOPED = (Caja, Cita, HorarioVeterinario, OrdenCobro, Producto, CompraProveedor, Egreso, OrdenPendiente)
-CRITICAL = {"usuarios", "permisos_rol", "autorizaciones_descuento", "productos", "ajustes_inventario", "citas", "ordenes_cobro", "ordenes_pendientes", "abonos_orden", "cajas", "compras_proveedor", "movimientos_inventario", "egresos", "plantillas_mensaje", "politicas_clinica", "sucursales", "procesos_atencion", "derivaciones_clinicas", "servicios"}
+CRITICAL = {"usuarios", "permisos_rol", "autorizaciones_descuento", "productos", "ajustes_inventario", "citas", "ordenes_cobro", "ordenes_pendientes", "abonos_orden", "cajas", "compras_proveedor", "movimientos_inventario", "egresos", "plantillas_mensaje", "politicas_clinica", "sucursales", "procesos_atencion", "derivaciones_clinicas", "servicios", "horarios_veterinario", "unidades_medida", "lotes_inventario", "configuracion_clinica", "solicitudes_reprogramacion"}
 HIDDEN = {"contrasena", "secreto_hash", "token_hash", "comprobante", "documento", "notas_privadas", "intentos_fallidos", "bloqueado_hasta"}
+CRITICAL.add("horarios_veterinarios")
 
 
 @event.listens_for(Session, "do_orm_execute")
@@ -36,12 +37,16 @@ def capture_changes(db, _context):
                 continue
             history = state.attrs[column.key].history
             if item in db.new or item in db.deleted or history.has_changes():
-                changes[column.key] = {"antes": json_value(history.deleted[0]) if history.deleted else None, "despues": json_value(getattr(item, column.key))}
+                changes[column.key] = {
+                    "antes": json_value(getattr(item, column.key)) if item in db.deleted else json_value(history.deleted[0]) if history.deleted else None,
+                    "despues": None if item in db.deleted else json_value(getattr(item, column.key)),
+                }
         if not changes:
             continue
         action = "crear" if item in db.new else "eliminar" if item in db.deleted else "editar"
         actor = db.info.get("actor_id") or getattr(item, "estado_actualizado_por", None)
-        db.add(EventoAuditoria(usuario_id=actor, sucursal_id=db.info.get("sucursal_id"), entidad=table, registro_id=str(getattr(item, "id", "")), accion=action, cambios=changes))
+        record_id = ":".join(str(getattr(item, column.key)) for column in state.mapper.primary_key)
+        db.add(EventoAuditoria(usuario_id=actor, sucursal_id=db.info.get("sucursal_id"), entidad=table, registro_id=record_id, accion=action, cambios=changes))
         if isinstance(item, Cita):
             tracked = {key: value for key, value in changes.items() if key in {"estado", "fecha_hora_programada", "veterinario_id", "asistencia_confirmada_en", "fecha_hora_propuesta"}}
             if not tracked:

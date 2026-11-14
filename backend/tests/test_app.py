@@ -163,7 +163,7 @@ def test_catalog_is_public_and_inventory_requires_login() -> None:
                 stock_actual=3, stock_minimo=2, activo=True, imagen_url="/logo.png",
                 categoria_id=1, categoria=SimpleNamespace(nombre="Alimentos"),
                 proveedor_id=1, descripcion="Alimento para mascotas", especies=["Perro"],
-                unidad_medida="unidad", fraccionable=False, costo_unitario=0, sucursal_id=1,
+                    unidad_medida="unidad", fraccionable=False, requiere_vencimiento=False, costo_unitario=0, sucursal_id=1,
             )])
 
     app.dependency_overrides[get_db] = lambda: FakeSession()

@@ -27,7 +27,11 @@ export class InventarioComponent {
       && (!this.onlyLow() || item.stock_actual <= item.stock_minimo));
   });
   readonly lowCount = computed(() => this.products().filter((item) => item.stock_actual <= item.stock_minimo).length);
-  readonly units = computed(() => this.products().reduce((sum, item) => sum + item.stock_actual, 0));
+  readonly units = computed(() => {
+    const totals = new Map<string, number>();
+    for (const item of this.products()) totals.set(item.unidad_medida, (totals.get(item.unidad_medida) ?? 0) + item.stock_actual);
+    return [...totals].map(([unit, total]) => `${total.toLocaleString('es-PE', { maximumFractionDigits: 3 })} ${unit}`).join(' · ') || 'Sin existencias';
+  });
 
   constructor() { this.load(); }
   load(): void {
@@ -40,8 +44,8 @@ export class InventarioComponent {
   edit(item: AdminProduct): void { this.editing.set(item); this.stock = item.stock_actual; this.reason = ''; this.error.set(''); }
   save(): void {
     const item = this.editing();
-    if (!item || this.saving() || !Number.isInteger(this.stock) || this.stock < 0) {
-      this.error.set('Ingresa una cantidad entera mayor o igual a cero.');
+    if (!item || this.saving() || !Number.isFinite(this.stock) || (!item.fraccionable && !Number.isInteger(this.stock)) || this.stock < 0) {
+      this.error.set('Ingresa una cantidad mayor o igual a cero que respete la unidad del producto.');
       return;
     }
     if (this.reason.trim().length < 3) { this.error.set('Indica el motivo del ajuste (mínimo 3 caracteres).'); return; }

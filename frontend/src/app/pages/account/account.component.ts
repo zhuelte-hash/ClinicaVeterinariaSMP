@@ -2,9 +2,9 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { LoginResponse } from '../../core/auth/auth.models';
+import { AuthUser, LoginResponse } from '../../core/auth/auth.models';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -30,11 +30,11 @@ export class AccountComponent {
   email = this.route.snapshot.queryParamMap.get('correo') || ''; code = ''; password = ''; currentPassword = ''; name = this.auth.currentUser()?.nombre || ''; phone = this.auth.currentUser()?.telefono || ''; address = this.auth.currentUser()?.direccion || '';
   submit(): void {
     if (this.busy()) return;
-    const request = this.profile ? this.http.patch(`${environment.apiUrl}/auth/me`, { nombre: this.name, telefono: this.phone, direccion: this.address }) : this.http.post<LoginResponse>(`${environment.apiUrl}/auth/${this.verify ? 'verificar-correo' : this.token ? 'restablecer-clave?correo=' + encodeURIComponent(this.email) : 'recuperar-clave'}`, this.verify ? { correo: this.email, codigo: this.code } : this.token ? { token: this.token, password: this.password } : { correo: this.email });
-    this.busy.set(true); this.error.set('');
+    const request: Observable<AuthUser | LoginResponse> = this.profile ? this.auth.updateProfile({ nombre: this.name, telefono: this.phone, direccion: this.address }) : this.http.post<LoginResponse>(`${environment.apiUrl}/auth/${this.verify ? 'verificar-correo' : this.token ? 'restablecer-clave?correo=' + encodeURIComponent(this.email) : 'recuperar-clave'}`, this.verify ? { correo: this.email, codigo: this.code } : this.token ? { token: this.token, password: this.password } : { correo: this.email });
+    this.busy.set(true); this.error.set(''); this.message.set('');
     request.pipe(finalize(() => this.busy.set(false))).subscribe({ next: response => {
       if (this.verify) { this.auth.acceptSession(response as LoginResponse); void this.router.navigateByUrl('/inicio'); }
-      else if (this.profile) { this.auth.getCurrentUser().subscribe(); this.message.set('Perfil actualizado.'); }
+      else if (this.profile) { const user = this.auth.currentUser(); this.name = user?.nombre || ''; this.phone = user?.telefono || ''; this.address = user?.direccion || ''; this.message.set('Perfil actualizado.'); }
       else if (this.token) { this.message.set('Contraseña actualizada. Inicia sesión con la nueva clave.'); this.password = ''; }
       else this.message.set('Si existe una cuenta activa, recibirás el enlace en tu correo.');
     }, error: error => this.fail(error) });

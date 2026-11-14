@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator
 
 from app.schemas.user import UsuarioRead
 
@@ -64,6 +64,17 @@ class ResetPasswordRequest(BaseModel):
 
 
 class OwnProfileUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     nombre: str = Field(min_length=2, max_length=150)
     telefono: str | None = Field(default=None, max_length=30)
     direccion: str | None = Field(default=None, max_length=255)
+
+    @field_validator("nombre", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        return " ".join(value.split()) if isinstance(value, str) else value
+
+    @field_validator("telefono", "direccion")
+    @classmethod
+    def empty_contact(cls, value):
+        return value or None

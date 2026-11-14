@@ -43,6 +43,8 @@ class InventoryService:
         lots_query = select(LoteInventario).where(LoteInventario.producto_id == product.id, LoteInventario.cantidad > 0)
         if not physical_adjustment:
             lots_query = lots_query.where((LoteInventario.vencimiento.is_(None)) | (LoteInventario.vencimiento >= dt.date.today()))
+            if product.requiere_vencimiento:
+                lots_query = lots_query.where(LoteInventario.vencimiento.is_not(None))
         lots = list(self.db.scalars(lots_query.order_by(LoteInventario.vencimiento.asc().nulls_last(), LoteInventario.id).with_for_update()).all())
         if sum((lot.cantidad for lot in lots), Decimal(0)) < quantity:
             raise HTTPException(409, "No hay stock vendible suficiente; revisa lotes vencidos y disponibilidad")
@@ -86,6 +88,8 @@ class InventoryService:
             product = self.product(line.producto_id)
             if not product.activo or (line.vencimiento and line.vencimiento < dt.date.today()):
                 raise HTTPException(422, "No recibas productos inactivos ni lotes vencidos")
+            if product.requiere_vencimiento and line.vencimiento is None:
+                raise HTTPException(422, "El medicamento o perecible requiere fecha de vencimiento")
             quantity = line.cantidad
             cost = line.costo_unitario
             if line.unidad and line.unidad != product.unidad_medida:
@@ -132,7 +136,7 @@ class InventoryService:
         if settings and not settings.alertas_stock:
             return
         product.alerta_stock_activa = True
-        for admin in self.db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo)).all():
+        for admin in self.db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo, Usuario.sucursal_id == product.sucursal_id)).all():
             self.db.add(Notificacion(usuario_id=admin.id, tipo="stock_bajo", titulo="Reabastecimiento necesario", mensaje=f"{product.nombre}: stock {product.stock_actual}; mínimo {product.stock_minimo}."))
             MessagingService(self.db).to_user(admin, "stock_bajo", f"stock:{product.id}:{uuid4().hex}:{admin.id}", {"producto": product.nombre, "cantidad": product.stock_actual, "minimo": product.stock_minimo})
 

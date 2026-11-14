@@ -63,6 +63,10 @@ class AdminService:
             raise AdminNotFoundError
         if data.proveedor_id is not None and self.db.get(Proveedor, data.proveedor_id) is None:
             raise AdminNotFoundError
+        if "unidad_medida" in data.model_fields_set and data.unidad_medida != product.unidad_medida:
+            from app.models.operations import MovimientoInventario
+            if product.stock_actual or self.db.scalar(select(MovimientoInventario.id).where(MovimientoInventario.producto_id == product.id).limit(1)):
+                raise AdminConflictError("La unidad de un producto con existencias o movimientos no puede cambiarse; crea otro producto")
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(product, field, value)
         self._validate_unit(product)
@@ -79,6 +83,9 @@ class AdminService:
         if self.db.get(CategoriaProducto, data.categoria_id) is None or self.db.get(Proveedor, data.proveedor_id) is None:
             raise AdminNotFoundError
         product = Producto(**data.model_dump(), sucursal_id=branch_id(self.db))
+        if product.requiere_vencimiento and product.stock_actual:
+            from fastapi import HTTPException
+            raise HTTPException(422, "Crea medicamentos y perecibles sin stock inicial; registra el ingreso con lote y vencimiento en Recepciones")
         self._validate_unit(product)
         self.db.add(product)
         try:
@@ -87,6 +94,7 @@ class AdminService:
             self.db.flush()
             if initial:
                 InventoryService(self.db).increase(product, initial, "Alta del producto", "ingreso", lot_code="INICIAL", cost=product.costo_unitario)
+            InventoryService(self.db).stock_alert(product)
             self.db.commit()
         except IntegrityError as exc:
             self.db.rollback()
@@ -162,6 +170,8 @@ class AdminService:
             raise AdminConflictError("El stock cambió desde que abriste el formulario. Actualiza el inventario e intenta de nuevo")
         if product.stock_actual == data.stock_actual:
             raise AdminConflictError("La nueva cantidad debe ser diferente de la actual")
+        if product.requiere_vencimiento and data.stock_actual > product.stock_actual:
+            raise AdminConflictError("Ingresa medicamentos y perecibles desde Recepciones, indicando lote y vencimiento")
         self.db.add(AjusteInventario(producto_id=product.id, usuario_id=user_id,
                                     cantidad_anterior=product.stock_actual, cantidad_nueva=data.stock_actual,
                                     motivo=data.motivo))
@@ -375,6 +385,10 @@ class AdminService:
         else:
             for field, value in data.model_dump().items():
                 setattr(item, field, value)
+        if data.alertas_stock:
+            self.db.flush()
+            for product in self.db.scalars(select(Producto).where(Producto.activo).with_for_update()).all():
+                InventoryService(self.db).stock_alert(product)
         self.db.commit()
         self.db.refresh(item)
         return AdminSettingsRead.model_validate(item, from_attributes=True)
@@ -477,6 +491,7 @@ class AdminService:
             categoria_nombre=product.categoria.nombre,
             proveedor_id=product.proveedor_id, descripcion=product.descripcion, especies=product.especies,
             unidad_medida=product.unidad_medida, fraccionable=product.fraccionable, costo_unitario=product.costo_unitario, sucursal_id=product.sucursal_id,
+            requiere_vencimiento=product.requiere_vencimiento,
         )
 
     @staticmethod

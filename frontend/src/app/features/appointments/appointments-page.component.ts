@@ -9,6 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { AuthDialogService } from '../../core/auth/auth-dialog.service';
 import { AppointmentsApiService } from './appointments-api.service';
 import { Appointment, AppointmentStatus, AvailabilitySlot, ClinicalRecord, ClinicService, Pet } from './appointments.models';
+import { RescheduleRequestComponent } from './reschedule-request.component';
 
 const BOOKING_DRAFT_KEY = 'clinic_booking_draft_v1';
 type BookingDraft = {
@@ -29,7 +30,7 @@ type BookingDraft = {
 @Component({
   selector: 'app-appointments-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RescheduleRequestComponent],
   templateUrl: './appointments-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

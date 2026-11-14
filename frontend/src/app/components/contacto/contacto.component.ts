@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../core/services/clinic-policy.service';
 
 @Component({
   selector: 'app-contacto',
@@ -27,7 +28,14 @@ import { CommonModule } from '@angular/common';
           <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">📱</span><span><b>Teléfono:</b> 965 939 522</span></p>
           <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">✉️</span><span><b>Correo:</b> vamospetshop@gmail.com</span></p>
           <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">📍</span><span><b>Dirección:</b> Jr. Quinua N° 178 – Cercado, Ayacucho</span></p>
-           <p class="text-sm text-gray-600">Horario: Lun-Sáb 8am-8pm</p>
+          <section class="rounded-xl bg-slate-50 p-4" aria-label="Horario de atención">
+            <h3 class="font-bold">Horario de atención · Perú</h3>
+            @if (policy(); as data) {
+              @for (day of data.horarios; track day.dia) { <p class="flex justify-between gap-3 text-sm"><b>{{ days[day.dia] }}</b><span>{{ hours(day) }}</span></p> }
+              @if (upcomingExceptions().length) { <h4 class="mt-3 font-bold">Próximas excepciones y feriados</h4> }
+              @for (day of upcomingExceptions(); track day.fecha) { <p class="mt-2 text-sm text-amber-800">{{ day.fecha }}: {{ hours(day) }} · {{ day.motivo }}</p> }
+            } @else { <p role="status">{{ hoursError() || 'Cargando horarios…' }}</p> }
+          </section>
         </div>
         <div class="grid grid-cols-3 gap-3 mb-6">
           <img src="https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-58.png" alt="mascota 1" class="rounded-2xl object-cover h-32 w-full shadow" />
@@ -58,14 +66,20 @@ import { CommonModule } from '@angular/common';
           <p *ngIf="ok" class="text-green-600 text-sm text-center font-medium">¡Abriendo WhatsApp con tu mensaje...!</p>
         </form>
         <div class="mt-5 flex gap-2 text-xs text-gray-500 justify-center">
-          <span class="bg-gray-100 px-3 py-1 rounded-full">⏱ Lun-Sáb 8am-8pm</span>
-          <span class="bg-gray-100 px-3 py-1 rounded-full">🚨 Urgencias 24h</span>
+          <span class="bg-gray-100 px-3 py-1 rounded-full">Consulta los horarios publicados y la disponibilidad de reservas.</span>
         </div>
       </div>
     </div>
   `,
 })
 export class ContactoComponent {
+  readonly policy = signal<ClinicPolicy | null>(null);
+  readonly hoursError = signal('');
+  readonly days = WEEKDAYS;
+  readonly hours = hoursLabel;
+  readonly today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
+  upcomingExceptions() { return this.policy()?.excepciones.filter(day => day.fecha >= this.today) ?? []; }
+  constructor() { inject(ClinicPolicyService).get().subscribe({ next: data => this.policy.set(data), error: () => this.hoursError.set('No se pudo consultar el horario. Intenta recargar la página.') }); }
   servicios = ['Consulta Médica','Consulta a Domicilio','Consulta virtual','Grooming','Hospedaje','Laboratorio','Vacunas','Cirugía','Otro'];
   form = { nombre: '', telefono: '', email: '', servicio: 'Consulta Médica', mensaje: '' };
   ok = false;

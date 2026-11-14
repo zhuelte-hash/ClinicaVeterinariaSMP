@@ -24,6 +24,8 @@ interface SaleCartItem {
   price: number;
   stock: number | null;
   quantity: number;
+  unit?: string;
+  fractional?: boolean;
 }
 
 type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
@@ -76,7 +78,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
           <div class="border-b border-slate-100 p-5"><div class="flex items-center justify-between"><h3 class="text-xl font-black text-[#111827]">Venta actual</h3><span class="rounded-full bg-[#56c4d8]/15 px-3 py-1 text-xs font-bold text-[#168ba1]">{{ cartCount() }} items</span></div></div>
           <div class="max-h-72 space-y-3 overflow-y-auto p-5">
             @for (item of cart(); track item.type + '-' + item.id) {
-              <div class="rounded-xl bg-slate-50 p-3"><div class="flex gap-3"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ item.name }}</p><p class="text-xs text-slate-500">{{ item.type === 'service' ? 'Servicio' : item.code }} · S/ {{ item.price.toFixed(2) }}</p></div><button (click)="removeItem(item.type, item.id)" class="text-xs font-bold text-rose-600">Quitar</button></div><div class="mt-3 flex items-center justify-between"><div class="flex items-center gap-2"><button (click)="setQuantity(item.type, item.id, item.quantity - 1)" class="quantity-button">−</button><b>{{ item.quantity }}</b><button (click)="setQuantity(item.type, item.id, item.quantity + 1)" [disabled]="item.stock !== null && item.quantity >= item.stock" class="quantity-button">+</button></div><b>S/ {{ lineTotal(item) }}</b></div></div>
+              <div class="rounded-xl bg-slate-50 p-3"><div class="flex gap-3"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ item.name }}</p><p class="text-xs text-slate-500">{{ item.type === 'service' ? 'Servicio' : item.code }} · S/ {{ item.price.toFixed(2) }} / {{ item.unit || 'unidad' }}</p></div><button (click)="removeItem(item.type, item.id)" class="text-xs font-bold text-rose-600">Quitar</button></div><div class="mt-3 flex items-center justify-between gap-2"><label class="text-sm">Cantidad ({{ item.unit || 'unidad' }})<input type="number" class="w-24 rounded border px-2 py-1" [attr.aria-label]="'Cantidad de ' + item.name" [min]="item.fractional ? 0.001 : 1" [step]="item.fractional ? 0.001 : 1" [max]="item.stock" [ngModel]="item.quantity" (ngModelChange)="setQuantity(item.type, item.id, +$event)"></label><b>S/ {{ lineTotal(item) }}</b></div></div>
             } @empty { <div class="py-8 text-center"><p class="text-3xl">▤</p><p class="mt-2 text-sm font-semibold text-slate-500">Agrega productos o servicios</p></div> }
           </div>
 
@@ -226,7 +228,7 @@ export class CashierSalesComponent {
   }
 
   addProduct(product: CashierProduct): void {
-    this.addItem({ type: 'product', id: product.id, code: product.sku, name: product.nombre, price: Number(product.precio_venta), stock: product.stock_actual, quantity: 1 });
+    this.addItem({ type: 'product', id: product.id, code: product.sku, name: product.nombre, price: Number(product.precio_venta), stock: product.stock_actual, quantity: Math.min(1, product.stock_actual), unit: product.unidad_medida, fractional: product.fraccionable });
   }
 
   addService(service: CashierService): void {
@@ -248,6 +250,9 @@ export class CashierSalesComponent {
   }
 
   setQuantity(type: SaleCartItem['type'], id: number, quantity: number): void {
+    const current = this.cart().find(item => item.type === type && item.id === id);
+    if (!Number.isFinite(quantity) || (current && !current.fractional && !Number.isInteger(quantity))) return;
+    quantity = Math.round(quantity * 1000) / 1000;
     if (quantity <= 0) { this.removeItem(type, id); return; }
     this.cart.update((items) => items.map((item) => item.type === type && item.id === id
       ? { ...item, quantity: item.stock === null ? quantity : Math.min(item.stock, quantity) }

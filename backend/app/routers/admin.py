@@ -5,9 +5,12 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.database import get_db
 from app.models.user import TipoUsuario, Usuario
+from app.models.operations import UnidadMedida
+from app.services.operation_utils import row_data
 from app.schemas.admin import (
     AdminAppointmentRead, AdminAppointmentUpdate, AdminCategoryCreate, AdminCategoryRead, AdminCategoryUpdate, AdminClientRead, AdminNotificationCreate, AdminNotificationRead, AdminProductCatalog, AdminProductCreate, AdminProductRead, AdminProductUpdate, AdminSalesDayRead, AdminSettingsRead, AdminSettingsUpdate,
     RolePermissionRead, RolePermissionUpdate,
@@ -54,6 +57,11 @@ def create_product(data: AdminProductCreate, db: DbSession, _user: Annotated[Usu
 @router.get("/productos/catalogo", response_model=AdminProductCatalog)
 def get_product_catalog(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("productos"))]):
     return AdminService(db).get_product_catalog()
+
+
+@router.get("/productos/unidades")
+def product_units(db: DbSession, _user: Annotated[Usuario, Depends(require_permission("productos"))]):
+    return [row_data(row) for row in db.scalars(select(UnidadMedida).order_by(UnidadMedida.codigo)).all()]
 
 
 @router.get("/categorias", response_model=list[AdminCategoryRead])

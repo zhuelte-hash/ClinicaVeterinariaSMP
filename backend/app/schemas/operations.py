@@ -24,12 +24,21 @@ class DayHours(TextModel):
     descanso_inicio: dt.time | None = dt.time(12)
     descanso_fin: dt.time | None = dt.time(13)
 
+    @field_validator("inicio", "fin", "descanso_inicio", "descanso_fin")
+    @classmethod
+    def local_time(cls, value):
+        if value is not None and value.tzinfo is not None:
+            raise ValueError("Usa horas locales de Perú sin desplazamiento de zona horaria")
+        return value
+
     @model_validator(mode="after")
     def valid_hours(self):
         if not self.cerrado and self.fin <= self.inicio:
             raise ValueError("La hora final debe ser posterior al inicio")
         if (self.descanso_inicio is None) != (self.descanso_fin is None) or (self.descanso_inicio and self.descanso_fin <= self.descanso_inicio):
             raise ValueError("Completa un intervalo de descanso válido o elimina ambos extremos")
+        if not self.cerrado and self.descanso_inicio and not (self.inicio <= self.descanso_inicio < self.descanso_fin <= self.fin):
+            raise ValueError("El descanso debe estar dentro del horario de atención")
         return self
 
 
@@ -37,26 +46,36 @@ class ExceptionHours(DayHours):
     fecha: dt.date
     motivo: str = Field(min_length=3, max_length=200)
 
+    @model_validator(mode="after")
+    def date_weekday(self):
+        self.dia = self.fecha.weekday()
+        return self
+
 
 class GalleryPhoto(TextModel):
     url: str = Field(pattern=r"^/uploads/instalaciones/[a-f0-9]+\.(jpg|png|webp)$")
     titulo: str = Field(min_length=3, max_length=150)
 
 
-class ClinicPolicy(TextModel):
+class ClinicHours(TextModel):
     horarios: list[DayHours] = Field(default_factory=lambda: [DayHours(dia=i, cerrado=i == 6) for i in range(7)], min_length=7, max_length=7)
     excepciones: list[ExceptionHours] = Field(default_factory=list, max_length=366)
-    galeria: list[GalleryPhoto] = Field(default_factory=list, max_length=50)
-    horas_cancelacion: int = Field(default=4, ge=0, le=168)
-    horas_reprogramacion: int = Field(default=4, ge=0, le=168)
-    dias_alerta_vencimiento: int = Field(default=30, ge=1, le=365)
-    dias_recordatorio_vacuna: int = Field(default=3, ge=0, le=30)
 
     @model_validator(mode="after")
     def unique_days(self):
         if len({day.dia for day in self.horarios}) != 7 or len({day.fecha for day in self.excepciones}) != len(self.excepciones):
             raise ValueError("No repitas días o fechas de excepción")
+        self.horarios.sort(key=lambda day: day.dia)
+        self.excepciones.sort(key=lambda day: day.fecha)
         return self
+
+
+class ClinicPolicy(ClinicHours):
+    galeria: list[GalleryPhoto] = Field(default_factory=list, max_length=50)
+    horas_cancelacion: int = Field(default=4, ge=0, le=168)
+    horas_reprogramacion: int = Field(default=4, ge=0, le=168)
+    dias_alerta_vencimiento: int = Field(default=30, ge=1, le=365)
+    dias_recordatorio_vacuna: int = Field(default=3, ge=0, le=30)
 
 
 class ServiceWrite(TextModel):
@@ -84,6 +103,10 @@ class RescheduleRequest(Reason):
 
 class PrivateNotes(TextModel):
     notas: str = Field(max_length=10000)
+
+
+class RescheduleAnswer(Reason):
+    aceptar: bool
 
 
 class ReferralCreate(Reason):

@@ -61,20 +61,22 @@ class ReportingService:
             states[item.estado.value] += 1
         pending = self.db.scalars(select(OrdenPendiente).where(OrdenPendiente.estado.in_(["pendiente", "parcial"]))).all()
         web_pending = self.db.scalar(select(func.count(PedidoWeb.id)).where(PedidoWeb.estado_pedido == "PENDIENTE")) or 0
-        product_totals, service_totals = defaultdict(lambda: Decimal(0)), Counter()
+        product_totals, service_totals, requested_totals = defaultdict(lambda: Decimal(0)), Counter(), Counter()
         for sale in sales:
             for detail in sale.detalles:
                 if detail.producto_id:
-                    product_totals[detail.producto.nombre] += detail.cantidad
+                    product_totals[(detail.producto_id, detail.producto.nombre)] += detail.cantidad
         for appointment in appointments:
+            requested_totals[(appointment.servicio_id, appointment.servicio.nombre)] += 1
             if appointment.estado == EstadoCita.ATENDIDA:
-                service_totals[appointment.servicio.nombre] += 1
+                service_totals[(appointment.servicio_id, appointment.servicio.nombre)] += 1
         low = self.db.scalars(select(Producto).where(Producto.activo, Producto.stock_actual <= Producto.stock_minimo)).all()
         cash = self.db.scalar(select(func.coalesce(func.sum(MovimientoCaja.monto), 0)).join(Caja, Caja.id == MovimientoCaja.caja_id).where(MovimientoCaja.fecha >= initial, MovimientoCaja.fecha < final)) or Decimal(0)
         direct = sum((sale.monto_total for sale in sales if sale.preorden_id is None), Decimal(0))
         expenses = self.db.scalar(select(func.coalesce(func.sum(Egreso.monto), 0)).where(Egreso.fecha >= start, Egreso.fecha <= end)) or Decimal(0)
         awaiting = self.db.scalar(select(func.count(AbonoOrden.id)).join(OrdenPendiente, OrdenPendiente.id == AbonoOrden.orden_id).where(AbonoOrden.estado == "enviado")) or 0
-        return {"desde": start, "hasta": end, "sucursal_id": branch_id(self.db), "ventas": sum((sale.monto_total for sale in sales), Decimal(0)), "citas_por_estado": states, "ordenes_pendientes": len(pending), "pagos_web_por_validar": web_pending, "pagos_por_validar": awaiting, "stock_bajo": [{"id": p.id, "nombre": p.nombre, "stock": p.stock_actual, "minimo": p.stock_minimo} for p in low], "productos_mas_vendidos": [{"nombre": name, "cantidad": qty} for name, qty in sorted(product_totals.items(), key=lambda row: row[1], reverse=True)[:10]], "servicios_mas_atendidos": [{"nombre": name, "cantidad": qty} for name, qty in service_totals.most_common(10)], "finanzas": {"cobros": cash + direct, "egresos": expenses, "resultado": cash + direct - expenses, "criterio": "Cobros efectivos del período, incluidos abonos; egresos y recepciones de mercadería registrados"}}
+        confirmed = self.db.scalar(select(func.coalesce(func.sum(AbonoOrden.monto), 0)).join(OrdenPendiente, OrdenPendiente.id == AbonoOrden.orden_id).where(AbonoOrden.estado == "validado", OrdenPendiente.estado.in_(["pendiente", "parcial"]))) or Decimal(0)
+        return {"desde": start, "hasta": end, "sucursal_id": branch_id(self.db), "ventas": sum((sale.monto_total for sale in sales), Decimal(0)), "cantidad_ventas": len(sales), "citas_por_estado": states, "ordenes_pendientes": len(pending), "saldo_pendiente": sum((order.total for order in pending), Decimal(0)) - confirmed, "pagos_web_por_validar": web_pending, "pagos_por_validar": awaiting, "stock_bajo": [{"id": p.id, "nombre": p.nombre, "stock": p.stock_actual, "minimo": p.stock_minimo} for p in low], "productos_mas_vendidos": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(product_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "servicios_mas_solicitados": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(requested_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "servicios_mas_atendidos": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(service_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "finanzas": {"cobros": cash + direct, "egresos": expenses, "resultado": cash + direct - expenses, "criterio": "Cobros efectivos del período, incluidos abonos; egresos y recepciones de mercadería registrados"}}
 
     def closures(self, start, end):
         initial, final = bounds(start, end)

@@ -20,15 +20,33 @@
     </div>
   </div>
 
+  <label class="mt-4 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-600">Mes del informe<input type="month" class="rounded-xl border border-slate-200 bg-white p-2" min="1900-01" [max]="currentMonth" [ngModel]="month()" (ngModelChange)="selectMonth($event)"></label>
   @if (operationalError()) { <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 p-4 text-sm text-rose-700" role="alert"><p>{{ operationalError() }}</p><button type="button" class="panel-link" (click)="load()">Reintentar</button></div> }
   @if (operationalLoading()) { <p class="mt-4 text-sm text-slate-500" role="status">Actualizando indicadores…</p> }
   <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" [attr.aria-busy]="operationalLoading()">
     <admin-stat-card label="Productos" [value]="catalogProducts().length.toString()" icon="products" change="Catálogo activo" />
     <admin-stat-card label="Categorías" [value]="categories().length.toString()" icon="categories" change="Catálogo organizado" />
-    <admin-stat-card [label]="'Ventas de ' + periodLabel()" [value]="'S/ ' + todaySales().toLocaleString('es-PE', { minimumFractionDigits: 2 })" icon="sales" [change]="(salesSummary()?.cantidad_ventas ?? 0) + ' ventas confirmadas'" />
+    <admin-stat-card [label]="'Ventas de ' + periodLabel()" [value]="'S/ ' + todaySales().toLocaleString('es-PE', { minimumFractionDigits: 2 })" icon="sales" [change]="(overview()?.cantidad_ventas ?? 0) + ' ventas confirmadas'" />
     <admin-stat-card label="Citas de hoy" [value]="todayAppointments().length.toString()" icon="appointments" change="Agenda clínica" />
     <admin-stat-card label="Stock bajo" [value]="lowStock().length.toString()" icon="alert" change="Requiere atención" [positive]="false" />
   </div>
+
+  @if (overview(); as data) {
+    <div class="mt-5 grid gap-4 sm:grid-cols-3">
+      <admin-stat-card label="Órdenes pendientes actuales" [value]="data.ordenes_pendientes.toString()" icon="alert" [change]="'Saldo: S/ ' + money(data.saldo_pendiente.toString())" />
+      <admin-stat-card label="Abonos por validar" [value]="data.pagos_por_validar.toString()" icon="sales" change="Pendientes actuales de todos los períodos" />
+      <admin-stat-card label="Pagos web por validar" [value]="data.pagos_web_por_validar.toString()" icon="sales" change="Pendientes actuales de compras web" />
+    </div>
+    <article class="admin-panel mt-5 p-5"><h2>Citas por estado · {{ periodLabel() }}</h2><div class="mt-3 flex flex-wrap gap-3">@for (state of appointmentStates(); track state[0]) { <span class="rounded-xl bg-slate-100 px-3 py-2 text-sm">{{ state[0] }}: <b>{{ state[1] }}</b></span> }</div></article>
+    <div class="mt-5 grid gap-5 lg:grid-cols-2">
+      @for (group of rankings(); track group.title) {
+        <article class="admin-panel p-5"><h2>{{ group.title }}</h2><p>{{ group.description }} Período: {{ periodLabel() }}.</p>
+          @for (item of group.items; track item.id) { <div class="mt-4"><div class="flex justify-between gap-3 text-sm"><span>{{ item.nombre }}</span><b>{{ item.cantidad }}</b></div><div class="mt-1 h-3 rounded bg-slate-100"><div class="h-3 rounded bg-teal-600" [style.width.%]="+item.cantidad / group.max * 100"></div></div></div> }
+          @empty { <p class="py-5 text-slate-500">Sin movimientos en este período.</p> }
+        </article>
+      }
+    </div>
+  }
 
   <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
     <article class="admin-panel p-5 sm:p-6 xl:col-span-2">
@@ -63,7 +81,7 @@
       <div class="flex items-start justify-between"><div><p class="panel-kicker !text-rose-600">Atención</p><h2>Alertas de inventario</h2><p>Productos que requieren reposición.</p></div><a routerLink="../inventario" class="panel-link">Gestionar</a></div>
       <div class="mt-4 divide-y divide-slate-100">
         @if (settings()?.alertas_stock === false) { <p class="py-6 text-center text-sm text-slate-500">Las alertas están desactivadas en Configuración.</p> } @else { @for (product of lowStock(); track product.id) {
-           <div class="flex items-center gap-3 py-3.5"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-10 w-10 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.sku }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock_actual }} und.</b></div>
+           <div class="flex items-center gap-3 py-3.5"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-10 w-10 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.sku }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
         } @empty { <p class="py-6 text-center text-sm text-slate-500">Inventario sin alertas.</p> } }
       </div>
     </article>
@@ -71,8 +89,8 @@
     <article class="admin-panel p-5 sm:p-6">
       <div><p class="panel-kicker">Existencias</p><h2>Productos disponibles</h2><p>Productos con mayor stock en el catálogo actual.</p></div>
       <div class="mt-4 space-y-3">
-        @for (product of bestSellers(); track product.id) {
-           <div class="product-row"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-11 w-11 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.categoria_nombre }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="text-sm text-teal-700">{{ product.stock_actual }} und.</b></div>
+        @for (product of highestStock(); track product.id) {
+            <div class="product-row"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-11 w-11 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.categoria_nombre }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="text-sm text-teal-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
         }
       </div>
     </article>

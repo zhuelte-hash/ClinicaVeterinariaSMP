@@ -37,6 +37,7 @@ export class LoginComponent {
   });
 
   submit(): void {
+    if (this.isSubmitting()) return;
     this.errorMessage.set('');
 
     if (this.loginForm.invalid) {
@@ -95,6 +96,8 @@ export class LoginComponent {
     if (error.status === 401) {
       return 'El correo o la contraseña son incorrectos.';
     }
+    if (error.status === 423) return 'Cuenta bloqueada temporalmente después de cinco intentos fallidos. Inténtalo al finalizar el bloqueo.';
+    if (error.status === 403 && typeof error.error?.detail === 'string') return error.error.detail;
     return 'No se pudo iniciar sesión. Inténtalo nuevamente.';
   }
 }

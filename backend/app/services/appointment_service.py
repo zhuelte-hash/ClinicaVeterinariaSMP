@@ -223,7 +223,7 @@ class AppointmentService:
         self, service_id: int, requested_date: datetime.date
     ) -> list[dict[str, object]]:
         service = self.db.get(Servicio, service_id)
-        if service is None:
+        if service is None or not service.activo:
             raise ServiceNotFoundError
         weekday = requested_date.weekday()
         schedules = list(
@@ -264,7 +264,7 @@ class AppointmentService:
         if pet is None or pet.cliente_id != client.id:
             raise PetNotFoundError
         service = self.db.get(Servicio, data.servicio_id)
-        if service is None:
+        if service is None or not service.activo:
             raise ServiceNotFoundError
         veterinarian = self.db.get(Veterinario, data.veterinario_id)
         if veterinarian is None or not veterinarian.usuario.activo:
@@ -637,8 +637,9 @@ class AppointmentService:
         ).all())
 
     def create_schedule(self, veterinarian_id: int, data: ScheduleUpdate) -> HorarioVeterinario:
+        from app.services.operation_utils import branch_id
         self._ensure_schedule_not_overlapping(veterinarian_id, data)
-        schedule = HorarioVeterinario(veterinario_id=veterinarian_id, **data.model_dump())
+        schedule = HorarioVeterinario(veterinario_id=veterinarian_id, sucursal_id=branch_id(self.db), **data.model_dump())
         self.db.add(schedule)
         self.db.commit()
         self.db.refresh(schedule)

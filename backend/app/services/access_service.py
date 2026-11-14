@@ -43,6 +43,8 @@ class AccessService:
                 if user.intentos_fallidos >= 5:
                     user.bloqueado_hasta = now() + dt.timedelta(minutes=get_settings().login_lock_minutes)
                 self.db.commit()
+                if user.bloqueado_hasta:
+                    raise HTTPException(423, "Cuenta bloqueada temporalmente por intentos fallidos. Intenta más tarde.")
             raise HTTPException(401, "Correo o contraseña incorrectos")
         if not user.activo:
             raise HTTPException(403, "Esta cuenta fue desactivada")

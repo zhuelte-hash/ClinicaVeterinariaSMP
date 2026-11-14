@@ -24,13 +24,14 @@ import { AdminApiService, Role, RolePermission } from '../../services/admin-api.
 })
 export class UsuariosComponent {
   private readonly api = inject(AdminUsersApiService);
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly permissionsApi = inject(AdminApiService);
   readonly open = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly deletingId = signal<number | null>(null);
   readonly error = signal('');
+  readonly statusMessage = signal('');
   readonly query = signal('');
   readonly users = signal<AdminUser[]>([]);
   readonly editingUser = signal<AdminUser | null>(null);
@@ -138,9 +139,10 @@ export class UsuariosComponent {
     });
   }
   toggleActive(user: AdminUser): void {
-    if (this.isCurrentUser(user) || this.deletingId() !== null) return;
+    if (this.isCurrentUser(user) || this.deletingId() !== null || !this.auth.can('usuarios', 'editar')) return;
     this.deletingId.set(user.id);
-    this.api.setActive(user.id, !user.activo).pipe(finalize(() => this.deletingId.set(null))).subscribe({ next: updated => this.users.update(items => items.map(item => item.id === updated.id ? updated : item)), error: error => this.error.set(this.errorText(error)) });
+    this.error.set(''); this.statusMessage.set('');
+    this.api.setActive(user.id, !user.activo).pipe(finalize(() => this.deletingId.set(null))).subscribe({ next: updated => { this.users.update(items => items.map(item => item.id === updated.id ? updated : item)); this.statusMessage.set(updated.activo ? 'Cuenta activada. El colaborador debe iniciar sesión nuevamente.' : 'Cuenta desactivada. Se retiró el acceso y se conservaron sus registros.'); }, error: error => this.error.set(this.errorText(error)) });
   }
 
   isCurrentUser(user: AdminUser): boolean {

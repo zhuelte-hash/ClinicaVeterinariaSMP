@@ -26,6 +26,17 @@ class PolicyService:
         self.db.commit()
         return data
 
+    def save_hours(self, data):
+        item = self.db.get(PoliticaClinica, 1)
+        if item is None:
+            item = PoliticaClinica(id=1, **ClinicPolicy().model_dump(mode="json"))
+            self.db.add(item)
+        # El permiso de citas solo modifica horarios; conserva galería y políticas.
+        for key, value in data.model_dump(mode="json").items():
+            setattr(item, key, value)
+        self.db.commit()
+        return self.get()
+
     def hours(self, date):
         policy = self.get()
         return next((item for item in policy.excepciones if item.fecha == date), next(item for item in policy.horarios if item.dia == date.weekday()))

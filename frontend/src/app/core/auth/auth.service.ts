@@ -105,6 +105,12 @@ export class AuthService {
     );
   }
 
+  updateProfile(data: { nombre: string; telefono: string; direccion: string }): Observable<AuthUser> {
+    return this.http.patch<AuthUser>(`${environment.apiUrl}/auth/me`, data).pipe(
+      tap(user => this.userState.set(user)),
+    );
+  }
+
   refreshPermissions(): Observable<UserPermission[]> {
     return this.http.get<UserPermission[]>(`${environment.apiUrl}/auth/me/permisos`).pipe(
       tap(items => this.permissionState.set(items)),
