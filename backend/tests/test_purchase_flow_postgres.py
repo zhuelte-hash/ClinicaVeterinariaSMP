@@ -20,6 +20,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.main import app
 from app.models.clinic import Caja, CategoriaProducto, ComprobanteVenta, DetalleOrdenCobro, OrdenCobro, Producto, Proveedor
+from app.models.operations import EventoAuditoria, LoteInventario, MensajeSalida, MovimientoInventario
 from app.models.purchase import PedidoWeb
 from app.models.user import Cajero, Cliente, PermisoRol, TipoUsuario, Usuario
 from app.schemas.purchase import PedidoCreate, RevisionPedido
@@ -82,9 +83,13 @@ def setup(monkeypatch):
             db.execute(delete(DetalleOrdenCobro).where(DetalleOrdenCobro.orden_cobro_id.in_(sales)))
             db.execute(delete(OrdenCobro).where(OrdenCobro.cajero_id.in_(ids)))
             db.execute(delete(Caja).where(Caja.cajero_id.in_(ids)))
+            db.execute(delete(MovimientoInventario).where(MovimientoInventario.producto_id == product_id))
+            db.execute(delete(LoteInventario).where(LoteInventario.producto_id == product_id))
             db.execute(delete(Producto).where(Producto.id == product_id))
             db.execute(delete(CategoriaProducto).where(CategoriaProducto.id == category_id))
             db.execute(delete(Proveedor).where(Proveedor.id == supplier_id))
+            db.execute(delete(EventoAuditoria).where(EventoAuditoria.usuario_id.in_(ids)))
+            db.execute(delete(MensajeSalida).where(MensajeSalida.usuario_id.in_(ids)))
             db.execute(delete(Usuario).where(Usuario.id.in_(ids)))
             db.commit()
         engine.dispose()

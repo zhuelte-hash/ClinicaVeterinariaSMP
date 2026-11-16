@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -9,9 +10,24 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.models.operations import MensajeSalida, PlantillaMensaje
+from app.database import SessionLocal
+from app.models.operations import DesafioCuenta, MensajeSalida, PlantillaMensaje
 from app.models.user import Usuario
 from app.services.access_service import aware, now
+
+logger = logging.getLogger(__name__)
+
+
+def deliver_account_email(message_id):
+    """El primer envío no necesita worker; los fallos quedan en la cola de reintentos."""
+    try:
+        with SessionLocal() as db:
+            item = db.scalar(select(MensajeSalida).where(MensajeSalida.id == message_id, MensajeSalida.canal == "correo", MensajeSalida.estado == "pendiente").with_for_update(skip_locked=True))
+            if item is not None:
+                MessagingService(db).deliver(item)
+                db.commit()
+    except Exception:
+        logger.exception("No se pudo procesar el correo de cuenta %s; permanece en la cola", message_id)
 
 EVENTS = {
     "bienvenida": ("Bienvenido/a {nombre} a la Clínica Veterinaria San Martín de Porres.", ["nombre"]),
@@ -62,13 +78,13 @@ class MessagingService:
         self.db.commit()
         return next(row for row in self.templates() if row["evento"] == event)
 
-    def to_user(self, user, event, key, values, document=None, filename=None, entity_id=None):
+    def to_user(self, user, event, key, values, document=None, filename=None, entity_id=None, phone=None):
         previous = self.db.scalar(select(MensajeSalida).where(MensajeSalida.clave == key))
         if previous:
             return previous
         template = next(item for item in self.templates() if item["evento"] == event)
         body = template["contenido"].format_map({key: str(value) for key, value in values.items()})
-        phone = "".join(char for char in (user.telefono or "") if char.isdigit())
+        phone = "".join(char for char in (phone or user.telefono or "") if char.isdigit())
         if len(phone) == 9:
             phone = "51" + phone
         item = MensajeSalida(clave=key, canal="whatsapp", evento=event, destinatario=phone, usuario_id=user.id, entidad_id=entity_id, contenido=body, parametros=[str(values[value]) for value in template["variables"]], documento=document, documento_nombre=filename)
@@ -85,6 +101,12 @@ class MessagingService:
         return len(rows)
 
     def deliver(self, item):
+        if item.canal == "correo" and item.evento in {"verificar", "recuperar"} and item.entidad_id:
+            challenge = self.db.get(DesafioCuenta, item.entidad_id)
+            if challenge is None or challenge.usado_en is not None or aware(challenge.expira_en) <= now():
+                item.estado, item.contenido = "cancelado", ""
+                item.error = "El código o enlace ya fue utilizado, sustituido o ha caducado."
+                return
         configured = self.settings.smtp_host and self.settings.mail_from if item.canal == "correo" else self.settings.whatsapp_access_token and self.settings.whatsapp_phone_number_id
         template = next((row for row in self.templates() if row["evento"] == item.evento), None) if item.canal == "whatsapp" else None
         if not configured or (template is not None and (not template["nombre_proveedor"] or not template["activa"])):

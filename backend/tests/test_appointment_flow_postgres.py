@@ -38,7 +38,10 @@ def test_booking_shared_by_client_veterinarian_and_admin(monkeypatch: pytest.Mon
         db.add_all([Cliente(usuario_id=owner.id, telefono="999888777"), Cliente(usuario_id=other.id), Veterinario(usuario_id=vet.id, colegiatura=f"TEST-{marker}")])
         permission = db.scalar(select(PermisoRol).where(PermisoRol.rol == TipoUsuario.VETERINARIO, PermisoRol.modulo == "citas"))
         if permission is None:
-            db.add(PermisoRol(rol=TipoUsuario.VETERINARIO, modulo="citas", puede_ver=True))
+            permission = PermisoRol(rol=TipoUsuario.VETERINARIO, modulo="citas")
+            db.add(permission)
+        permission.puede_ver = True
+        permission.puede_editar = True
         service = Servicio(codigo=f"test-{marker}", nombre=f"Consulta prueba {marker}", duracion_estimada_min=30, precio_referencial=0)
         db.add(service)
         db.flush()

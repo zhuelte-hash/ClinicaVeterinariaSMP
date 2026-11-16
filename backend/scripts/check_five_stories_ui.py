@@ -80,7 +80,7 @@ def run():
                     elif path == "/admin/operaciones/lotes":
                         data = [{"id": 1, "producto_id": 1, "producto_nombre": "Medicina", "codigo": "LOTE-1", "cantidad": "2.000", "costo_unitario": "5.0000", "vencimiento": "2000-01-01"}]
                     elif path == "/admin/operaciones/compras":
-                        data, status = {"id": 1}, 201
+                        data, status = ([], 200) if request.method == "GET" else ({"id": 1}, 201)
                     elif path == "/admin/operaciones/auditoria":
                         data = [{"id": 1, "usuario_id": 4, "autor": "Administración", "fecha": "2026-11-14T12:00:00Z", "entidad": "productos", "registro_id": "1", "accion": "editar", "cambios": {"stock_minimo": {"antes": 1, "despues": 3}}}]
                     elif path == "/admin/productos/1" and request.method == "PATCH":
@@ -129,17 +129,18 @@ def run():
                 expect(page.get_by_text("Vencido · no vendible", exact=True)).to_be_visible()
                 page.locator("select[name=supplier]").select_option(label="Proveedor")
                 page.locator("input[name=document]").fill("FACT-UI")
-                page.locator("fieldset select").nth(0).select_option(label="Medicina (unidad)")
-                page.locator("fieldset input").nth(2).fill("LOTE-UI")
+                article = page.get_by_role("group", name="Artículo 1", exact=True)
+                article.locator("select").nth(0).select_option(label="Medicina (unidad)")
+                article.get_by_label("Lote", exact=True).fill("LOTE-UI")
                 expect(page.get_by_role("button", name="Registrar recepción", exact=True)).to_be_disabled()
-                page.locator("fieldset input[type=date]").fill((dt.date.today() + dt.timedelta(days=90)).isoformat())
+                article.locator("input[type=date]").fill((dt.date.today() + dt.timedelta(days=90)).isoformat())
                 page.get_by_role("button", name="Registrar recepción", exact=True).click()
                 expect(page.get_by_text("Recepción registrada. Existencias, lotes y egreso actualizados.", exact=True)).to_be_visible()
                 count += 1
 
-                page.locator("fieldset select").nth(0).select_option(label="Alimento al peso (kg)")
-                page.locator("fieldset select").nth(1).select_option(label="Gramo (g)")
-                page.locator("fieldset input").nth(0).fill("500")
+                article.locator("select").nth(0).select_option(label="Alimento al peso (kg)")
+                article.locator("select").nth(1).select_option(label="Gramo (g)")
+                article.locator("input[type=number]").nth(0).fill("500")
                 expect(page.get_by_text("Ingreso: 0.5 kg.", exact=True)).to_be_visible()
                 page.locator("input[name=code]").fill("litro")
                 page.locator("input[name=name]").fill("Litro")

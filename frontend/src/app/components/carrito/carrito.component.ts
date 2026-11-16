@@ -9,7 +9,7 @@ import { PublicProductsService } from '../../core/services/public-products.servi
   selector: 'app-carrito',
   standalone: true,
   imports: [RouterLink],
-  template: `
+  template: `   
     <header class="bg-[#0B1B6D] px-4 py-10 text-white sm:px-6 sm:py-12">
       <div class="mx-auto max-w-7xl">
         <p class="text-xs font-bold uppercase tracking-[.18em] text-[#aee5e9]">Tienda veterinaria</p>

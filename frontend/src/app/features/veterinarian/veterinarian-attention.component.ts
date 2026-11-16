@@ -8,11 +8,12 @@ import { VeterinarianApiService } from './veterinarian-api.service';
 import { clinicToday, ClinicalRecord, ExamOrder, PrescriptionDetail, VeterinarianAppointment } from './veterinarian.models';
 import { PatientAlertsComponent } from './patient-alerts.component';
 import { PrescriptionProductsComponent } from '../billing/prescription-products.component';
+import { PrivateClinicalNotesComponent } from './private-clinical-notes.component';
 
 @Component({
   selector: 'app-veterinarian-attention',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent, PrescriptionProductsComponent],
+  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent, PrescriptionProductsComponent, PrivateClinicalNotesComponent],
   templateUrl: './veterinarian-attention.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -52,7 +52,7 @@ export class RegisterComponent {
       telefono: values.telefono || undefined,
     }).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: ({ user, verification_required }) => {
-        if (verification_required) { void this.router.navigate(['/verificar-correo'], { queryParams: { correo: user.correo } }); return; }
+        if (verification_required) { void this.router.navigate(['/verificar-correo'], { queryParams: { correo: user.correo, enviado: '1', ...(this.isSafePurchaseUrl(this.returnUrl) ? { returnUrl: this.returnUrl } : {}) } }); return; }
         this.visualSession.login(user.correo, user.nombre);
         const destination = this.isSafePurchaseUrl(this.returnUrl) ? this.returnUrl! : '/inicio';
         void this.router.navigateByUrl(destination);
@@ -75,6 +75,7 @@ export class RegisterComponent {
       return 'No se pudo conectar con el servidor.';
     }
     if (error.status === 409) return 'Este correo ya tiene una cuenta registrada.';
+    if (error.status === 503 && typeof error.error?.detail === 'string') return error.error.detail;
     if (error.status === 422) return 'Revisa los datos ingresados.';
     return 'No se pudo crear la cuenta. Inténtalo nuevamente.';
   }

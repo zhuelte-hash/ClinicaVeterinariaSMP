@@ -134,7 +134,7 @@ class UnitWrite(TextModel):
 
 
 class ReceiveLine(TextModel):
-    producto_id: int
+    producto_id: int = Field(ge=1)
     cantidad: Decimal = Field(gt=0, max_digits=14, decimal_places=3)
     costo_unitario: Decimal = Field(ge=0, max_digits=14, decimal_places=4)
     lote: str = Field(min_length=1, max_length=100)
@@ -143,9 +143,14 @@ class ReceiveLine(TextModel):
 
 
 class ReceivePurchase(TextModel):
-    proveedor_id: int
+    proveedor_id: int = Field(ge=1)
     documento: str = Field(min_length=3, max_length=100)
     detalles: list[ReceiveLine] = Field(min_length=1, max_length=200)
+
+    @field_validator("documento", mode="before")
+    @classmethod
+    def normalize_document(cls, value):
+        return " ".join(value.split()).upper() if isinstance(value, str) else value
 
 
 class ExpenseWrite(TextModel):

@@ -57,6 +57,12 @@ export class AppointmentsPageComponent {
   readonly availabilityLoading = signal(false);
   readonly historyPetId = signal<number | null>(null);
   readonly petHistory = signal<ClinicalRecord[]>([]);
+  readonly cancellation = signal<Appointment | null>(null);
+  readonly cancelling = signal(false);
+  readonly cancellationError = signal('');
+  readonly cancellationForm = this.formBuilder.nonNullable.group({
+    motivo: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(500)]],
+  });
   private availabilityRequest = 0;
 
   readonly appointmentForm = this.formBuilder.nonNullable.group({
@@ -84,6 +90,7 @@ export class AppointmentsPageComponent {
       this.pets.set([]);
       this.appointments.set([]);
       this.historyPetId.set(null);
+      this.cancellation.set(null);
       this.appointmentForm.controls.mascotaId.setValue(0);
       if (user?.tipo === 'cliente') this.loadData();
     });
@@ -276,13 +283,34 @@ export class AppointmentsPageComponent {
   }
 
   cancel(appointment: Appointment): void {
-    if (!window.confirm('¿Deseas cancelar esta cita?')) return;
-    this.api.cancelAppointment(appointment.id).subscribe({
+    if (this.cancelling()) return;
+    this.cancellationForm.reset();
+    this.cancellationError.set('');
+    this.cancellation.set(appointment);
+  }
+
+  closeCancellation(): void {
+    if (!this.cancelling()) this.cancellation.set(null);
+  }
+
+  confirmCancellation(): void {
+    const appointment = this.cancellation();
+    const reason = this.cancellationForm.controls.motivo.value.trim();
+    this.cancellationForm.controls.motivo.setValue(reason);
+    this.cancellationForm.markAllAsTouched();
+    if (!appointment || this.cancelling() || this.cancellationForm.invalid) return;
+    const clientId = this.auth.currentUser()?.id;
+    this.cancelling.set(true);
+    this.cancellationError.set('');
+    this.api.cancelAppointment(appointment.id, reason).pipe(finalize(() => this.cancelling.set(false))).subscribe({
       next: (updated) => {
+        if (this.auth.currentUser()?.id !== clientId) return;
         this.appointments.update((items) => items.map((item) => item.id === updated.id ? updated : item));
-        this.notice.show('Cita cancelada');
+        this.cancellation.set(null);
+        this.loadAvailability();
+        this.notice.show('Cita cancelada. El motivo quedó registrado y se preparó la confirmación por WhatsApp.');
       },
-      error: (error: unknown) => this.errorMessage.set(this.errorText(error)),
+      error: (error: unknown) => this.cancellationError.set(this.errorText(error)),
     });
   }
 
@@ -308,7 +336,8 @@ export class AppointmentsPageComponent {
   }
 
   canCancel(appointment: Appointment): boolean {
-    return !['cancelada', 'atendida', 'no_asistio'].includes(appointment.estado);
+    return !['cancelada', 'atendida', 'no_asistio', 'cliente_no_respondio'].includes(appointment.estado)
+      && Date.parse(appointment.fecha_hora_programada) > Date.now();
   }
 
   statusLabel(status: AppointmentStatus): string {

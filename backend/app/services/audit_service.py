@@ -63,7 +63,7 @@ def capture_changes(db, _context):
             key = uuid4().hex
             name = "cita_cancelada" if item.estado == EstadoCita.CANCELADA else "cita_reprogramada" if event_name == "reprogramada" or item.estado == EstadoCita.REPROGRAMADA else "cita_confirmada"
             values = {"nombre": client.nombre, "mascota": item.mascota.nombre, "fecha": aware(item.fecha_hora_programada).astimezone(ZONE).strftime("%d/%m/%Y %H:%M"), "motivo": item.nota_coordinacion or "Coordinado con la clínica", "cita": item.id}
-            service.to_user(client, name, f"cita:{item.id}:{key}", values, entity_id=item.id)
+            service.to_user(client, name, f"cita:{item.id}:{key}", values, entity_id=item.id, phone=item.telefono_contacto)
             if item.veterinario_id and name in {"cita_reprogramada", "cita_cancelada"}:
                 vet = db.get(Usuario, item.veterinario_id)
                 service.to_user(vet, "veterinario_cancelacion" if name == "cita_cancelada" else "veterinario_reprogramacion", f"vet:{item.id}:{key}", values, entity_id=item.id)

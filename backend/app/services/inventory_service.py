@@ -81,7 +81,7 @@ class InventoryService:
     def receive(self, user, data):
         if self.db.get(Proveedor, data.proveedor_id) is None:
             raise HTTPException(422, "Proveedor no encontrado")
-        if self.db.scalar(select(CompraProveedor.id).where(CompraProveedor.proveedor_id == data.proveedor_id, CompraProveedor.documento == data.documento)):
+        if self.db.scalar(select(CompraProveedor.id).where(CompraProveedor.proveedor_id == data.proveedor_id, func.upper(func.trim(CompraProveedor.documento)) == data.documento)):
             raise HTTPException(409, "Este documento del proveedor ya fue recibido")
         total = Decimal(0)
         for line in sorted(data.detalles, key=lambda item: item.producto_id):
@@ -107,7 +107,16 @@ class InventoryService:
         if total > 0:
             self.db.add(Egreso(usuario_id=user.id, sucursal_id=branch_id(self.db), categoria="Mercadería", concepto=f"Compra {data.documento}", monto=purchase.total, fecha=dt.date.today(), compra_id=purchase.id))
         self.db.commit()
-        return {**row_data(purchase), "documento": purchase.documento}
+        return self.receipt_data(purchase)
+
+    def receipt_data(self, purchase):
+        supplier = self.db.get(Proveedor, purchase.proveedor_id)
+        actor = self.db.get(Usuario, purchase.usuario_id)
+        return {**row_data(purchase), "documento": purchase.documento, "proveedor_nombre": supplier.razon_social, "usuario_nombre": actor.nombre}
+
+    def receipts(self):
+        rows = self.db.scalars(select(CompraProveedor).order_by(CompraProveedor.id.desc())).all()
+        return [self.receipt_data(row) for row in rows]
 
     def reverse_sale(self, order, actor):
         for detail in order.detalles:

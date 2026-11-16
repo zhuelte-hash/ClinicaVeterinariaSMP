@@ -44,8 +44,8 @@ export class AppointmentsApiService {
     return this.http.post<Appointment>(`${this.baseUrl}/citas`, data);
   }
 
-  cancelAppointment(id: number): Observable<Appointment> {
-    return this.http.patch<Appointment>(`${this.baseUrl}/citas/${id}/cancelar`, {});
+  cancelAppointment(id: number, motivo: string): Observable<Appointment> {
+    return this.http.patch<Appointment>(`${this.baseUrl}/citas/${id}/cancelar`, { motivo });
   }
 
   acceptProposedTime(id: number): Observable<Appointment> {

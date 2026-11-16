@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -8,20 +8,21 @@ from app.schemas.user import UsuarioRead
 from app.security import create_access_token, get_current_active_user
 from app.services.user_service import CorreoDuplicadoError, UserService
 from app.services.access_service import AccessService
+from app.services.messaging_service import deliver_account_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(data: ClientRegisterRequest, db: Session = Depends(get_db)):
+def register(data: ClientRegisterRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    AccessService.require_email_delivery()
     service = UserService(db)
     try:
         user = service.create_client(data)
     except CorreoDuplicadoError as exc:
         raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
-    user.correo_verificado = False
-    db.commit()
-    AccessService(db).issue(user, "verificar")
+    message_id = AccessService(db).issue(user, "verificar")
+    background_tasks.add_task(deliver_account_email, message_id)
     return TokenResponse(access_token="", user=user, verification_required=True)
 
 
@@ -38,18 +39,22 @@ def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/reenviar-verificacion", status_code=202)
-def resend(data: EmailRequest, db: Session = Depends(get_db)):
+def resend(data: EmailRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    AccessService.require_email_delivery()
     user = UserService(db).get_by_email(str(data.correo))
     if user and user.activo and not user.correo_verificado:
-        AccessService(db).issue(user, "verificar")
+        message_id = AccessService(db).issue(user, "verificar")
+        background_tasks.add_task(deliver_account_email, message_id)
     return {"mensaje": "Si la cuenta requiere verificación, recibirás un nuevo código."}
 
 
 @router.post("/recuperar-clave", status_code=202)
-def forgot(data: EmailRequest, db: Session = Depends(get_db)):
+def forgot(data: EmailRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    AccessService.require_email_delivery()
     user = UserService(db).get_by_email(str(data.correo))
     if user and user.activo:
-        AccessService(db).issue(user, "recuperar")
+        message_id = AccessService(db).issue(user, "recuperar")
+        background_tasks.add_task(deliver_account_email, message_id)
     return {"mensaje": "Si existe una cuenta activa, recibirás un enlace de recuperación."}
 
 

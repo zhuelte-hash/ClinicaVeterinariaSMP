@@ -21,10 +21,10 @@ class ClientRegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=72)
     telefono: str | None = Field(default=None, max_length=30)
 
-    @field_validator("nombre")
+    @field_validator("nombre", mode="before")
     @classmethod
-    def normalize_name(cls, value: str) -> str:
-        return " ".join(value.split())
+    def normalize_name(cls, value):
+        return " ".join(value.split()) if isinstance(value, str) else value
 
     @field_validator("correo")
     @classmethod

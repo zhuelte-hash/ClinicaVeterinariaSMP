@@ -71,20 +71,22 @@ def vaccination_card(pet_id: int, db: Db, client: Client):
 
 
 @router.get("/portal/veterinario/atenciones/{process_id}/notas-privadas")
-def private_notes(process_id: int, db: Db, user: Vet):
+def private_notes(process_id: int, db: Db, user: Vet, response: Response):
     process = AppointmentService(db)._owned_process(user.id, process_id)
     if process is None:
         raise HTTPException(404, "Atención no asignada al profesional")
+    response.headers["Cache-Control"] = "private, no-store"
     return {"notas": process.notas_privadas or ""}
 
 
 @router.put("/portal/veterinario/atenciones/{process_id}/notas-privadas")
-def write_private_notes(process_id: int, data: PrivateNotes, db: Db, user: Vet):
+def write_private_notes(process_id: int, data: PrivateNotes, db: Db, user: Vet, response: Response):
     process = AppointmentService(db)._owned_process(user.id, process_id)
     if process is None:
         raise HTTPException(404, "Atención no asignada al profesional")
     process.notas_privadas = data.notas
     db.commit()
+    response.headers["Cache-Control"] = "private, no-store"
     return {"notas": process.notas_privadas}
 
 

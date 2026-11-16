@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { AdminApiService, AdminProduct } from '../../services/admin-api.service';
-import { Lot, OperationsApiService, operationError, PurchaseLine, Unit } from '../../services/operations-api.service';
+import { Lot, OperationsApiService, operationError, PurchaseLine, PurchaseReceipt, Unit } from '../../services/operations-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 
 @Component({ standalone: true, imports: [FormsModule, PageHeaderComponent], styleUrl: '../../shared/admin-ui.css', template: `
@@ -10,7 +11,9 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
   @if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 text-rose-700" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="mb-4 rounded-xl bg-teal-50 p-4 text-teal-800" role="status">{{ message() }}</p> }
   @if (loading()) { <p role="status">Cargando inventario…</p> }
+  @if (auth.can('inventario', 'crear')) {
   <form class="admin-card mb-6 grid gap-4 p-5" #receiptForm="ngForm" (ngSubmit)="receive()">
+    <fieldset class="grid gap-4" [disabled]="busy() || loading()">
     <h2 class="text-xl font-bold">Recepción de proveedor</h2>
     <div class="grid gap-4 sm:grid-cols-2"><label>Proveedor<select required class="admin-input" name="supplier" [(ngModel)]="supplierId"><option [ngValue]="0">Selecciona</option>@for (supplier of suppliers(); track supplier.id) { <option [ngValue]="supplier.id">{{ supplier.razon_social }}</option> }</select></label><label>Documento del proveedor<input required minlength="3" maxlength="100" class="admin-input" name="document" [(ngModel)]="document"></label></div>
     @for (line of lines; track $index; let i = $index) {
@@ -24,13 +27,25 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         <p class="text-sm text-slate-500 sm:col-span-2">{{ conversion(line) }}</p><button type="button" class="admin-secondary" [disabled]="lines.length === 1" (click)="lines.splice(i,1)">Quitar artículo</button>
       </fieldset>
     }
-    <div class="flex flex-wrap gap-3"><button type="button" class="admin-secondary" (click)="addLine()">Agregar artículo</button><button class="admin-primary" [disabled]="busy() || loading() || receiptForm.invalid || !supplierId">Registrar recepción</button></div>
+    <div class="flex flex-wrap gap-3"><button type="button" class="admin-secondary" (click)="addLine()">Agregar artículo</button><button class="admin-primary" [disabled]="busy() || loading() || receiptForm.invalid || !supplierId || invalidLines()">{{ busy() ? 'Registrando…' : 'Registrar recepción' }}</button></div>
     <p class="text-sm text-slate-500">Las conversiones requieren unidades de la misma dimensión. Se rechazan lotes vencidos, documentos duplicados y fracciones en productos no fraccionables.</p>
+    </fieldset>
   </form>
+  } @else { <p class="mb-6 rounded-xl bg-slate-100 p-4 text-sm">Acceso de solo consulta. Registrar recepciones y unidades requiere permiso de creación de Inventario.</p> }
+  <section class="admin-card mb-6 p-5">
+    <div class="flex flex-wrap justify-between gap-3"><h2 class="text-xl font-bold">Recepciones registradas</h2><button type="button" class="admin-secondary" [disabled]="loading() || busy()" (click)="load()">Actualizar recepciones</button></div>
+    <div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>Documento</th><th>Proveedor</th><th>Fecha</th><th>Responsable</th><th>Total</th><th>Detalle</th></tr></thead><tbody>
+      @for (receipt of receipts(); track receipt.id) {
+        <tr><td>{{ receipt.documento }}</td><td>{{ receipt.proveedor_nombre }}</td><td>{{ date(receipt.fecha) }}</td><td>{{ receipt.usuario_nombre }}</td><td>S/ {{ money(receipt.total) }}</td><td><button type="button" class="admin-secondary" [attr.aria-expanded]="expandedReceipt() === receipt.id" (click)="expandedReceipt.set(expandedReceipt() === receipt.id ? null : receipt.id)">{{ expandedReceipt() === receipt.id ? 'Ocultar detalle' : 'Ver detalle' }}</button></td></tr>
+        @if (expandedReceipt() === receipt.id) { <tr><td colspan="6"><ul class="space-y-2 py-3">@for (line of receipt.detalles; track $index) { <li>{{ productName(line.producto_id) }} · {{ line.cantidad }} {{ line.unidad || 'unidad del producto' }} · S/ {{ line.costo_unitario }} por unidad recibida · Lote {{ line.lote }} · Vence: {{ line.vencimiento || 'No aplica' }}</li> }</ul></td></tr> }
+      } @empty { <tr><td colspan="6">No hay recepciones registradas.</td></tr> }
+    </tbody></table></div>
+  </section>
   <section class="admin-card mb-6 p-5">
     <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-xl font-bold">Existencias por lote</h2><label><input type="checkbox" [(ngModel)]="expiring" (ngModelChange)="loadLots()"> Solo vencidos / próximos a vencer</label><button class="admin-secondary" (click)="loadLots()">Actualizar</button></div>
     <div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>Producto</th><th>Lote</th><th>Vencimiento</th><th>Cantidad</th><th>Costo</th><th>Estado</th></tr></thead><tbody>@for (lot of lots(); track lot.id) { <tr><td>{{ lot.producto_nombre }}</td><td>{{ lot.codigo }}</td><td>{{ lot.vencimiento || 'Sin vencimiento' }}</td><td>{{ lot.cantidad }}</td><td>S/ {{ lot.costo_unitario }}</td><td>{{ lotState(lot) }}</td></tr> } @empty { <tr><td colspan="6">No hay lotes para el filtro.</td></tr> }</tbody></table></div>
   </section>
+  @if (auth.can('inventario', 'crear')) {
   <form class="admin-card grid gap-4 p-5 sm:grid-cols-3" #unitForm="ngForm" (ngSubmit)="createUnit()">
     <h2 class="text-xl font-bold sm:col-span-3">Unidades de medida</h2>
     <p class="text-sm text-slate-500 sm:col-span-3">{{ unitSummary() }}. El factor convierte a la unidad base de la dimensión: por ejemplo kg = 1000 g, litro = 1000 ml. Las unidades existentes conservan sus factores para proteger movimientos históricos.</p>
@@ -40,22 +55,29 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
     <label>Factor a unidad base<input required type="number" min="0.000001" step="0.000001" class="admin-input" name="factor" [(ngModel)]="unit.factor_base"></label>
     <label><input type="checkbox" name="fractional" [(ngModel)]="unit.fraccionable"> Admite fracciones</label><button class="admin-primary" [disabled]="busy() || unitForm.invalid">Crear unidad</button>
   </form>
+  }
 ` })
 export class RecepcionesComponent {
+  readonly auth = inject(AuthService);
   private readonly api = inject(OperationsApiService); private readonly admin = inject(AdminApiService);
   readonly products = signal<AdminProduct[]>([]); readonly suppliers = signal<{ id: number; razon_social: string }[]>([]); readonly units = signal<Unit[]>([]); readonly lots = signal<Lot[]>([]);
   readonly busy = signal(false); readonly loading = signal(true); readonly error = signal(''); readonly message = signal('');
+  readonly receipts = signal<PurchaseReceipt[]>([]); readonly expandedReceipt = signal<number | null>(null);
   supplierId = 0; document = ''; expiring = false; lines: PurchaseLine[] = [];
   unit: Unit = { codigo: '', nombre: '', dimension: 'conteo', factor_base: 1, fraccionable: false };
   constructor() { this.addLine(); this.load(); }
-  load() { this.loading.set(true); forkJoin({ products: this.admin.getInventory(), suppliers: this.api.suppliers(), units: this.api.units(), lots: this.api.lots(this.expiring) }).subscribe({ next: data => { this.products.set(data.products); this.suppliers.set(data.suppliers); this.units.set(data.units); this.lots.set(data.lots); this.loading.set(false); }, error: error => { this.loading.set(false); this.error.set(operationError(error)); } }); }
+  load() { this.loading.set(true); this.error.set(''); forkJoin({ products: this.admin.getInventory(), suppliers: this.api.suppliers(), units: this.api.units(), lots: this.api.lots(this.expiring), receipts: this.api.receipts() }).subscribe({ next: data => { this.products.set(data.products); this.suppliers.set(data.suppliers); this.units.set(data.units); this.lots.set(data.lots); this.receipts.set(data.receipts); this.loading.set(false); }, error: error => { this.loading.set(false); this.error.set(operationError(error)); } }); }
   addLine() { this.lines.push({ producto_id: 0, cantidad: 1, costo_unitario: 0, lote: '', vencimiento: null, unidad: null }); }
   selectProduct(line: PurchaseLine) { line.unidad = this.products().find(p => p.id === line.producto_id)?.unidad_medida ?? null; }
   requiresExpiry(id: number) { return this.products().find(p => p.id === id)?.requiere_vencimiento ?? false; }
   compatibleUnits(id: number) { const product = this.products().find(p => p.id === id); const target = this.units().find(u => u.codigo === product?.unidad_medida); return this.units().filter(u => u.dimension === target?.dimension); }
   conversion(line: PurchaseLine) { const product = this.products().find(p => p.id === line.producto_id); const target = this.units().find(u => u.codigo === product?.unidad_medida); const source = this.units().find(u => u.codigo === line.unidad); return source && target ? `Ingreso: ${Number(line.cantidad) * Number(source.factor_base) / Number(target.factor_base)} ${target.codigo}.` : 'Selecciona producto y unidad.'; }
-  receive() { if (this.busy()) return; this.busy.set(true); this.error.set(''); this.message.set(''); this.api.receive({ proveedor_id: this.supplierId, documento: this.document, detalles: this.lines.map(line => ({ ...line, vencimiento: line.vencimiento || null })) }).subscribe({ next: () => { this.busy.set(false); this.message.set('Recepción registrada. Existencias, lotes y egreso actualizados.'); this.document = ''; this.lines = []; this.addLine(); this.load(); }, error: error => this.fail(error) }); }
-  createUnit() { if (this.busy()) return; this.busy.set(true); this.error.set(''); this.api.createUnit(this.unit).subscribe({ next: unit => { this.units.update(rows => [...rows, unit]); this.unit = { codigo: '', nombre: '', dimension: 'conteo', factor_base: 1, fraccionable: false }; this.busy.set(false); this.message.set('Unidad creada; ya puede asignarse desde Productos.'); }, error: error => this.fail(error) }); }
+  receive() { if (this.busy() || this.loading() || !this.supplierId || this.invalidLines() || !this.auth.can('inventario', 'crear')) return; this.busy.set(true); this.error.set(''); this.message.set(''); this.api.receive({ proveedor_id: this.supplierId, documento: this.document, detalles: this.lines.map(line => ({ ...line, vencimiento: line.vencimiento || null })) }).subscribe({ next: () => { this.busy.set(false); this.message.set('Recepción registrada. Existencias, lotes y egreso actualizados.'); this.document = ''; this.lines = []; this.addLine(); this.load(); }, error: error => this.fail(error) }); }
+  createUnit() { if (this.busy() || !this.auth.can('inventario', 'crear')) return; this.busy.set(true); this.error.set(''); this.api.createUnit(this.unit).subscribe({ next: unit => { this.units.update(rows => [...rows, unit]); this.unit = { codigo: '', nombre: '', dimension: 'conteo', factor_base: 1, fraccionable: false }; this.busy.set(false); this.message.set('Unidad creada; ya puede asignarse desde Productos.'); }, error: error => this.fail(error) }); }
+  invalidLines() { return !this.lines.length || this.lines.some(line => !line.producto_id || !line.unidad || Number(line.cantidad) <= 0 || Number(line.costo_unitario) < 0); }
+  productName(id: number) { return this.products().find(product => product.id === id)?.nombre || `Producto #${id}`; }
+  money(value: number | string) { return Number(value).toFixed(2); }
+  date(value: string) { return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value)); }
   loadLots() { this.api.lots(this.expiring).subscribe({ next: rows => this.lots.set(rows), error: error => this.error.set(operationError(error)) }); }
   lotState(lot: Lot) { if (Number(lot.cantidad) === 0) return 'Agotado'; if (lot.vencimiento && lot.vencimiento < new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date())) return 'Vencido · no vendible'; return 'Disponible'; }
   unitSummary() { return this.units().map(u => `${u.codigo}: ${u.nombre}`).join(' · '); }

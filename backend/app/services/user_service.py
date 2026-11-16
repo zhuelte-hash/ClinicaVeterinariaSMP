@@ -84,6 +84,7 @@ class UserService:
             correo=str(data.correo),
             contrasena=self._hash_password(data.password),
             tipo=TipoUsuario.CLIENTE,
+            correo_verificado=False,
         )
         user.cliente = Cliente(telefono=data.telefono)
         self.db.add(user)

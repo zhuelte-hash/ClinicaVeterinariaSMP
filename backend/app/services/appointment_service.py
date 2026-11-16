@@ -312,7 +312,9 @@ class AppointmentService:
         appointment = self._get_owned_appointment(client_id, appointment_id, for_update=True)
         if appointment is None:
             raise AppointmentNotFoundError
-        if appointment.estado in {EstadoCita.CANCELADA, EstadoCita.ATENDIDA}:
+        if appointment.estado == EstadoCita.CANCELADA:
+            return appointment
+        if appointment.estado not in ACTIVE_BOOKING_STATES - {EstadoCita.ATENDIDA} or appointment.proceso_atencion is not None:
             raise AppointmentNotCancelableError
         if aware(appointment.fecha_hora_programada) - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(hours=PolicyService(self.db).get().horas_cancelacion):
             raise AppointmentNotCancelableError
@@ -1121,6 +1123,7 @@ class AppointmentService:
         service: Servicio,
         excluded_appointment_id: int | None = None,
     ) -> bool:
+        start = start.astimezone(datetime.timezone.utc)
         end = start + datetime.timedelta(minutes=service.duracion_estimada_min)
         statement = select(Cita.id).where(
             Cita.veterinario_id == veterinarian_id, Cita.estado.in_(ACTIVE_BOOKING_STATES),
@@ -1131,6 +1134,7 @@ class AppointmentService:
         return self.db.scalar(statement.limit(1)) is not None
 
     def _has_block(self, veterinarian_id: int, start: datetime.datetime, end: datetime.datetime) -> bool:
+        start, end = start.astimezone(datetime.timezone.utc), end.astimezone(datetime.timezone.utc)
         return self.db.scalar(select(BloqueoHorario.id).where(
             BloqueoHorario.veterinario_id == veterinarian_id,
             BloqueoHorario.fecha_hora_inicio < end,

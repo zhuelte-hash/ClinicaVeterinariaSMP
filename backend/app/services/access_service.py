@@ -2,6 +2,7 @@ import datetime as dt
 import hashlib
 import hmac
 import secrets
+from urllib.parse import urlencode
 
 from fastapi import HTTPException
 from sqlalchemy import select, update
@@ -55,24 +56,34 @@ class AccessService:
         self.db.commit()
         return user
 
+    @staticmethod
+    def require_email_delivery():
+        settings = get_settings()
+        if not settings.smtp_host or not settings.mail_from:
+            raise HTTPException(503, "El envío de correo de la clínica aún no está configurado. Inténtalo más tarde o contacta con la clínica.")
+
     def issue(self, user, purpose):
         latest = self.db.scalar(select(DesafioCuenta).where(DesafioCuenta.usuario_id == user.id, DesafioCuenta.proposito == purpose).order_by(DesafioCuenta.id.desc()))
         if latest and (now() - aware(latest.creado_en)).total_seconds() < 60:
-            raise HTTPException(429, "Espera un minuto antes de solicitar otro correo")
+            remaining = max(1, 60 - int((now() - aware(latest.creado_en)).total_seconds()))
+            raise HTTPException(429, "Espera un minuto antes de solicitar otro correo", headers={"Retry-After": str(remaining)})
         self.db.execute(update(DesafioCuenta).where(DesafioCuenta.usuario_id == user.id, DesafioCuenta.proposito == purpose, DesafioCuenta.usado_en.is_(None)).values(usado_en=now()))
+        self.db.execute(update(MensajeSalida).where(MensajeSalida.usuario_id == user.id, MensajeSalida.canal == "correo", MensajeSalida.evento == purpose, MensajeSalida.estado.in_(["pendiente", "error", "pendiente_configuracion"])).values(estado="cancelado", contenido=""))
         secret = f"{secrets.randbelow(1_000_000):06d}" if purpose == "verificar" else secrets.token_urlsafe(40)
         challenge = DesafioCuenta(usuario_id=user.id, proposito=purpose, secreto_hash=digest(f"{user.id}:{purpose}:{secret}"), expira_en=now() + dt.timedelta(minutes=15 if purpose == "verificar" else 60))
         self.db.add(challenge)
         self.db.flush()
-        message = (f"Tu código de verificación es {secret}. Caduca en 15 minutos." if purpose == "verificar" else f"Define una nueva contraseña en {get_settings().frontend_url}/recuperar-clave?token={secret}&correo={user.correo}. El enlace caduca en una hora y solo puede utilizarse una vez.")
-        self.db.add(MensajeSalida(clave=f"cuenta:{challenge.id}", canal="correo", evento=purpose, destinatario=user.correo, usuario_id=user.id, asunto="Verifica tu cuenta" if purpose == "verificar" else "Recuperación de contraseña", contenido=message))
+        link = get_settings().frontend_url.rstrip("/") + "/recuperar-clave?" + urlencode({"token": secret, "correo": user.correo})
+        message = (f"Tu código de verificación es {secret}. Caduca en 15 minutos." if purpose == "verificar" else f"Define una nueva contraseña en {link}. El enlace caduca en una hora y solo puede utilizarse una vez.")
+        outgoing = MensajeSalida(clave=f"cuenta:{challenge.id}", canal="correo", evento=purpose, destinatario=user.correo, usuario_id=user.id, entidad_id=challenge.id, asunto="Verifica tu cuenta" if purpose == "verificar" else "Recuperación de contraseña", contenido=message)
+        self.db.add(outgoing)
         self.db.commit()
+        return outgoing.id
 
     def verify(self, email, secret):
         user = self.users.get_by_email(email)
         self._use(user, "verificar", secret)
         user.correo_verificado = True
-        self.db.commit()
         from app.services.messaging_service import MessagingService
         MessagingService(self.db).to_user(user, "bienvenida", f"bienvenida:{user.id}", {"nombre": user.nombre})
         self.db.commit()
@@ -89,7 +100,7 @@ class AccessService:
 
     def _use(self, user, purpose, secret):
         challenge = self.db.scalar(select(DesafioCuenta).where(DesafioCuenta.usuario_id == user.id, DesafioCuenta.proposito == purpose, DesafioCuenta.usado_en.is_(None)).order_by(DesafioCuenta.id.desc()).with_for_update()) if user else None
-        if not challenge or challenge.intentos >= 5 or aware(challenge.expira_en) <= now():
+        if not user or not user.activo or not challenge or challenge.intentos >= 5 or aware(challenge.expira_en) <= now():
             raise HTTPException(400, "El código o enlace es inválido, fue usado o ha caducado")
         if not hmac.compare_digest(challenge.secreto_hash, digest(f"{user.id}:{purpose}:{secret}")):
             challenge.intentos += 1

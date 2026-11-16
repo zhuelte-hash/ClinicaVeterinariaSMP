@@ -13,13 +13,14 @@ import { PetEditorComponent } from '../appointments/pet-editor.component';
 import { Pet } from '../appointments/appointments.models';
 import { WeightEvolutionComponent } from './weight-evolution.component';
 import { PatientAlertsComponent } from './patient-alerts.component';
+import { PrivateClinicalNotesComponent } from './private-clinical-notes.component';
 
 type HistoryTab = 'resumen' | 'historia' | 'preventivos' | 'examenes' | 'laboratorio';
 
 @Component({
   selector: 'app-veterinarian-pet-history',
   standalone: true,
-  imports: [RouterLink, FormsModule, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, PetEditorComponent, WeightEvolutionComponent, PatientAlertsComponent],
+  imports: [RouterLink, FormsModule, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, PetEditorComponent, WeightEvolutionComponent, PatientAlertsComponent, PrivateClinicalNotesComponent],
   templateUrl: './veterinarian-pet-history.component.html',
   styles: [`
     .field-label { font-size: .8125rem; font-weight: 600; color: var(--vet-muted); }

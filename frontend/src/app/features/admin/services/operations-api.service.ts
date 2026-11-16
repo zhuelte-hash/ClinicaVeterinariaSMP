@@ -14,6 +14,7 @@ export interface OperationsDashboard {
 export interface Unit { codigo: string; nombre: string; dimension: 'conteo' | 'masa' | 'volumen'; factor_base: Numeric; fraccionable: boolean; }
 export interface Lot { id: number; producto_id: number; producto_nombre: string; codigo: string; cantidad: Numeric; costo_unitario: Numeric; vencimiento: string | null; }
 export interface PurchaseLine { producto_id: number; cantidad: number; costo_unitario: number; lote: string; vencimiento: string | null; unidad: string | null; }
+export interface PurchaseReceipt { id: number; documento: string; proveedor_id: number; proveedor_nombre: string; usuario_nombre: string; fecha: string; total: Numeric; detalles: PurchaseLine[]; }
 export interface Expense { id: number; categoria: string; concepto: string; monto: Numeric; fecha: string; }
 export interface AuditEvent { id: number; autor: string; usuario_id: number | null; entidad: string; registro_id: string; accion: string; fecha: string; cambios: Record<string, { antes: unknown; despues: unknown }>; }
 export interface Schedule { id: number; veterinario_id: number; dia_semana: number; hora_inicio: string; hora_fin: string; activo: boolean; }
@@ -38,7 +39,8 @@ export class OperationsApiService {
   saveService(data: ServiceWrite, id?: number) { return id ? this.http.put(`${this.base}/servicios/${id}`, data) : this.http.post(`${this.base}/servicios`, data); }
   createUnit(data: Unit) { return this.http.post<Unit>(`${this.base}/unidades`, data); }
   lots(expiring = false) { return this.http.get<Lot[]>(`${this.base}/lotes`, { params: { por_vencer: expiring } }); }
-  receive(data: { proveedor_id: number; documento: string; detalles: PurchaseLine[] }) { return this.http.post(`${this.base}/compras`, data); }
+  receipts() { return this.http.get<PurchaseReceipt[]>(`${this.base}/compras`); }
+  receive(data: { proveedor_id: number; documento: string; detalles: PurchaseLine[] }) { return this.http.post<PurchaseReceipt>(`${this.base}/compras`, data); }
   expenses(desde: string, hasta: string) { return this.http.get<Expense[]>(`${this.base}/egresos`, { params: { desde, hasta } }); }
   recordExpense(data: Omit<Expense, 'id'>) { return this.http.post<Expense>(`${this.base}/egresos`, data); }
   audit(params: Record<string, string>) { return this.http.get<AuditEvent[]>(`${this.base}/auditoria`, { params }); }

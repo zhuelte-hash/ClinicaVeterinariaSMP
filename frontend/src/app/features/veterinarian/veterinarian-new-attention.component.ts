@@ -80,6 +80,7 @@ export class VeterinarianNewAttentionComponent {
   readonly errorMessage = signal('');
   readonly imageFile = signal<File | null>(null);
   readonly today = clinicToday();
+  readonly privateNotes = this.formBuilder.nonNullable.control('', Validators.maxLength(10000));
 
   readonly filteredClients = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('es');
@@ -129,7 +130,7 @@ export class VeterinarianNewAttentionComponent {
   }
 
   selectClient(client: VeterinarianClient): void {
-    if (this.selectedClient()?.id !== client.id) { this.pets.set([]); this.selectedPet.set(null); this.selectedService.set(null); this.attentionForm.reset(); }
+    if (this.selectedClient()?.id !== client.id) { this.pets.set([]); this.selectedPet.set(null); this.selectedService.set(null); this.attentionForm.reset(); this.privateNotes.reset(); }
     this.selectedClient.set(client);
   }
 
@@ -151,7 +152,7 @@ export class VeterinarianNewAttentionComponent {
     }, error: (error: unknown) => this.showError(error) });
   }
 
-  selectPet(pet: Pet): void { if (this.selectedPet()?.id !== pet.id) { this.selectedService.set(null); this.attentionForm.reset(); } this.selectedPet.set(pet); }
+  selectPet(pet: Pet): void { if (this.selectedPet()?.id !== pet.id) { this.selectedService.set(null); this.attentionForm.reset(); this.privateNotes.reset(); } this.selectedPet.set(pet); }
 
   createPet(): void {
     const client = this.selectedClient();
@@ -165,7 +166,7 @@ export class VeterinarianNewAttentionComponent {
   }
 
   selectService(service: ClinicService): void {
-    if (this.selectedService()?.id !== service.id) this.attentionForm.reset();
+    if (this.selectedService()?.id !== service.id) { this.attentionForm.reset(); this.privateNotes.reset(); }
     this.selectedService.set(service);
     this.imageFile.set(null);
     this.attentionForm.patchValue({ motivo_consulta: '', proxima_fecha_control: '' });
@@ -205,7 +206,7 @@ export class VeterinarianNewAttentionComponent {
     if (this.saving()) return;
     const pet = this.selectedPet();
     const service = this.selectedService();
-    if (!pet || !service || this.attentionForm.invalid) return;
+    if (!pet || !service || this.attentionForm.invalid || this.privateNotes.invalid) return;
     if (this.formType() === 'imaging' && !this.imageFile()) {
       this.errorMessage.set('Adjunta la imagen del estudio antes de guardar la atención.');
       return;
@@ -230,10 +231,13 @@ export class VeterinarianNewAttentionComponent {
     appointment.pipe(
       switchMap(item => this.savedRecord
         ? this.api.getPetHistory(pet.id).pipe(map(records => records.find(record => record.id === this.savedRecord?.id) || this.savedRecord!))
-        : this.api.registerAttention(item.id, { ...form, estado: imaging ? 'en_atencion' : 'cerrada' })),
+        : this.api.registerAttention(item.id, { ...form, estado: 'en_atencion' })),
       switchMap(record => record.estado === 'cerrada' || !this.savedRecord
         ? of(record) : this.api.registerAttention(this.pendingAppointmentId!, { ...form, estado: 'en_atencion' })),
       tap(record => this.savedRecord = record),
+      switchMap(record => this.privateNotes.dirty
+        ? this.api.savePrivateNotes(record.id, this.privateNotes.value).pipe(tap(() => this.privateNotes.markAsPristine()), map(() => record))
+        : of(record)),
       switchMap(record => {
         const file = this.imageFile();
         return imaging && file && file !== this.uploadedFile
@@ -248,7 +252,7 @@ export class VeterinarianNewAttentionComponent {
   }
 
   resetFlow(): void {
-    this.pendingAppointmentId = null; this.savedRecord = null; this.uploadedFile = null;
+    this.pendingAppointmentId = null; this.savedRecord = null; this.uploadedFile = null; this.privateNotes.reset();
     this.step.set(1); this.selectedClient.set(null); this.selectedPet.set(null); this.selectedService.set(null); this.imageFile.set(null); this.query.set(''); this.clientForm.reset(); this.petForm.reset(); this.attentionForm.reset();
     this.loadClients();
     window.scrollTo({ top: 0, behavior: 'smooth' });

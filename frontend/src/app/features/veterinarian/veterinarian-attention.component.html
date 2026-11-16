@@ -2,7 +2,10 @@
   @if (loading()) { <div class="rounded-3xl bg-white p-12 text-center text-slate-500">Cargando ficha clínica...</div> }
   @else if (appointment(); as item) {
     <app-patient-alerts [pet]="item.mascota" />
-    @if (record(); as currentRecord) { <app-prescription-products [processId]="currentRecord.id" /> }
+    @if (record(); as currentRecord) {
+      <app-private-clinical-notes [processId]="currentRecord.id" />
+      <app-prescription-products [processId]="currentRecord.id" />
+    }
     <a routerLink="/veterinario/ordenes" class="inline-block font-bold text-teal-700">Consultar órdenes de cobro de las atenciones →</a>
     <header class="rounded-[2rem] bg-[linear-gradient(125deg,#102b35_0%,#164a50_62%,#176f68_100%)] p-6 text-white shadow-xl sm:p-8"><div class="flex flex-col justify-between gap-5 lg:flex-row lg:items-end"><div><p class="text-[10px] font-black uppercase tracking-[.22em] text-[#83e7d9]">Atención clínica · {{ item.servicio.nombre }}</p><h1 class="mt-3 text-3xl font-black sm:text-4xl">{{ item.mascota.nombre }} <span class="text-[#83e7d9]">·</span> {{ item.cliente_nombre }}</h1><p class="mt-2 text-sm text-slate-200">{{ item.mascota.especie }} · {{ item.mascota.raza || 'Sin raza' }} · {{ item.cliente_correo }}</p><p class="mt-1 text-sm text-slate-300">Motivo: {{ item.motivo || 'No especificado' }}</p></div><div class="rounded-2xl border border-white/15 bg-white/10 p-4 text-sm"><span class="block text-xs uppercase tracking-widest text-teal-100/70">Estado atención</span><strong class="mt-1 block">{{ record()?.estado === 'cerrada' ? 'Cerrada' : 'En atención' }}</strong></div></div></header>
     @if (error()) { <p class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ error() }}</p> }

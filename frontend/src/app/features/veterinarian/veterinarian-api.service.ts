@@ -62,6 +62,8 @@ export class VeterinarianApiService {
   registerAttention(id: number, data: Record<string, unknown>): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion`, data); }
   startAttention(id: number): Observable<ClinicalRecord> { return this.http.post<ClinicalRecord>(`${this.baseUrl}/solicitudes/${id}/atencion/iniciar`, {}); }
   updateAttentionStatus(processId: number, estado: AttentionStatus): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/atenciones/${processId}/estado`, { estado }); }
+  getPrivateNotes(processId: number): Observable<{ notas: string }> { return this.http.get<{ notas: string }>(`${this.baseUrl}/atenciones/${processId}/notas-privadas`); }
+  savePrivateNotes(processId: number, notas: string): Observable<{ notas: string }> { return this.http.put<{ notas: string }>(`${this.baseUrl}/atenciones/${processId}/notas-privadas`, { notas }); }
   updateClinicalResults(processId: number, examenesResultados: string): Observable<ClinicalRecord> { return this.http.patch<ClinicalRecord>(`${this.baseUrl}/atenciones/${processId}/resultados`, { examenes_resultados: examenesResultados }); }
   addDiagnosis(processId: number, data: { descripcion: string; codigo?: string; es_principal?: boolean; observaciones?: string }): Observable<Diagnosis> { return this.http.post<Diagnosis>(`${this.baseUrl}/atenciones/${processId}/diagnosticos`, data); }
   addExamOrder(processId: number, data: { tipo: string; prioridad: ExamPriority }): Observable<ExamOrder> { return this.http.post<ExamOrder>(`${this.baseUrl}/atenciones/${processId}/ordenes-examen`, data); }

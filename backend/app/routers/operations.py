@@ -209,7 +209,7 @@ def inventory_value(db: Db, _user: InventoryAdmin):
 
 @router.get("/admin/operaciones/compras")
 def purchases(db: Db, _user: InventoryAdmin):
-    return [{**row_data(row), "documento": row.documento} for row in db.scalars(select(CompraProveedor).order_by(CompraProveedor.id.desc())).all()]
+    return InventoryService(db).receipts()
 
 
 @router.post("/admin/operaciones/compras", status_code=201)
@@ -217,6 +217,9 @@ def receive_purchase(data: ReceivePurchase, db: Db, user: InventoryAdmin):
     check_permission(db, user, "inventario", "crear")
     try:
         return InventoryService(db).receive(user, data)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "El documento del proveedor ya fue recibido o el lote cambió. Actualiza el listado antes de reintentar.") from exc
     except Exception:
         db.rollback()
         raise
