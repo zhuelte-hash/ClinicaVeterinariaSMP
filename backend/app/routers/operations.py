@@ -13,7 +13,7 @@ from app.models.clinic import Caja, Mascota, OrdenCobro, Producto, ProcesoAtenci
 from app.models.purchase import PedidoWeb
 from app.models.operations import AbonoOrden, AutorizacionDescuento, CompraProveedor, Egreso, LoteInventario, MensajeSalida, Sucursal, UnidadMedida
 from app.models.user import TipoUsuario, Usuario
-from app.schemas.operations import BranchWrite, ClinicHours, ClinicPolicy, DiscountRequest, ExpenseWrite, InstallmentWrite, PendingOrderCreate, Reason, ReceivePurchase, ServiceWrite, TemplateWrite, UnitWrite
+from app.schemas.operations import BookingPolicy, ExpiryPolicy, BranchWrite, ClinicHours, ClinicPolicy, DiscountRequest, ExpenseWrite, InstallmentWrite, PendingOrderCreate, Reason, ReceivePurchase, ServiceWrite, TemplateWrite, UnitWrite
 from app.security import check_permission, get_current_active_user, require_permission
 from app.services.billing_service import BillingService
 from app.services.cashier_service import CashierService
@@ -109,6 +109,18 @@ def update_clinic_hours(data: ClinicHours, db: Db, user: ScheduleAdmin):
     return PolicyService(db).save_hours(data)
 
 
+@router.put("/admin/operaciones/politicas-citas", response_model=ClinicPolicy)
+def booking_policy(data: BookingPolicy, db: Db, user: ScheduleAdmin):
+    check_permission(db, user, "citas", "editar")
+    return PolicyService(db).save_fields(data)
+
+
+@router.put("/admin/operaciones/politicas-vencimiento", response_model=ClinicPolicy)
+def expiry_policy(data: ExpiryPolicy, db: Db, user: InventoryAdmin):
+    check_permission(db, user, "inventario", "editar")
+    return PolicyService(db).save_fields(data)
+
+
 @router.post("/admin/operaciones/instalaciones")
 async def upload_installation(db: Db, user: Admin, archivo: UploadFile = File(...)):
     check_permission(db, user, "usuarios", "editar")
@@ -189,17 +201,23 @@ def write_unit(data: UnitWrite, db: Db, user: InventoryAdmin):
 
 @router.get("/admin/operaciones/lotes")
 def lots(db: Db, _user: InventoryAdmin, producto_id: int | None = None, por_vencer: bool = False):
+    from app.services.policy_service import ZONE
+    from app.services.access_service import now
+    today = now().astimezone(ZONE).date()
+    threshold = today + dt.timedelta(days=PolicyService(db).get().dias_alerta_vencimiento)
     statement = select(LoteInventario, Producto.nombre).join(Producto, Producto.id == LoteInventario.producto_id)
     if producto_id:
         statement = statement.where(LoteInventario.producto_id == producto_id)
     if por_vencer:
-        statement = statement.where(LoteInventario.cantidad > 0, LoteInventario.vencimiento <= dt.date.today() + dt.timedelta(days=PolicyService(db).get().dias_alerta_vencimiento))
-    return [{**row_data(row), "producto_nombre": name} for row, name in db.execute(statement.order_by(LoteInventario.vencimiento.asc().nulls_last())).all()]
+        statement = statement.where(LoteInventario.cantidad > 0, LoteInventario.vencimiento <= threshold)
+    return [{**row_data(row), "producto_nombre": name, "estado_vencimiento": "agotado" if row.cantidad <= 0 else "sin_fecha" if row.vencimiento is None else "vencido" if row.vencimiento < today else "por_vencer" if row.vencimiento <= threshold else "vigente"} for row, name in db.execute(statement.order_by(LoteInventario.vencimiento.asc().nulls_last(), LoteInventario.id)).all()]
 
 
 @router.get("/admin/operaciones/kardex/{product_id}")
-def kardex(product_id: int, db: Db, _user: InventoryAdmin):
-    return InventoryService(db).kardex(product_id)
+def kardex(product_id: int, db: Db, _user: InventoryAdmin, desde: dt.date | None = None, hasta: dt.date | None = None, tipo: Literal["ingreso", "compra", "venta", "ajuste", "devolucion"] | None = None):
+    if desde and hasta and desde > hasta:
+        raise HTTPException(422, "La fecha inicial no puede ser posterior a la final")
+    return InventoryService(db).kardex(product_id, desde, hasta, tipo)
 
 
 @router.get("/admin/operaciones/valorizacion")

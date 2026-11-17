@@ -5,10 +5,14 @@ import { finalize, forkJoin } from 'rxjs';
 import { NoticeService } from '../../../../core/services/notice.service';
 import { AdminApiService, AdminProduct, InventoryAdjustment } from '../../services/admin-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { InventoryMovement, OperationsApiService, operationError } from '../../services/operations-api.service';
 
 @Component({ selector: 'app-admin-inventario', standalone: true, imports: [FormsModule, PageHeaderComponent], templateUrl: './inventario.component.html', styleUrl: '../../shared/admin-ui.css' })
 export class InventarioComponent {
   private readonly api = inject(AdminApiService);
+  private readonly operations = inject(OperationsApiService);
+  readonly movements = signal<InventoryMovement[]>([]); readonly kardexLoading = signal(false); readonly kardexError = signal('');
+  kardexProduct = 0; kardexStart = ''; kardexEnd = ''; kardexKind = ''; private kardexVersion = 0;
   private readonly notice = inject(NoticeService);
   readonly query = signal('');
   readonly onlyLow = signal(false);
@@ -42,6 +46,19 @@ export class InventarioComponent {
     });
   }
   edit(item: AdminProduct): void { this.editing.set(item); this.stock = item.stock_actual; this.reason = ''; this.error.set(''); }
+  loadKardex(): void {
+    const version = ++this.kardexVersion;
+    this.movements.set([]); this.kardexError.set('');
+    if (!this.kardexProduct) { this.kardexLoading.set(false); return; }
+    if (this.kardexStart && this.kardexEnd && this.kardexStart > this.kardexEnd) { this.kardexLoading.set(false); this.kardexError.set('La fecha inicial no puede ser posterior a la final.'); return; }
+    const params: Record<string, string> = {};
+    if (this.kardexStart) params['desde'] = this.kardexStart;
+    if (this.kardexEnd) params['hasta'] = this.kardexEnd;
+    if (this.kardexKind) params['tipo'] = this.kardexKind;
+    this.kardexLoading.set(true);
+    this.operations.kardex(this.kardexProduct, params).subscribe({ next: rows => { if (version === this.kardexVersion) { this.movements.set(rows); this.kardexLoading.set(false); } }, error: error => { if (version === this.kardexVersion) { this.kardexError.set(operationError(error)); this.kardexLoading.set(false); } } });
+  }
+  movementDate(value: string): string { return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value)); }
   save(): void {
     const item = this.editing();
     if (!item || this.saving() || !Number.isFinite(this.stock) || (!item.fraccionable && !Number.isInteger(this.stock)) || this.stock < 0) {

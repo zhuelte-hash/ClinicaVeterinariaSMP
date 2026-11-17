@@ -4,8 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AdminApiService, AdminSettings } from '../../services/admin-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { BackupComponent } from './backup.component';
 
-@Component({ selector: 'app-admin-configuracion', standalone: true, imports: [FormsModule, PageHeaderComponent], templateUrl: './configuracion.component.html', styleUrl: '../../shared/admin-ui.css' })
+@Component({ selector: 'app-admin-configuracion', standalone: true, imports: [FormsModule, PageHeaderComponent, BackupComponent], templateUrl: './configuracion.component.html', styleUrl: '../../shared/admin-ui.css' })
 export class ConfiguracionComponent {
   private readonly api = inject(AdminApiService); readonly saved = signal(false); readonly loading = signal(true); readonly saving = signal(false); readonly error = signal('');
   form: AdminSettings = { nombre: '', correo: '', telefono: '', direccion: '', umbral_stock_bajo: 8, recordatorios_citas: true, alertas_stock: true };

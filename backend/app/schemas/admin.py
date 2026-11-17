@@ -140,6 +140,7 @@ class AdminClientRead(BaseModel):
 
 
 class AdminAppointmentRead(BaseModel):
+    asistencia_confirmada_en: datetime.datetime | None = None
     id: int
     fecha_hora_programada: datetime.datetime
     estado: str

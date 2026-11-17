@@ -27,6 +27,9 @@ class PolicyService:
         return data
 
     def save_hours(self, data):
+        return self.save_fields(data)
+
+    def save_fields(self, data):
         item = self.db.get(PoliticaClinica, 1)
         if item is None:
             item = PoliticaClinica(id=1, **ClinicPolicy().model_dump(mode="json"))

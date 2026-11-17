@@ -339,7 +339,7 @@ class AppointmentService:
             raise AppointmentNotAcceptableError
         if appointment.veterinario_id is None or appointment.fecha_hora_propuesta is None:
             raise AppointmentNotAcceptableError
-        if aware(appointment.fecha_hora_programada) - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(hours=PolicyService(self.db).get().horas_reprogramacion):
+        if aware(appointment.fecha_hora_programada) - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(hours=max(4, PolicyService(self.db).get().horas_reprogramacion)):
             raise AppointmentNotAcceptableError
         self._confirm_without_overlap(
             appointment,
@@ -347,6 +347,7 @@ class AppointmentService:
             appointment.fecha_hora_propuesta,
         )
         appointment.fecha_hora_programada = appointment.fecha_hora_propuesta
+        appointment.asistencia_confirmada_en = None
         appointment.fecha_hora_fin_programada = appointment.fecha_hora_propuesta + datetime.timedelta(
             minutes=appointment.servicio.duracion_estimada_min
         )
@@ -477,6 +478,8 @@ class AppointmentService:
                 raise AppointmentConflictError
         if data.estado == EstadoCita.CONFIRMADA:
             scheduled_at = data.fecha_hora_propuesta or appointment.fecha_hora_propuesta or appointment.fecha_hora_programada
+            if aware(scheduled_at) != aware(appointment.fecha_hora_programada):
+                appointment.asistencia_confirmada_en = None
             self._confirm_without_overlap(appointment, veterinarian.id, scheduled_at)
             appointment.fecha_hora_programada = scheduled_at
             appointment.fecha_hora_fin_programada = scheduled_at + datetime.timedelta(
@@ -1106,6 +1109,7 @@ class AppointmentService:
         return notification
 
     def _confirm_without_overlap(self, appointment: Cita, veterinarian_id: int, scheduled_at: datetime.datetime) -> None:
+        scheduled_at = aware(scheduled_at)
         self._validate_schedule(scheduled_at, appointment.servicio.duracion_estimada_min)
         if not self._has_schedule(veterinarian_id, scheduled_at, appointment.servicio.duracion_estimada_min):
             raise InvalidScheduleError("El veterinario no tiene disponibilidad en ese horario")
@@ -1205,10 +1209,16 @@ class AppointmentService:
 
     def _create_billing_order(self, process, veterinarian):
         from app.services.billing_service import BillingService
-        self.db.flush()
-        self.db.expire(process, ["receta", "proceso_medico"])
-        if process.cita and process.cita.servicio.precio_referencial > 0:
-            BillingService(self.db).from_attention(veterinarian, process)
+        try:
+            self.db.flush()
+            self.db.expire(process, ["receta", "proceso_medico"])
+            has_products = process.receta and any(item.producto_id and item.cantidad_producto for item in process.receta.detalles)
+            if process.cita and (process.cita.servicio.precio_referencial > 0 or has_products):
+                BillingService(self.db).from_attention(veterinarian, process)
+        except Exception:
+            # Un rechazo de facturación no debe conservar un cierre a medias.
+            self.db.rollback()
+            raise
 
     def _validate_schedule(self, scheduled_at: datetime.datetime, duration_min: int) -> None:
         now = datetime.datetime.now(datetime.timezone.utc)

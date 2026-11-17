@@ -7,7 +7,7 @@ from string import Formatter
 
 import httpx
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.config import get_settings
 from app.database import SessionLocal
@@ -92,7 +92,7 @@ class MessagingService:
         return item
 
     def process(self, limit=50):
-        rows = self.db.scalars(select(MensajeSalida).where(MensajeSalida.estado.in_(["pendiente", "error", "pendiente_configuracion"]), MensajeSalida.intentos < 5).order_by(MensajeSalida.id).limit(limit).with_for_update(skip_locked=True)).all()
+        rows = self.db.scalars(select(MensajeSalida).where(MensajeSalida.estado.in_(["pendiente", "error", "pendiente_configuracion"]), MensajeSalida.intentos < 5, or_(MensajeSalida.proximo_intento.is_(None), MensajeSalida.proximo_intento <= now())).order_by(MensajeSalida.id).limit(limit).with_for_update(skip_locked=True)).all()
         for item in rows:
             if item.proximo_intento and aware(item.proximo_intento) > now():
                 continue

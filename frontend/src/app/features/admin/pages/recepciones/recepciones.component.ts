@@ -5,6 +5,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { AdminApiService, AdminProduct } from '../../services/admin-api.service';
 import { Lot, OperationsApiService, operationError, PurchaseLine, PurchaseReceipt, Unit } from '../../services/operations-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ClinicPolicyService } from '../../../../core/services/clinic-policy.service';
 
 @Component({ standalone: true, imports: [FormsModule, PageHeaderComponent], styleUrl: '../../shared/admin-ui.css', template: `
   <admin-page-header title="Recepción, lotes y unidades" description="Ingresa mercadería con documento, costo, lote y vencimiento. Las recepciones actualizan existencias y egresos." />
@@ -42,6 +43,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
     </tbody></table></div>
   </section>
   <section class="admin-card mb-6 p-5">
+    <form class="mb-4 flex flex-wrap items-end gap-3" #expiryForm="ngForm" (ngSubmit)="saveExpiry()"><label>Anticipación de alertas (días)<input class="admin-input" type="number" min="1" max="365" step="1" required name="expiryDays" [(ngModel)]="expiryDays" [disabled]="!auth.can('inventario', 'editar') || busy()"></label>@if (auth.can('inventario', 'editar')) { <button class="admin-secondary" [disabled]="busy() || expiryForm.invalid">Guardar plazo de vencimiento</button> }<p class="text-sm text-slate-500">El worker avisa dentro de la aplicación a los administradores activos de la sede. Una alerta adicional identifica el paso a vencido.</p></form>
     <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-xl font-bold">Existencias por lote</h2><label><input type="checkbox" [(ngModel)]="expiring" (ngModelChange)="loadLots()"> Solo vencidos / próximos a vencer</label><button class="admin-secondary" (click)="loadLots()">Actualizar</button></div>
     <div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>Producto</th><th>Lote</th><th>Vencimiento</th><th>Cantidad</th><th>Costo</th><th>Estado</th></tr></thead><tbody>@for (lot of lots(); track lot.id) { <tr><td>{{ lot.producto_nombre }}</td><td>{{ lot.codigo }}</td><td>{{ lot.vencimiento || 'Sin vencimiento' }}</td><td>{{ lot.cantidad }}</td><td>S/ {{ lot.costo_unitario }}</td><td>{{ lotState(lot) }}</td></tr> } @empty { <tr><td colspan="6">No hay lotes para el filtro.</td></tr> }</tbody></table></div>
   </section>
@@ -60,12 +62,14 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
 export class RecepcionesComponent {
   readonly auth = inject(AuthService);
   private readonly api = inject(OperationsApiService); private readonly admin = inject(AdminApiService);
+  private readonly policies = inject(ClinicPolicyService); expiryDays = 30;
   readonly products = signal<AdminProduct[]>([]); readonly suppliers = signal<{ id: number; razon_social: string }[]>([]); readonly units = signal<Unit[]>([]); readonly lots = signal<Lot[]>([]);
   readonly busy = signal(false); readonly loading = signal(true); readonly error = signal(''); readonly message = signal('');
   readonly receipts = signal<PurchaseReceipt[]>([]); readonly expandedReceipt = signal<number | null>(null);
   supplierId = 0; document = ''; expiring = false; lines: PurchaseLine[] = [];
   unit: Unit = { codigo: '', nombre: '', dimension: 'conteo', factor_base: 1, fraccionable: false };
-  constructor() { this.addLine(); this.load(); }
+  constructor() { this.addLine(); this.load(); this.policies.get().subscribe({ next: policy => this.expiryDays = policy.dias_alerta_vencimiento, error: error => this.error.set(operationError(error)) }); }
+  saveExpiry() { if (this.busy() || !this.auth.can('inventario', 'editar')) return; this.busy.set(true); this.error.set(''); this.policies.saveExpiry(this.expiryDays).subscribe({ next: policy => { this.expiryDays = policy.dias_alerta_vencimiento; this.busy.set(false); this.message.set('Plazo de vencimiento guardado. Las alertas se generan al ejecutar el worker.'); this.loadLots(); }, error: error => this.fail(error) }); }
   load() { this.loading.set(true); this.error.set(''); forkJoin({ products: this.admin.getInventory(), suppliers: this.api.suppliers(), units: this.api.units(), lots: this.api.lots(this.expiring), receipts: this.api.receipts() }).subscribe({ next: data => { this.products.set(data.products); this.suppliers.set(data.suppliers); this.units.set(data.units); this.lots.set(data.lots); this.receipts.set(data.receipts); this.loading.set(false); }, error: error => { this.loading.set(false); this.error.set(operationError(error)); } }); }
   addLine() { this.lines.push({ producto_id: 0, cantidad: 1, costo_unitario: 0, lote: '', vencimiento: null, unidad: null }); }
   selectProduct(line: PurchaseLine) { line.unidad = this.products().find(p => p.id === line.producto_id)?.unidad_medida ?? null; }
@@ -79,7 +83,7 @@ export class RecepcionesComponent {
   money(value: number | string) { return Number(value).toFixed(2); }
   date(value: string) { return new Intl.DateTimeFormat('es-PE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value)); }
   loadLots() { this.api.lots(this.expiring).subscribe({ next: rows => this.lots.set(rows), error: error => this.error.set(operationError(error)) }); }
-  lotState(lot: Lot) { if (Number(lot.cantidad) === 0) return 'Agotado'; if (lot.vencimiento && lot.vencimiento < new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date())) return 'Vencido · no vendible'; return 'Disponible'; }
+  lotState(lot: Lot) { if (lot.estado_vencimiento) return ({ agotado: 'Agotado', sin_fecha: 'Sin fecha', vencido: 'Vencido · no vendible', por_vencer: 'Próximo a vencer', vigente: 'Disponible' })[lot.estado_vencimiento]; if (Number(lot.cantidad) === 0) return 'Agotado'; if (lot.vencimiento && lot.vencimiento < new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date())) return 'Vencido · no vendible'; return 'Disponible'; }
   unitSummary() { return this.units().map(u => `${u.codigo}: ${u.nombre}`).join(' · '); }
   private fail(error: unknown) { this.busy.set(false); this.error.set(operationError(error)); }
 }

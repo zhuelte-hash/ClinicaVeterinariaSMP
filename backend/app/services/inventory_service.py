@@ -149,9 +149,17 @@ class InventoryService:
             self.db.add(Notificacion(usuario_id=admin.id, tipo="stock_bajo", titulo="Reabastecimiento necesario", mensaje=f"{product.nombre}: stock {product.stock_actual}; mínimo {product.stock_minimo}."))
             MessagingService(self.db).to_user(admin, "stock_bajo", f"stock:{product.id}:{uuid4().hex}:{admin.id}", {"producto": product.nombre, "cantidad": product.stock_actual, "minimo": product.stock_minimo})
 
-    def kardex(self, product_id):
+    def kardex(self, product_id, start=None, end=None, kind=None):
         self.product(product_id)
-        return [row_data(row) for row in self.db.scalars(select(MovimientoInventario).where(MovimientoInventario.producto_id == product_id).order_by(MovimientoInventario.id.desc())).all()]
+        from app.services.policy_service import ZONE
+        statement = select(MovimientoInventario, Usuario.nombre, LoteInventario.codigo).outerjoin(Usuario, Usuario.id == MovimientoInventario.usuario_id).outerjoin(LoteInventario, LoteInventario.id == MovimientoInventario.lote_id).where(MovimientoInventario.producto_id == product_id)
+        if start:
+            statement = statement.where(MovimientoInventario.fecha >= dt.datetime.combine(start, dt.time.min, ZONE).astimezone(dt.timezone.utc))
+        if end:
+            statement = statement.where(MovimientoInventario.fecha < dt.datetime.combine(end + dt.timedelta(days=1), dt.time.min, ZONE).astimezone(dt.timezone.utc))
+        if kind:
+            statement = statement.where(MovimientoInventario.tipo == kind)
+        return [{**row_data(row), "usuario_nombre": name or "Sistema / histórico", "lote_codigo": code} for row, name, code in self.db.execute(statement.order_by(MovimientoInventario.id.desc())).all()]
 
     def valuation(self):
         products = self.db.scalars(select(Producto).where(Producto.sucursal_id == branch_id(self.db), Producto.activo)).all()

@@ -78,6 +78,15 @@ class ClinicPolicy(ClinicHours):
     dias_recordatorio_vacuna: int = Field(default=3, ge=0, le=30)
 
 
+class BookingPolicy(TextModel):
+    horas_cancelacion: int = Field(ge=0, le=168)
+    horas_reprogramacion: int = Field(ge=4, le=168)
+
+
+class ExpiryPolicy(TextModel):
+    dias_alerta_vencimiento: int = Field(ge=1, le=365)
+
+
 class ServiceWrite(TextModel):
     codigo: str = Field(min_length=2, max_length=50, pattern=r"^[a-z0-9-]+$")
     nombre: str = Field(min_length=2, max_length=150)

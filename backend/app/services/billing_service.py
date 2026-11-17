@@ -119,18 +119,26 @@ class BillingService:
 
     def from_attention(self, user, process):
         existing = self.db.scalar(select(OrdenPendiente).where(OrdenPendiente.proceso_id == process.id))
-        if existing:
-            return existing
         if not process.cita:
             return None
         items = [OrderItem(servicio_id=process.cita.servicio_id, cantidad=1)]
         if process.receta:
             items += [OrderItem(producto_id=item.producto_id, cantidad=item.cantidad_producto) for item in process.receta.detalles if item.producto_id and item.cantidad_producto]
-        order = self.create(user, PendingOrderCreate(cliente_id=process.mascota.cliente_id, proceso_id=process.id, detalles=items, clave_idempotencia=f"atencion-{process.id}"), commit=False)
+        if existing:
+            expected, recorded = defaultdict(lambda: Decimal(0)), defaultdict(lambda: Decimal(0))
+            for item in items:
+                expected[(item.producto_id, item.servicio_id)] += item.cantidad
+            for item in existing.detalles:
+                recorded[(item.get("producto_id"), item.get("servicio_id"))] += Decimal(str(item["cantidad"]))
+            if existing.estado == "anulada" or existing.cliente_id != process.mascota.cliente_id or expected != recorded:
+                raise HTTPException(409, "La orden emitida no coincide con el servicio y los productos de la receta; concilia la orden antes de cerrar la atención")
+            order = existing
+        else:
+            order = self.create(user, PendingOrderCreate(cliente_id=process.mascota.cliente_id, proceso_id=process.id, detalles=items, clave_idempotencia=f"atencion-{process.id}"), commit=False)
         if process.receta:
             client = process.mascota.cliente.usuario
             document = make_pdf("Receta veterinaria", [f"Paciente: {process.mascota.nombre}", f"Profesional: {user.nombre}", process.receta.indicaciones_generales or ""], [["Medicamento", "Dosis", "Vía", "Frecuencia", "Duración"]] + [[item.medicamento, item.dosis + " " + item.unidad, item.via, item.frecuencia, item.duracion] for item in process.receta.detalles])
-            MessagingService(self.db).to_user(client, "receta", f"receta:{process.receta.id}", {"nombre": client.nombre, "mascota": process.mascota.nombre, "codigo": order.codigo}, document, "receta.pdf")
+            MessagingService(self.db).to_user(client, "receta", f"receta:{process.receta.id}", {"nombre": client.nombre, "mascota": process.mascota.nombre, "codigo": order.codigo}, document, "receta.pdf", entity_id=process.id, phone=process.cita.telefono_contacto)
         return order
 
     def add_payment(self, user, order_id, data, content=None, commit=True):

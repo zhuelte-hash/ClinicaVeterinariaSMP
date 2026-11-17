@@ -5,6 +5,7 @@ import enum
 import hashlib
 import json
 import sqlite3
+from contextlib import contextmanager
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
@@ -14,6 +15,19 @@ from fastapi import HTTPException
 from sqlalchemy import select, UniqueConstraint
 
 from app.database import Base
+
+
+@contextmanager
+def backup_connection(db):
+    if db.get_bind().dialect.name == "postgresql":
+        # La autenticación puede haber iniciado la transacción de la sesión.
+        # Esta conexión conserva una sola fotografía coherente entre tablas.
+        with db.get_bind().connect().execution_options(isolation_level="REPEATABLE READ") as connection:
+            with connection.begin():
+                connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+                yield connection
+    else:
+        yield db.connection()
 
 
 def encode(value):
@@ -35,8 +49,7 @@ def canonical(value):
 def create_backup(db):
     output = BytesIO()
     manifest = {"version": 1, "fecha": dt.datetime.now(dt.timezone.utc).isoformat(), "tablas": {}, "archivos": {}}
-    connection = db.connection()
-    with ZipFile(output, "w", ZIP_DEFLATED) as archive:
+    with backup_connection(db) as connection, ZipFile(output, "w", ZIP_DEFLATED) as archive:
         for table in Base.metadata.sorted_tables:
             rows = [{key: encode(value) for key, value in row.items()} for row in connection.execute(select(table)).mappings()]
             data = canonical(rows)
@@ -49,7 +62,7 @@ def create_backup(db):
             if not directory.exists():
                 continue
             for filename in directory.rglob("*"):
-                if filename.is_file():
+                if filename.is_file() and not filename.is_symlink():
                     name = f"archivos/{folder}/{filename.relative_to(directory).as_posix()}"
                     data = filename.read_bytes()
                     archive.writestr(name, data)
@@ -59,13 +72,20 @@ def create_backup(db):
 
 
 def verify_restore(content):
+    database = None
+    archive = None
     try:
         archive = ZipFile(BytesIO(content))
+        if len(archive.namelist()) != len(set(archive.namelist())):
+            raise ValueError("El respaldo contiene nombres duplicados")
         if sum(item.file_size for item in archive.infolist()) > 250 * 1024 * 1024:
             raise ValueError("Respaldo demasiado grande")
         manifest = json.loads(archive.read("manifest.json"))
         if manifest["version"] != 1 or set(manifest["tablas"]) != {table.name for table in Base.metadata.tables.values()}:
             raise ValueError("El esquema del respaldo no coincide con esta versión")
+        expected_names = {"manifest.json"} | {f"datos/{table.name}.json" for table in Base.metadata.sorted_tables} | set(manifest["archivos"])
+        if set(archive.namelist()) != expected_names:
+            raise ValueError("El respaldo contiene archivos no declarados o faltantes")
         database = sqlite3.connect(":memory:")
         database.execute("PRAGMA foreign_keys=ON")
         quote = lambda value: '"' + value.replace('"', '""') + '"'
@@ -82,6 +102,8 @@ def verify_restore(content):
         restored = 0
         for table in Base.metadata.sorted_tables:
             entry = manifest["tablas"][table.name]
+            if entry["archivo"] != f"datos/{table.name}.json":
+                raise ValueError("Ruta de tabla inválida")
             data = archive.read(entry["archivo"])
             if hashlib.sha256(data).hexdigest() != entry["sha256"]:
                 raise ValueError("La integridad del respaldo no coincide")
@@ -89,6 +111,8 @@ def verify_restore(content):
             if len(rows) != entry["registros"]:
                 raise ValueError("El número de registros no coincide")
             names = [column.name for column in table.columns]
+            if any(set(row) != set(names) for row in rows):
+                raise ValueError("Las columnas del respaldo no coinciden")
             sql = f"INSERT INTO {quote(table.name)} ({','.join(map(quote, names))}) VALUES ({','.join('?' for _ in names)})"
             database.executemany(sql, [[None if row[name] is None else canonical(row[name]).decode() for name in names] for row in rows])
             if database.execute(f"SELECT count(*) FROM {quote(table.name)}").fetchone()[0] != len(rows):
@@ -98,9 +122,19 @@ def verify_restore(content):
         if database.execute("PRAGMA foreign_key_check").fetchall():
             raise ValueError("Se detectaron relaciones inválidas")
         database.close()
+        database = None
         for filename, expected in manifest["archivos"].items():
+            from pathlib import PurePosixPath
+            parts = PurePosixPath(filename).parts
+            if len(parts) < 3 or parts[0] != "archivos" or parts[1] not in {"uploads", "clinical_private"} or ".." in parts or "\\" in filename:
+                raise ValueError("Ruta de archivo inválida")
             if hashlib.sha256(archive.read(filename)).hexdigest() != expected:
                 raise ValueError("Hay un archivo corrupto")
         return {"valido": True, "tablas": len(manifest["tablas"]), "registros_restaurados": restored, "archivos": len(manifest["archivos"]), "verificacion": "Restauración lógica en SQLite aislado: claves, relaciones, conteos y SHA-256. La base operativa permanece intacta."}
     except (BadZipFile, KeyError, ValueError, TypeError, sqlite3.DatabaseError, json.JSONDecodeError) as exc:
         raise HTTPException(422, "No se pudo verificar la restauración: " + str(exc)[:300]) from exc
+    finally:
+        if database is not None:
+            database.close()
+        if archive is not None:
+            archive.close()

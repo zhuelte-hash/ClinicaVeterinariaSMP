@@ -1,4 +1,5 @@
 import hashlib
+import datetime as dt
 import hmac
 import json
 import re
@@ -10,15 +11,16 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.clinic import Cita, EstadoCita
+from app.models.clinic import Cita, EstadoCita, Notificacion
 from app.models.operations import EncuestaConsulta, MensajeEntrante, MensajeSalida, OrdenPendiente
 from app.models.user import Usuario
 from app.schemas.operations import InstallmentWrite, RescheduleRequest, SurveyAnswer
-from app.security import require_permission
+from app.security import require_permission, check_permission
 from app.services.access_service import aware, digest, now
 from app.services.automation_service import run_automations
 from app.services.billing_service import BillingService
 from app.routers.clinical_operations import request_reschedule
+from app.services.policy_service import ZONE
 
 router = APIRouter(tags=["Mensajería y encuestas"])
 
@@ -46,7 +48,7 @@ async def receive_message(message, db):
     item = MensajeEntrante(proveedor_id=message_id, telefono=phone, contenido=caption)
     db.add(item)
     try:
-        confirmation = re.search(r"ASISTIR[EÉ]\s+(\d+)", caption, re.I)
+        confirmation = re.fullmatch(r"\s*ASISTIR[EÉ]\s+(\d+)\s*", caption, re.I)
         reschedule = re.search(r"REPROGRAMAR\s+(\d+)\s+(\S+)", caption, re.I)
         if confirmation or reschedule:
             appointment_id = int((confirmation or reschedule)[1])
@@ -56,8 +58,17 @@ async def receive_message(message, db):
             db.info["sucursal_id"] = appointment.sucursal_id
             db.info["actor_id"] = appointment.mascota.cliente_id
             if confirmation:
-                if appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}:
+                owner = appointment.mascota.cliente.usuario
+                if not owner.activo:
+                    raise HTTPException(403, "La cuenta del propietario está desactivada")
+                check_permission(db, owner, "citas", "editar")
+                scheduled = aware(appointment.fecha_hora_programada)
+                if (appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}
+                        or appointment.proceso_atencion is not None or appointment.fecha_hora_llegada is not None
+                        or scheduled <= now() or scheduled.astimezone(ZONE).date() > now().astimezone(ZONE).date() + dt.timedelta(days=1)):
                     raise HTTPException(409, "La cita no admite confirmación de asistencia")
+                if appointment.asistencia_confirmada_en is None and appointment.veterinario_id:
+                    db.add(Notificacion(usuario_id=appointment.veterinario_id, cita_id=appointment.id, tipo="asistencia_confirmada", titulo="Asistencia confirmada por WhatsApp", mensaje=f"El propietario de {appointment.mascota.nombre} confirmó asistencia a la cita #{appointment.id}."))
                 appointment.asistencia_confirmada_en = appointment.asistencia_confirmada_en or now()
                 item.resultado = "asistencia_confirmada"
             else:
@@ -116,9 +127,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                     item = db.scalar(select(MensajeSalida).where(MensajeSalida.proveedor_id == status["id"]))
                     if item:
                         state = status.get("status")
-                        if state in {"delivered", "read"}:
-                            item.estado, item.entregado_en = "entregado" if state == "delivered" else "leido", now()
-                        elif state == "failed":
+                        if state in {"delivered", "read"} and item.estado != "leido":
+                            item.estado = "entregado" if state == "delivered" else "leido"
+                            item.entregado_en = item.entregado_en or now()
+                            item.error = None
+                        elif state == "failed" and item.estado not in {"entregado", "leido"}:
                             item.estado, item.error = "error", "El proveedor informó un fallo de entrega"
                 db.commit()
                 for message in value.get("messages", []):

@@ -60,8 +60,25 @@ def capture_changes(db, _context):
             from app.services.policy_service import ZONE
             service = MessagingService(db)
             client = item.mascota.cliente.usuario
+            # La confirmación de asistencia, la reasignación y la propuesta de
+            # horario se auditan, pero no son una nueva confirmación al cliente.
+            state_changed = "estado" in tracked
+            schedule_history = state.attrs.fecha_hora_programada.history
+            schedule_changed = bool(
+                "fecha_hora_programada" in tracked and schedule_history.deleted
+                and aware(schedule_history.deleted[0]) != aware(item.fecha_hora_programada)
+            )
+            if item.estado == EstadoCita.CANCELADA and state_changed:
+                name = "cita_cancelada"
+            elif schedule_changed and not (state_changed and item.estado == EstadoCita.CONFIRMADA):
+                name = "cita_reprogramada"
+            elif state_changed and item.estado == EstadoCita.CONFIRMADA:
+                name = "cita_confirmada"
+            elif state_changed and item.estado == EstadoCita.REPROGRAMADA:
+                name = "cita_reprogramada"
+            else:
+                continue
             key = uuid4().hex
-            name = "cita_cancelada" if item.estado == EstadoCita.CANCELADA else "cita_reprogramada" if event_name == "reprogramada" or item.estado == EstadoCita.REPROGRAMADA else "cita_confirmada"
             values = {"nombre": client.nombre, "mascota": item.mascota.nombre, "fecha": aware(item.fecha_hora_programada).astimezone(ZONE).strftime("%d/%m/%Y %H:%M"), "motivo": item.nota_coordinacion or "Coordinado con la clínica", "cita": item.id}
             service.to_user(client, name, f"cita:{item.id}:{key}", values, entity_id=item.id, phone=item.telefono_contacto)
             if item.veterinario_id and name in {"cita_reprogramada", "cita_cancelada"}:

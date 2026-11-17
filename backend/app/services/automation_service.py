@@ -4,7 +4,7 @@ import secrets
 from sqlalchemy import select
 
 from app.config import get_settings
-from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, EstadoProcesoAtencion, Mascota, ProcesoAtencion, Producto
+from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, EstadoProcesoAtencion, Mascota, Notificacion, ProcesoAtencion, Producto
 from app.models.operations import EncuestaConsulta, LoteInventario, MensajeSalida, OrdenPendiente, Sucursal
 from app.models.user import TipoUsuario, Usuario
 from app.services.access_service import aware, digest, now
@@ -48,11 +48,16 @@ def run_automations(db):
                 service.to_user(owner, "orden_recordatorio", f"orden_2h:{order.id}", {"nombre": owner.nombre, "codigo": order.codigo, "total": order.total}, entity_id=order.id)
                 if aware(order.fecha) < now() - dt.timedelta(hours=48):
                     order.estado = "vencida"
-        admins = db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo)).all()
-        lots = db.execute(select(LoteInventario, Producto).join(Producto, Producto.id == LoteInventario.producto_id).where(LoteInventario.cantidad > 0, LoteInventario.vencimiento <= dt.date.today() + dt.timedelta(days=policy.dias_alerta_vencimiento)).with_for_update(skip_locked=True)).all()
+        admins = db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo, Usuario.sucursal_id == location.id)).all()
+        today = now().astimezone(ZONE).date()
+        lots = db.execute(select(LoteInventario, Producto).join(Producto, Producto.id == LoteInventario.producto_id).where(LoteInventario.cantidad > 0, LoteInventario.vencimiento <= today + dt.timedelta(days=policy.dias_alerta_vencimiento)).with_for_update(skip_locked=True)).all()
         for lot, product in lots:
+            stage = "vencido" if lot.vencimiento < today else "por_vencer"
             for admin in admins:
-                service.to_user(admin, "vencimiento", f"vence:{lot.id}:{lot.vencimiento}:{admin.id}", {"lote": lot.codigo, "producto": product.nombre, "cantidad": lot.cantidad, "fecha": lot.vencimiento}, entity_id=lot.id)
+                key = f"vence:{lot.id}:{lot.vencimiento}:{stage}:{admin.id}"
+                if db.scalar(select(MensajeSalida.id).where(MensajeSalida.clave == key)) is None:
+                    db.add(Notificacion(usuario_id=admin.id, tipo="vencimiento", titulo="Lote vencido" if stage == "vencido" else "Lote próximo a vencer", mensaje=f"{product.nombre} · lote {lot.codigo} · {lot.cantidad} {product.unidad_medida} · vence {lot.vencimiento}."))
+                service.to_user(admin, "vencimiento", key, {"lote": lot.codigo, "producto": product.nombre, "cantidad": lot.cantidad, "fecha": lot.vencimiento}, entity_id=lot.id)
         processes = db.scalars(select(ProcesoAtencion).join(ProcesoAtencion.cita).where(ProcesoAtencion.estado == EstadoProcesoAtencion.CERRADA, ProcesoAtencion.fecha_cierre <= now() - dt.timedelta(hours=24)).with_for_update(skip_locked=True)).all()
         for process in processes:
             if db.scalar(select(EncuestaConsulta.id).where(EncuestaConsulta.proceso_id == process.id)):

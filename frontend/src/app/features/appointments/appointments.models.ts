@@ -35,6 +35,7 @@ export interface Appointment {
   fecha_creacion: string;
   fecha_actualizacion: string;
   fecha_hora_llegada: string | null;
+  asistencia_confirmada_en?: string | null;
   cancelacion_automatica_at: string | null;
   fecha_hora_propuesta: string | null;
   telefono_contacto: string | null;

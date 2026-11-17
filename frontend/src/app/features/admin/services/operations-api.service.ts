@@ -12,7 +12,8 @@ export interface OperationsDashboard {
   finanzas: { cobros: Numeric; egresos: Numeric; resultado: Numeric; criterio: string };
 }
 export interface Unit { codigo: string; nombre: string; dimension: 'conteo' | 'masa' | 'volumen'; factor_base: Numeric; fraccionable: boolean; }
-export interface Lot { id: number; producto_id: number; producto_nombre: string; codigo: string; cantidad: Numeric; costo_unitario: Numeric; vencimiento: string | null; }
+export interface Lot { id: number; producto_id: number; producto_nombre: string; codigo: string; cantidad: Numeric; costo_unitario: Numeric; vencimiento: string | null; estado_vencimiento?: 'agotado' | 'sin_fecha' | 'vencido' | 'por_vencer' | 'vigente'; }
+export interface InventoryMovement { id: number; fecha: string; tipo: string; cantidad: Numeric; saldo_anterior: Numeric; saldo_nuevo: Numeric; motivo: string; referencia: string | null; usuario_nombre: string; lote_codigo: string | null; }
 export interface PurchaseLine { producto_id: number; cantidad: number; costo_unitario: number; lote: string; vencimiento: string | null; unidad: string | null; }
 export interface PurchaseReceipt { id: number; documento: string; proveedor_id: number; proveedor_nombre: string; usuario_nombre: string; fecha: string; total: Numeric; detalles: PurchaseLine[]; }
 export interface Expense { id: number; categoria: string; concepto: string; monto: Numeric; fecha: string; }
@@ -40,6 +41,7 @@ export class OperationsApiService {
   createUnit(data: Unit) { return this.http.post<Unit>(`${this.base}/unidades`, data); }
   lots(expiring = false) { return this.http.get<Lot[]>(`${this.base}/lotes`, { params: { por_vencer: expiring } }); }
   receipts() { return this.http.get<PurchaseReceipt[]>(`${this.base}/compras`); }
+  kardex(id: number, params: Record<string, string>) { return this.http.get<InventoryMovement[]>(`${this.base}/kardex/${id}`, { params }); }
   receive(data: { proveedor_id: number; documento: string; detalles: PurchaseLine[] }) { return this.http.post<PurchaseReceipt>(`${this.base}/compras`, data); }
   expenses(desde: string, hasta: string) { return this.http.get<Expense[]>(`${this.base}/egresos`, { params: { desde, hasta } }); }
   recordExpense(data: Omit<Expense, 'id'>) { return this.http.post<Expense>(`${this.base}/egresos`, data); }

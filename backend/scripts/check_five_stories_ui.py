@@ -68,6 +68,8 @@ def run():
                         data = [{"id": 1, "nombre": "Medicamentos", "productos": 2}]
                     elif path == "/admin/configuracion":
                         data = {"nombre": "SMP", "alertas_stock": True}
+                    elif path == "/publico/institucional":
+                        data = {"horarios": [], "excepciones": [], "galeria": [], "horas_cancelacion": 4, "horas_reprogramacion": 4, "dias_alerta_vencimiento": 30, "dias_recordatorio_vacuna": 3}
                     elif path == "/api/admin/ventas":
                         data = {"total": 0, "pagina": 1, "tamano_pagina": 4, "ventas": []}
                     elif path == "/api/admin/ventas/resumen":

@@ -13,6 +13,13 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
   @if (message()) { <p class="mb-4 rounded-xl bg-teal-50 p-4 text-teal-800" role="status">{{ message() }}</p> }
   @if (!auth.can('citas', 'editar')) { <p class="mb-4 text-sm text-slate-600">Tienes acceso de consulta. Para modificar horarios necesitas el permiso de edición de Citas.</p> }
   @if (policy; as data) {
+    <form class="admin-card mb-6 grid gap-4 p-5 sm:grid-cols-2" #bookingForm="ngForm" (ngSubmit)="saveBooking()">
+      <h2 class="text-xl font-bold sm:col-span-2">Anticipación de cancelación y reprogramación</h2>
+      <label>Horas mínimas para cancelar<input class="admin-input" type="number" name="cancellationHours" min="0" max="168" step="1" required [(ngModel)]="data.horas_cancelacion" [disabled]="!auth.can('citas', 'editar') || busy()"></label>
+      <label>Horas mínimas para reprogramar<input class="admin-input" type="number" name="rescheduleHours" min="4" max="168" step="1" required [(ngModel)]="data.horas_reprogramacion" [disabled]="!auth.can('citas', 'editar') || busy()"></label>
+      <p class="text-sm text-slate-500 sm:col-span-2">Cancelación: de 0 a 168 horas. Reprogramación: de 4 a 168 horas. Se aplica en servidor a nuevas solicitudes y aceptación de propuestas; las citas existentes se conservan. La gestión del personal sigue siendo una coordinación autorizada.</p>
+      @if (auth.can('citas', 'editar')) { <button class="admin-primary" [disabled]="busy() || bookingForm.invalid">Guardar anticipación</button> }
+    </form>
     <form class="admin-card mb-6 grid gap-4 p-5" #policyForm="ngForm" (ngSubmit)="savePolicy()">
       <fieldset class="grid gap-4" [disabled]="busy() || !auth.can('citas', 'editar')">
       <h2 class="text-xl font-bold">Horario general · America/Lima</h2>
@@ -83,6 +90,11 @@ export class HorariosComponent {
   schedule = { dia_semana: 0, hora_inicio: '08:00', hora_fin: '12:00', activo: true };
   constructor() { forkJoin({ policy: this.policies.get(), vets: this.admin.getAppointmentVeterinarians(), requests: this.api.requests() }).subscribe({ next: data => { this.policy = data.policy; this.vets.set(data.vets); this.requests.set(data.requests); }, error: error => this.error.set(operationError(error)) }); }
   addException() { this.policy?.excepciones.push({ dia: 0, fecha: '', motivo: '', cerrado: true, inicio: '08:00', fin: '20:00', descanso_inicio: null, descanso_fin: null }); }
+  saveBooking() {
+    if (!this.policy || this.busy() || !this.auth.can('citas', 'editar')) return;
+    this.busy.set(true); this.error.set(''); this.message.set('');
+    this.policies.saveBooking({ horas_cancelacion: this.policy.horas_cancelacion, horas_reprogramacion: this.policy.horas_reprogramacion }).subscribe({ next: policy => { this.policy = policy; this.busy.set(false); this.message.set('Anticipación guardada y aplicada a cancelaciones y reprogramaciones.'); }, error: error => this.fail(error) });
+  }
   savePolicy() {
     if (!this.policy || this.busy() || !this.auth.can('citas', 'editar')) return;
     const data = { horarios: this.policy.horarios.map(day => ({ ...day, descanso_inicio: day.descanso_inicio || null, descanso_fin: day.descanso_fin || null })), excepciones: this.policy.excepciones.map(day => ({ ...day, descanso_inicio: day.descanso_inicio || null, descanso_fin: day.descanso_fin || null })) };

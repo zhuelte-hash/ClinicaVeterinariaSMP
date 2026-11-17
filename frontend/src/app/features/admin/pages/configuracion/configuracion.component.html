@@ -22,3 +22,4 @@
     <div class="flex items-center justify-end gap-4">@if (saved()) { <span class="text-sm font-semibold text-emerald-600" role="status">Cambios guardados</span> }<button class="admin-primary" [disabled]="settingsForm.invalid">{{ saving() ? 'Guardando…' : 'Guardar cambios' }}</button></div>
   </fieldset>
 </form>
+<app-backup />

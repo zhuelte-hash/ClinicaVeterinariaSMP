@@ -1,4 +1,20 @@
 <admin-page-header title="Inventario" description="Existencias reales de los productos publicados. Los cambios se reflejan en la web." />
+<section class="admin-card mb-6 grid gap-4 p-5" aria-labelledby="kardex-title">
+  <h2 id="kardex-title" class="text-xl font-bold">Kardex por producto</h2>
+  <form class="grid gap-3 sm:grid-cols-4" (ngSubmit)="loadKardex()">
+    <label>Producto del Kardex<select class="admin-input" name="kardexProduct" [(ngModel)]="kardexProduct" (ngModelChange)="loadKardex()"><option [ngValue]="0">Selecciona</option>@for (product of products(); track product.id) { <option [ngValue]="product.id">{{ product.nombre }} · {{ product.unidad_medida }}</option> }</select></label>
+    <label>Desde<input type="date" class="admin-input" name="kardexStart" [(ngModel)]="kardexStart"></label><label>Hasta<input type="date" class="admin-input" name="kardexEnd" [(ngModel)]="kardexEnd"></label>
+    <label>Movimiento<select class="admin-input" name="kardexKind" [(ngModel)]="kardexKind"><option value="">Todos</option>@for (kind of ['ingreso', 'compra', 'venta', 'ajuste', 'devolucion']; track kind) { <option [value]="kind">{{ kind }}</option> }</select></label>
+    <button class="admin-secondary" [disabled]="!kardexProduct || kardexLoading()">Consultar Kardex</button>
+  </form>
+  <p class="text-sm text-slate-500">Fechas inclusivas en Perú. Los saldos corresponden al movimiento original, aunque se filtre. Los movimientos históricos anteriores a la trazabilidad no se reconstruyen artificialmente.</p>
+  @if (kardexError()) { <p role="alert" class="text-rose-700">{{ kardexError() }}</p> }
+  @if (kardexLoading()) { <p role="status">Consultando movimientos…</p> }
+  <div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Lote</th><th>Entrada / salida</th><th>Saldo anterior</th><th>Saldo nuevo</th><th>Responsable</th><th>Motivo / referencia</th></tr></thead><tbody>
+    @for (entry of movements(); track entry.id) { <tr><td>{{ movementDate(entry.fecha) }}</td><td>{{ entry.tipo }}</td><td>{{ entry.lote_codigo || 'Sin lote' }}</td><td>{{ entry.cantidad }}</td><td>{{ entry.saldo_anterior }}</td><td>{{ entry.saldo_nuevo }}</td><td>{{ entry.usuario_nombre }}</td><td>{{ entry.motivo }} · {{ entry.referencia || 'Sin referencia' }}</td></tr> }
+    @empty { <tr><td colspan="8">{{ kardexProduct ? 'Sin movimientos para el filtro.' : 'Selecciona un producto para consultar.' }}</td></tr> }
+  </tbody></table></div>
+</section>
 @if (error()) { <p class="mb-4 rounded-xl bg-rose-50 p-4 font-semibold text-rose-700">{{ error() }}</p> }
 <div class="mb-5 grid gap-4 sm:grid-cols-3">
   <div class="admin-card p-4"><p class="text-xs font-bold text-slate-400">EXISTENCIAS POR UNIDAD</p><b class="mt-1 block text-2xl">{{ units() }}</b></div>

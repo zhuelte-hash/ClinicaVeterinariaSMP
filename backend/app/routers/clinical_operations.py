@@ -182,6 +182,27 @@ def own_reschedule_requests(db: Db, user: Client):
     return [row_data(row) for row in db.scalars(select(SolicitudReprogramacion).where(SolicitudReprogramacion.cliente_id == user.id).order_by(SolicitudReprogramacion.id.desc())).all()]
 
 
+@router.get("/portal/citas/{appointment_id}/asistencia-whatsapp")
+def attendance_whatsapp(appointment_id: int, db: Db, user: Client):
+    from app.services.policy_service import ZONE
+    check_permission(db, user, "citas", "editar")
+    appointment = AppointmentService(db)._get_owned_appointment(user.id, appointment_id)
+    if appointment is None:
+        raise HTTPException(404, "Cita no encontrada")
+    scheduled = aware(appointment.fecha_hora_programada)
+    if (appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}
+            or appointment.proceso_atencion is not None or appointment.fecha_hora_llegada is not None
+            or scheduled <= now() or scheduled.astimezone(ZONE).date() > now().astimezone(ZONE).date() + dt.timedelta(days=1)):
+        raise HTTPException(409, "La confirmación está disponible para citas de hoy o mañana aún no iniciadas")
+    config = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
+    phone = re.sub(r"\D", "", config.telefono if config else "")
+    if len(phone) == 9:
+        phone = "51" + phone
+    if not 10 <= len(phone) <= 15:
+        raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp")
+    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(f'ASISTIRE {appointment.id}')}"}
+
+
 @router.post("/admin/operaciones/reprogramaciones/{request_id}/resolver")
 def resolve_reschedule(request_id: int, data: RescheduleAnswer, db: Db, user: Admin):
     from app.schemas.admin import AdminAppointmentUpdate

@@ -321,6 +321,10 @@ class AdminService:
                 raise ValueError(str(exc)) from exc
             values["fecha_hora_fin_programada"] = scheduled + datetime.timedelta(minutes=appointment.servicio.duracion_estimada_min)
         previous_veterinarian = appointment.veterinario_id
+        if "fecha_hora_programada" in values:
+            from app.services.access_service import aware
+            if aware(values["fecha_hora_programada"]) != aware(appointment.fecha_hora_programada):
+                appointment.asistencia_confirmada_en = None
         for field, value in values.items():
             setattr(appointment, field, value)
         if scheduling or state in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA, EstadoCita.CANCELADA}:
@@ -505,6 +509,7 @@ class AdminService:
             veterinario_nombre=item.veterinario.usuario.nombre if item.veterinario else None,
             nota_coordinacion=item.nota_coordinacion,
             es_urgente=item.es_urgente,
+            asistencia_confirmada_en=item.asistencia_confirmada_en,
         )
 
     @staticmethod

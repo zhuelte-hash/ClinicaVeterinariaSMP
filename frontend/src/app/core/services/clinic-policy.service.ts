@@ -19,4 +19,6 @@ export class ClinicPolicyService {
   get() { return this.http.get<ClinicPolicy>(`${environment.apiUrl}/publico/institucional`); }
   save(policy: ClinicPolicy) { return this.http.put<ClinicPolicy>(`${environment.apiUrl}/admin/operaciones/configuracion`, policy); }
   saveHours(hours: Pick<ClinicPolicy, 'horarios' | 'excepciones'>) { return this.http.put<ClinicPolicy>(`${environment.apiUrl}/admin/operaciones/horario-clinica`, hours); }
+  saveBooking(policy: Pick<ClinicPolicy, 'horas_cancelacion' | 'horas_reprogramacion'>) { return this.http.put<ClinicPolicy>(`${environment.apiUrl}/admin/operaciones/politicas-citas`, policy); }
+  saveExpiry(days: number) { return this.http.put<ClinicPolicy>(`${environment.apiUrl}/admin/operaciones/politicas-vencimiento`, { dias_alerta_vencimiento: days }); }
 }
