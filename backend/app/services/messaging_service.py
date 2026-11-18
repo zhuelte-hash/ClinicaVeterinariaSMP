@@ -12,7 +12,7 @@ from sqlalchemy import or_, select
 from app.config import get_settings
 from app.database import SessionLocal
 from app.models.operations import DesafioCuenta, MensajeSalida, PlantillaMensaje
-from app.models.user import Usuario
+from app.models.user import TipoUsuario, Usuario
 from app.services.access_service import aware, now
 
 logger = logging.getLogger(__name__)
@@ -64,12 +64,25 @@ class MessagingService:
             raise HTTPException(422, "Evento de mensajería no válido")
         expected = set(EVENTS[event][1])
         try:
-            fields = {name for _, name, _, _ in Formatter().parse(data.contenido) if name}
+            parsed = list(Formatter().parse(data.contenido))
+            fields = {name for _, name, _, _ in parsed if name is not None}
         except ValueError as exc:
             raise HTTPException(422, "Sintaxis de plantilla inválida") from exc
-        if fields != expected or set(data.variables) != expected:
+        if (fields != expected or set(data.variables) != expected or len(data.variables) != len(expected)
+                or any(spec or conversion for _, name, spec, conversion in parsed if name is not None)):
             raise HTTPException(422, f"Variables requeridas: {', '.join(EVENTS[event][1])}")
         item = self.db.scalar(select(PlantillaMensaje).where(PlantillaMensaje.evento == event))
+        previous_variables = item.variables if item else EVENTS[event][1]
+        if previous_variables != data.variables:
+            pending = self.db.scalars(select(MensajeSalida).where(
+                MensajeSalida.evento == event, MensajeSalida.canal == "whatsapp",
+                MensajeSalida.estado.in_(["pendiente", "error", "pendiente_configuracion"])
+            ).with_for_update()).all()
+            if any(len(row.parametros) != len(previous_variables) for row in pending):
+                raise HTTPException(409, "Hay mensajes pendientes incompatibles; revísalos antes de cambiar el orden de variables")
+            for row in pending:
+                values = dict(zip(previous_variables, row.parametros))
+                row.parametros = [values[name] for name in data.variables]
         if item is None:
             item = PlantillaMensaje(evento=event)
             self.db.add(item)
@@ -77,6 +90,18 @@ class MessagingService:
             setattr(item, key, value)
         self.db.commit()
         return next(row for row in self.templates() if row["evento"] == event)
+
+    def preview(self, event, values):
+        template = next((row for row in self.templates() if row["evento"] == event), None)
+        if template is None:
+            raise HTTPException(422, "Evento de mensajería no válido")
+        if set(values) != set(EVENTS[event][1]):
+            raise HTTPException(422, f"Ejemplos requeridos: {', '.join(EVENTS[event][1])}")
+        return {"evento": event, "contenido": template["contenido"].format_map(values),
+                "parametros": [{"posicion": i + 1, "variable": name, "valor": values[name]}
+                               for i, name in enumerate(template["variables"])],
+                "encabezado": "documento PDF" if event in {"receta", "pago_validado"} else "sin documento",
+                "alcance": "Vista previa de la plantilla guardada; no envía ni acredita aprobación en Meta."}
 
     def to_user(self, user, event, key, values, document=None, filename=None, entity_id=None, phone=None):
         previous = self.db.scalar(select(MensajeSalida).where(MensajeSalida.clave == key))
@@ -101,6 +126,25 @@ class MessagingService:
         return len(rows)
 
     def deliver(self, item):
+        if item.estado in {"enviado", "entregado", "leido", "cancelado"}:
+            return
+        from app.services.operational_message_service import operational_message_ready
+        if not operational_message_ready(self.db, item, now()):
+            return
+        if item.canal == "whatsapp" and item.evento in {"veterinario_reprogramacion", "veterinario_cancelacion"}:
+            user = self.db.get(Usuario, item.usuario_id) if item.usuario_id else None
+            if user is None or not user.activo or user.tipo != TipoUsuario.VETERINARIO:
+                item.estado, item.error = "cancelado", "El veterinario destinatario ya no está activo o autorizado."
+                return
+            phone = "".join(filter(str.isdigit, user.telefono or ""))
+            if len(phone) == 9:
+                phone = "51" + phone
+            if not 10 <= len(phone) <= 15 or phone.startswith("0"):
+                item.estado, item.error = "pendiente_configuracion", "Configura un teléfono válido del veterinario en Personal."
+                item.proximo_intento = now() + dt.timedelta(minutes=5)
+                return
+            # Relee el teléfono para permitir corregirlo antes de un reintento.
+            item.destinatario = phone
         if item.canal == "correo" and item.evento in {"verificar", "recuperar"} and item.entidad_id:
             challenge = self.db.get(DesafioCuenta, item.entidad_id)
             if challenge is None or challenge.usado_en is not None or aware(challenge.expira_en) <= now():

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { Appointment } from './appointments.models';
 import { operationError } from '../admin/services/operations-api.service';
@@ -8,6 +8,8 @@ import { operationError } from '../admin/services/operations-api.service';
   <section class="mt-6 grid gap-3 rounded-2xl border bg-white p-5" aria-labelledby="attendance-title">
     <h2 id="attendance-title" class="text-lg font-bold">Confirmar asistencia por WhatsApp</h2>
     <p class="text-sm text-slate-600">Para citas de hoy o mañana, envía el mensaje preparado desde el número de contacto de la reserva. Abrir WhatsApp no confirma la asistencia: debe recibirse el mensaje en la clínica.</p>
+    <button type="button" class="justify-self-start rounded-xl border px-3 py-2 text-sm font-bold" (click)="refresh.emit()" [disabled]="busy()">Ya envié el mensaje: actualizar asistencia</button>
+    @if (!eligibleAppointments().length) { <p class="text-sm text-slate-500">No hay citas de hoy o mañana disponibles para confirmar asistencia.</p> }
     @if (error()) { <p role="alert" class="text-rose-700">{{ error() }}</p> }
     @for (appointment of appointments(); track appointment.id) {
       @if (eligible(appointment)) {
@@ -23,6 +25,8 @@ import { operationError } from '../admin/services/operations-api.service';
 ` })
 export class AttendanceConfirmationComponent {
   readonly appointments = input<Appointment[]>([]);
+  readonly refresh = output<void>();
+  readonly eligibleAppointments = computed(() => this.appointments().filter(appointment => this.eligible(appointment)));
   private readonly http = inject(HttpClient);
   readonly busy = signal(false); readonly error = signal(''); readonly link = signal(''); readonly linkId = signal(0);
   eligible(appointment: Appointment): boolean {

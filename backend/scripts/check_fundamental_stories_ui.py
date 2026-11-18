@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 from playwright.sync_api import expect, sync_playwright
-from check_five_stories_ui import ASSETS, Handler, MODULES, PRODUCT, UNITS
+from check_five_stories_ui import ASSETS, Handler, MODULES, PRODUCT, UNITS, COMMUNICATION_STATUS
 
 
 def run():
@@ -29,6 +29,8 @@ def run():
                 zone = ZoneInfo("America/Lima")
                 tomorrow = dt.datetime.combine(dt.datetime.now(zone).date() + dt.timedelta(days=1), dt.time(10), zone).isoformat()
                 state = {"role": "administrador", "write": True, "confirmed": False, "bad_restore": False}
+                communication = json.loads(json.dumps(COMMUNICATION_STATUS))
+                outgoing = [{"id": 10, "evento": "receta", "destinatario": "51999888777", "estado": "error", "intentos": 2, "proveedor_id": None, "error": "Proveedor no disponible"}]
                 policy = {"horarios": [{"dia": i, "cerrado": i == 6, "inicio": "08:00", "fin": "20:00", "descanso_inicio": "12:00", "descanso_fin": "13:00"} for i in range(7)], "excepciones": [], "galeria": [], "horas_cancelacion": 4, "horas_reprogramacion": 4, "dias_alerta_vencimiento": 30, "dias_recordatorio_vacuna": 3}
                 pet = {"id": 1, "cliente_id": 1, "nombre": "Luna", "especie": "Perro", "raza": "Mestiza", "sexo": "hembra", "foto_url": None}
                 service = {"id": 1, "codigo": "consulta", "nombre": "Consulta", "descripcion": "Consulta", "precio_referencial": "50.00", "duracion_estimada_min": 30}
@@ -48,10 +50,26 @@ def run():
                         data = {"id": 1 if state["role"] == "cliente" else 4, "nombre": "María Pérez" if state["role"] == "cliente" else "Administración", "correo": "test@example.com", "tipo": state["role"], "activo": True, "telefono": "999888777", "sucursal_id": 1}
                     elif path == "/auth/me/permisos":
                         data = [{"modulo": module, "puede_ver": True, **{f"puede_{action}": state["write"] for action in ("crear", "editar", "eliminar", "aprobar")}} for module in MODULES]
-                    elif path == "/publico/institucional":
+                    elif path in {"/publico/institucional", "/admin/operaciones/configuracion"}:
                         data = policy
                     elif path == "/admin/configuracion":
                         data = {"nombre": "Clínica SMP", "correo": "clinica@example.com", "telefono": "965939522", "direccion": "Av. Prueba", "umbral_stock_bajo": 8, "recordatorios_citas": True, "alertas_stock": True}
+                    elif path == "/admin/operaciones/comunicaciones/estado":
+                        data = communication
+                    elif path == "/admin/operaciones/mensajes-entrantes":
+                        data = []
+                    elif path.startswith("/admin/operaciones/plantillas/"):
+                        assert state["write"]
+                        event = path.rsplit("/", 1)[1]
+                        data = {"evento": event, **body}
+                        communication["plantillas"] = [data if row["evento"] == event else row for row in communication["plantillas"]]
+                    elif path == "/admin/operaciones/mensajes":
+                        query = parse_qs(parsed.query)
+                        data = [row for row in outgoing if all(row[key] == query[key][0] for key in ("evento", "estado") if key in query)]
+                    elif path == "/admin/operaciones/mensajes/10/reintentar":
+                        assert state["write"]
+                        outgoing[0].update(estado="pendiente", intentos=0)
+                        data = {"estado": "pendiente"}
                     elif path == "/admin/operaciones/respaldo":
                         route.fulfill(status=200, content_type="application/zip", body=b"PK controlled backup"); return
                     elif path == "/admin/operaciones/respaldo/verificar":
@@ -91,12 +109,34 @@ def run():
 
                 page.route("**/*", api)
                 page.goto(base + "/admin/configuracion")
+                expect(page.get_by_role("heading", name="Comunicaciones de la primera entrega")).to_be_visible()
+                expect(page.get_by_text("SMTP_HOST", exact=True)).to_be_visible()
+                expect(page.get_by_text("No acredita recepción externa", exact=False)).to_be_visible()
+                count += 1
+                page.get_by_text("Preparar plantillas de cancelación y receta", exact=True).click()
+                recipe = page.locator('form').filter(has=page.get_by_role("heading", name="Receta PDF (HU-050)"))
+                recipe.get_by_label("Nombre aprobado en Meta").fill("receta_pdf")
+                recipe.get_by_label("Variables del cuerpo en orden (separadas por coma)").fill("codigo, nombre, mascota")
+                page.get_by_role("button", name="Guardar plantilla receta", exact=True).click()
+                expect(page.get_by_text("Plantilla guardada.", exact=False)).to_be_visible()
+                assert any(method == "PUT" and path.endswith("/plantillas/receta") and body["variables"] == ["codigo", "nombre", "mascota"] for method, path, body, _ in calls)
+                count += 1
+                page.get_by_label("Evento de comunicación").select_option("receta")
+                page.get_by_label("Estado del envío").select_option("error")
+                page.get_by_role("button", name="Filtrar envíos", exact=True).click()
+                expect(page.get_by_role("button", name="Reintentar #10", exact=True)).to_be_visible()
+                assert any(path.endswith("/mensajes") and parse_qs(query) == {"evento": ["receta"], "estado": ["error"]} for _, path, _, query in calls)
+                count += 1
+                page.get_by_role("button", name="Reintentar #10", exact=True).click()
+                expect(page.get_by_text("Reintento preparado.", exact=False)).to_be_visible()
+                expect(page.get_by_role("button", name="Reintentar #10", exact=True)).to_have_count(0)
+                count += 1
                 expect(page.get_by_role("heading", name="Respaldo de información")).to_be_visible()
                 with page.expect_download() as download:
                     page.get_by_role("button", name="Descargar respaldo ZIP").click()
                 assert download.value.suggested_filename.startswith("respaldo-clinica-")
                 count += 1
-                page.locator('input[type="file"]').set_input_files({"name": "respaldo.zip", "mimeType": "application/zip", "buffer": b"PK controlled backup"})
+                page.locator('input[type="file"][accept=".zip,application/zip"]').set_input_files({"name": "respaldo.zip", "mimeType": "application/zip", "buffer": b"PK controlled backup"})
                 page.get_by_role("button", name="Verificar restauración aislada").click()
                 expect(page.get_by_text("Restauración lógica verificada", exact=True)).to_be_visible()
                 expect(page.get_by_text("50 tablas · 123 registros · 2 archivos.")).to_be_visible()
@@ -106,9 +146,14 @@ def run():
                 expect(page.get_by_text("No se pudo verificar la restauración: integridad inválida")).to_be_visible()
                 count += 1
                 state["write"] = False
-                page.reload()
+                page.reload(wait_until="domcontentloaded")
                 expect(page.get_by_text("Acceso de consulta. Generar y verificar respaldos requiere edición de Usuarios.")).to_be_visible()
                 expect(page.get_by_role("button", name="Descargar respaldo ZIP")).to_have_count(0)
+                count += 1
+                expect(page.get_by_role("button", name="Guardar plantilla receta", exact=True)).to_have_count(0)
+                expect(page.get_by_role("button", name="Reintentar #10", exact=True)).to_have_count(0)
+                page.get_by_text("Preparar plantillas de cancelación y receta", exact=True).click()
+                expect(page.get_by_label("Nombre aprobado en Meta").first).to_be_disabled()
                 count += 1
 
                 state["write"] = True
@@ -122,7 +167,7 @@ def run():
                 expect(page.get_by_role("button", name="Guardar anticipación", exact=True)).to_be_disabled()
                 count += 1
                 state["write"] = False
-                page.reload()
+                page.reload(wait_until="domcontentloaded")
                 expect(page.get_by_label("Horas mínimas para cancelar")).to_be_disabled()
                 expect(page.get_by_role("button", name="Guardar anticipación", exact=True)).to_have_count(0)
                 count += 1
@@ -159,7 +204,7 @@ def run():
                 assert not state["confirmed"]
                 count += 1
                 state["confirmed"] = True
-                page.reload()
+                page.get_by_role("button", name="Ya envié el mensaje: actualizar asistencia", exact=True).click()
                 expect(page.get_by_text("Asistencia confirmada por WhatsApp", exact=True)).to_be_visible()
                 expect(page.get_by_role("button", name="Preparar confirmación", exact=True)).to_have_count(0)
                 count += 1
@@ -168,7 +213,7 @@ def run():
                 expect(page.get_by_text("Asistencia confirmada por WhatsApp ·", exact=False)).to_be_visible()
                 count += 1
                 assert not errors, errors
-                print(f"OK: 12 recorridos fundamentales, {viewport['width']}x{viewport['height']}; sin errores JavaScript")
+                print(f"OK: 17 recorridos fundamentales y comunicaciones, {viewport['width']}x{viewport['height']}; sin errores JavaScript")
                 context.close()
             browser.close()
     finally:

@@ -552,7 +552,7 @@ class AppointmentService:
         tolerance = datetime.timedelta(minutes=get_settings().appointment_tolerance_minutes)
         candidates = list(self.db.scalars(select(Cita).where(
             Cita.estado.in_({EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}),
-            Cita.fecha_hora_programada + tolerance <= now,
+            Cita.fecha_hora_programada <= now - tolerance,
             Cita.fecha_hora_llegada.is_(None),
             Cita.cancelacion_automatica_at.is_(None),
         ).options(

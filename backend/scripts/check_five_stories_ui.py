@@ -19,6 +19,27 @@ MODULES = ("productos", "inventario", "ventas", "usuarios", "citas", "mascotas",
 PRODUCT = {"id": 1, "sku": "MED-1", "nombre": "Medicina", "precio_venta": "20.00", "stock_actual": 2, "stock_minimo": 3, "activo": True, "imagen_url": "/logo.png", "categoria_id": 1, "categoria_nombre": "Medicamentos", "proveedor_id": 1, "descripcion": "Medicina de prueba", "especies": [], "unidad_medida": "unidad", "fraccionable": False, "requiere_vencimiento": True, "costo_unitario": "5.00"}
 WEIGHT = {**PRODUCT, "id": 2, "sku": "KG-1", "nombre": "Alimento al peso", "stock_actual": 0.25, "stock_minimo": 0.125, "unidad_medida": "kg", "fraccionable": True, "requiere_vencimiento": False}
 UNITS = [{"codigo": "unidad", "nombre": "Unidad", "dimension": "conteo", "factor_base": 1, "fraccionable": False}, {"codigo": "kg", "nombre": "Kilogramo", "dimension": "masa", "factor_base": 1000, "fraccionable": True}, {"codigo": "g", "nombre": "Gramo", "dimension": "masa", "factor_base": 1, "fraccionable": True}]
+INSTITUTIONAL_POLICY = {"horarios": [], "excepciones": [], "galeria": [], "horas_cancelacion": 4, "horas_reprogramacion": 4, "dias_alerta_vencimiento": 30, "dias_recordatorio_vacuna": 3}
+COMMUNICATION_STATUS = {
+    "correo": {"configurado": False, "faltantes": ["SMTP_HOST", "MAIL_FROM"]},
+    "whatsapp": {"configurado": False, "faltantes": ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"]},
+    "webhook": {"configurado": False, "faltantes": ["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"]},
+    "telefono_clinica_valido": True,
+    "plantillas": [
+        {"evento": "cita_cancelada", "nombre_proveedor": "", "contenido": "Hola {nombre}, la cita de {mascota} fue cancelada: {motivo}", "variables": ["nombre", "mascota", "motivo"], "idioma": "es_PE", "activa": True},
+        {"evento": "receta", "nombre_proveedor": "", "contenido": "Hola {nombre}, receta de {mascota}: {codigo}", "variables": ["nombre", "mascota", "codigo"], "idioma": "es_PE", "activa": True},
+        {"evento": "cita_confirmada", "nombre_proveedor": "", "contenido": "Hola {nombre}, cita de {mascota}: {fecha}", "variables": ["nombre", "mascota", "fecha"], "idioma": "es_PE", "activa": True},
+        {"evento": "cita_reprogramada", "nombre_proveedor": "", "contenido": "Hola {nombre}, nueva cita de {mascota}: {fecha}", "variables": ["nombre", "mascota", "fecha"], "idioma": "es_PE", "activa": True},
+        {"evento": "veterinario_reprogramacion", "nombre_proveedor": "", "contenido": "Cita {cita} de {mascota}: {fecha}", "variables": ["cita", "mascota", "fecha"], "idioma": "es_PE", "activa": True},
+        {"evento": "veterinario_cancelacion", "nombre_proveedor": "", "contenido": "Cita {cita} de {mascota} cancelada: {motivo}", "variables": ["cita", "mascota", "motivo"], "idioma": "es_PE", "activa": True},
+        {"evento": "recordatorio_24h", "nombre_proveedor": "", "contenido": "Hola {nombre}, recuerda la cita de {mascota} para {fecha}. ASISTIRE {cita}", "variables": ["nombre", "mascota", "fecha", "cita"], "idioma": "es", "activa": True},
+        {"evento": "recordatorio_2h", "nombre_proveedor": "", "contenido": "Hola {nombre}, la cita de {mascota} es a las {fecha}.", "variables": ["nombre", "mascota", "fecha"], "idioma": "es", "activa": True},
+        {"evento": "orden_creada", "nombre_proveedor": "", "contenido": "Hola {nombre}, orden {codigo} por S/ {total}.", "variables": ["nombre", "codigo", "total"], "idioma": "es", "activa": True},
+        {"evento": "orden_recordatorio", "nombre_proveedor": "", "contenido": "Hola {nombre}, orden {codigo} por S/ {total} sin comprobante.", "variables": ["nombre", "codigo", "total"], "idioma": "es", "activa": True},
+        {"evento": "pago_validado", "nombre_proveedor": "", "contenido": "Hola {nombre}, pago de {codigo} validado. Adjuntamos boleta.", "variables": ["nombre", "codigo"], "idioma": "es", "activa": True},
+    ],
+    "alcance": "Configuración local sin conectar a proveedores. No acredita recepción externa ni worker activo.",
+}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -68,8 +89,14 @@ def run():
                         data = [{"id": 1, "nombre": "Medicamentos", "productos": 2}]
                     elif path == "/admin/configuracion":
                         data = {"nombre": "SMP", "alertas_stock": True}
-                    elif path == "/publico/institucional":
-                        data = {"horarios": [], "excepciones": [], "galeria": [], "horas_cancelacion": 4, "horas_reprogramacion": 4, "dias_alerta_vencimiento": 30, "dias_recordatorio_vacuna": 3}
+                    elif path == "/admin/operaciones/comunicaciones/estado":
+                        data = COMMUNICATION_STATUS
+                    elif path == "/admin/operaciones/mensajes":
+                        data = []
+                    elif path == "/admin/operaciones/mensajes-entrantes":
+                        data = []
+                    elif path in {"/publico/institucional", "/admin/operaciones/configuracion"}:
+                        data = INSTITUTIONAL_POLICY
                     elif path == "/api/admin/ventas":
                         data = {"total": 0, "pagina": 1, "tamano_pagina": 4, "ventas": []}
                     elif path == "/api/admin/ventas/resumen":

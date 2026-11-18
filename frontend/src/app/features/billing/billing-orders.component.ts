@@ -6,9 +6,10 @@ import { finalize, forkJoin, Observable } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { apiError, BillingApiService, BillingAttention, BillingCatalog, BillingOrder, DiscountAuthorization, OrderLine, OwnPayments, PaymentMethod, StaffSale } from './billing-api.service';
 import { DiscountAuthorizationsComponent } from './discount-authorizations.component';
+import { WhatsAppProofComponent } from './whatsapp-proof.component';
 
 @Component({
-  selector: 'app-billing-orders', standalone: true, imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent],
+  selector: 'app-billing-orders', standalone: true, imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent, WhatsAppProofComponent],
   templateUrl: './billing-orders.component.html', styleUrl: '../admin/shared/admin-ui.css',
 })
 export class BillingOrdersComponent implements OnDestroy {

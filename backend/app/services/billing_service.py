@@ -13,7 +13,7 @@ from app.models.user import Cliente, TipoUsuario, Usuario
 from app.schemas.cashier import VentaCreate
 from app.schemas.operations import OrderItem, PendingOrderCreate
 from app.services.cashier_service import CashierService, ProductoNoDisponibleError, StockInsuficienteError, VentaInvalidaError
-from app.services.document_service import receipt_pdf, make_pdf
+from app.services.document_service import make_pdf
 from app.services.messaging_service import MessagingService
 from app.services.operation_utils import branch_id, row_data
 from app.services.purchase_service import validate_proof
@@ -61,7 +61,7 @@ class BillingService:
         if state:
             statement = statement.where(OrdenPendiente.estado == state)
         rows = [self.serialize(order) for order in self.db.scalars(statement.order_by(OrdenPendiente.id.desc())).all()]
-        return [row for row in rows if row["sin_comprobante"] and row["estado"] not in {"pagada", "anulada"}] if without_proof else rows
+        return [row for row in rows if row["sin_comprobante"] and row["estado"] in {"pendiente", "parcial"}] if without_proof else rows
 
     def create(self, user, data, commit=True):
         self.db.info["actor_id"] = user.id
@@ -112,7 +112,7 @@ class BillingService:
         order = OrdenPendiente(codigo=f"OC-{uuid4().hex[:12].upper()}", cliente_id=data.cliente_id, creador_id=user.id, sucursal_id=branch_id(self.db), proceso_id=data.proceso_id, detalles=details, total=total - discount, descuento=discount, autorizacion_id=data.autorizacion_id, clave_idempotencia=data.clave_idempotencia)
         self.db.add(order); self.db.flush()
         client = self.db.get(Usuario, order.cliente_id)
-        MessagingService(self.db).to_user(client, "orden_creada", f"orden:{order.id}", {"nombre": client.nombre, "codigo": order.codigo, "total": order.total}, entity_id=order.id)
+        MessagingService(self.db).to_user(client, "orden_creada", f"orden:{order.id}", {"nombre": client.nombre, "codigo": order.codigo, "total": f"{order.total:.2f}"}, entity_id=order.id)
         if commit:
             self.db.commit()
         return order
@@ -151,7 +151,7 @@ class BillingService:
                     or sha256(existing.comprobante or b"").digest() != sha256(content or b"").digest()):
                 raise HTTPException(409, "La clave ya corresponde a otro abono")
             return self.serialize(order)
-        if order.estado in {"anulada", "pagada"}:
+        if order.estado in {"anulada", "pagada", "vencida"}:
             raise HTTPException(409, "La orden está finalizada")
         if data.monto > self.serialize(order)["saldo"]:
             raise HTTPException(422, "El abono supera el saldo pendiente")
@@ -178,7 +178,7 @@ class BillingService:
         order = self.get(payment.orden_id, user, lock=True)
         if payment.estado == "validado":
             return self.serialize(order)
-        if payment.estado != "enviado" or order.estado in {"anulada", "pagada"}:
+        if payment.estado != "enviado" or order.estado in {"anulada", "pagada", "vencida"}:
             raise HTTPException(409, "Este abono no puede validarse")
         register = CashierService(self.db).get_open_register(user.id)
         if register is None:
@@ -202,8 +202,6 @@ class BillingService:
             except (ProductoNoDisponibleError, StockInsuficienteError, VentaInvalidaError) as exc:
                 raise HTTPException(409, str(exc) or "El producto no está disponible o su stock es insuficiente; el pago no fue validado") from exc
             register.total_ingresos_validados -= order.total
-            client = self.db.get(Usuario, order.cliente_id)
-            MessagingService(self.db).to_user(client, "pago_validado", f"pago:{order.id}", {"nombre": client.nombre, "codigo": order.codigo}, receipt_pdf(receipt), f"{receipt.serie_correlativo}.pdf")
         if commit:
             self.db.commit()
         return self.serialize(order)

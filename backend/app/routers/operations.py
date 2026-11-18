@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.clinic import Caja, Mascota, OrdenCobro, Producto, ProcesoAtencion, Proveedor, Servicio, ServicioMedico, ServicioEstetica
 from app.models.purchase import PedidoWeb
-from app.models.operations import AbonoOrden, AutorizacionDescuento, CompraProveedor, Egreso, LoteInventario, MensajeSalida, Sucursal, UnidadMedida
+from app.models.operations import AbonoOrden, AutorizacionDescuento, CompraProveedor, Egreso, LoteInventario, MensajeEntrante, MensajeSalida, Sucursal, UnidadMedida
 from app.models.user import TipoUsuario, Usuario
 from app.schemas.operations import BookingPolicy, ExpiryPolicy, BranchWrite, ClinicHours, ClinicPolicy, DiscountRequest, ExpenseWrite, InstallmentWrite, PendingOrderCreate, Reason, ReceivePurchase, ServiceWrite, TemplateWrite, UnitWrite
 from app.security import check_permission, get_current_active_user, require_permission
@@ -25,6 +25,7 @@ from app.services.policy_service import PolicyService
 from app.services.user_service import UserService
 from app.services.sales_service import SalesService
 from app.schemas.appointments import ScheduleRead, ScheduleUpdate
+from app.schemas.operations import GalleryWrite, TemplatePreview, VaccinePolicy, WhatsAppProofWrite
 from app.services.appointment_service import AppointmentService, InvalidScheduleError, ScheduleBlockNotFoundError
 
 router = APIRouter(tags=["Operaciones clínicas"])
@@ -34,6 +35,7 @@ Admin = Annotated[Usuario, Depends(require_permission("usuarios"))]
 InventoryAdmin = Annotated[Usuario, Depends(require_permission("inventario"))]
 SalesAdmin = Annotated[Usuario, Depends(require_permission("ventas"))]
 ScheduleAdmin = Annotated[Usuario, Depends(require_permission("citas"))]
+INSTALLATIONS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "instalaciones"
 
 
 def active_veterinarian(db, veterinarian_id):
@@ -129,11 +131,25 @@ async def upload_installation(db: Db, user: Admin, archivo: UploadFile = File(..
     media, extension = validate_proof(content)
     if media == "application/pdf":
         raise HTTPException(422, "La galería necesita fotografías JPG o PNG")
-    directory = Path(__file__).resolve().parents[2] / "uploads" / "instalaciones"
+    directory = INSTALLATIONS_DIR
     directory.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid4().hex}.{extension}"
     (directory / filename).write_bytes(content)
     return {"url": f"/uploads/instalaciones/{filename}"}
+
+
+@router.put("/admin/operaciones/galeria", response_model=ClinicPolicy)
+def gallery(data: GalleryWrite, db: Db, user: Admin):
+    check_permission(db, user, "usuarios", "editar")
+    if any(not (INSTALLATIONS_DIR / Path(photo.url).name).is_file() for photo in data.galeria):
+        raise HTTPException(422, "Sube las fotografías antes de publicarlas en la galería")
+    return PolicyService(db).save_fields(data)
+
+
+@router.put("/admin/operaciones/politicas-vacunas", response_model=ClinicPolicy)
+def vaccine_policy(data: VaccinePolicy, db: Db, user: Admin):
+    check_permission(db, user, "usuarios", "editar")
+    return PolicyService(db).save_fields(data)
 
 
 @router.get("/admin/operaciones/servicios")
@@ -244,7 +260,7 @@ def receive_purchase(data: ReceivePurchase, db: Db, user: InventoryAdmin):
 
 
 @router.get("/operaciones/ordenes")
-def pending_orders(db: Db, user: User, fecha_inicial: dt.date | None = None, fecha_final: dt.date | None = None, estado: Literal["pendiente", "parcial", "pagada", "anulada"] | None = None, sin_comprobante: bool = False):
+def pending_orders(db: Db, user: User, fecha_inicial: dt.date | None = None, fecha_final: dt.date | None = None, estado: Literal["pendiente", "parcial", "pagada", "anulada", "vencida"] | None = None, sin_comprobante: bool = False):
     if fecha_inicial and fecha_final and fecha_inicial > fecha_final:
         raise HTTPException(422, "Rango de fechas inválido")
     return BillingService(db).list(user, fecha_inicial, fecha_final, estado, sin_comprobante)
@@ -254,6 +270,34 @@ def pending_orders(db: Db, user: User, fecha_inicial: dt.date | None = None, fec
 def order_detail(order_id: int, db: Db, user: User):
     service = BillingService(db)
     return service.serialize(service.get(order_id, user), history=user.tipo != TipoUsuario.CLIENTE)
+
+
+@router.post("/operaciones/ordenes/{order_id}/preparar-whatsapp")
+def prepare_whatsapp_proof(order_id: int, data: WhatsAppProofWrite, db: Db, user: User, response: Response):
+    import re
+    from urllib.parse import quote
+    from app.models.clinic import ConfiguracionClinica
+    if user.tipo != TipoUsuario.CLIENTE:
+        raise HTTPException(403, "El comprobante debe enviarlo el cliente propietario")
+    check_permission(db, user, "ventas", "crear")
+    service = BillingService(db)
+    order = service.get(order_id, user)
+    if order.estado not in {"pendiente", "parcial"} or data.monto > service.serialize(order)["saldo"]:
+        raise HTTPException(409, "La orden no admite este importe; actualiza su saldo")
+    if not re.fullmatch(r"(?:\d{9}|\d{10,15})", re.sub(r"\D", "", user.telefono or "")):
+        raise HTTPException(409, "Actualiza el teléfono de tu perfil antes de enviar el comprobante")
+    config = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
+    phone = re.sub(r"\D", "", config.telefono if config else "")
+    if len(phone) == 9:
+        phone = "51" + phone
+    if not 10 <= len(phone) <= 15:
+        raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp")
+    caption = f"{order.codigo} MONTO={data.monto:.2f} MEDIO={data.medio}"
+    if data.codigo_operacion:
+        caption += f" OPERACION={data.codigo_operacion}"
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(caption)}", "leyenda": caption, "telefono_remitente": user.telefono,
+            "instrucciones": "Adjunta JPG, PNG o PDF de hasta 5 MB y pega esta leyenda en el mismo archivo. Enviar solo el texto no registra el comprobante. Caja debe revisar y validar el pago."}
 
 
 @router.get("/operaciones/atenciones")
@@ -443,23 +487,60 @@ def message_templates(db: Db, _user: Admin):
     return MessagingService(db).templates()
 
 
+@router.get("/admin/operaciones/comunicaciones/estado")
+def communication_readiness(db: Db, _user: Admin, response: Response):
+    from app.services.communication_status_service import communication_status
+    response.headers["Cache-Control"] = "private, no-store"
+    return communication_status(db)
+
+
 @router.put("/admin/operaciones/plantillas/{event}")
 def write_template(event: str, data: TemplateWrite, db: Db, user: Admin):
     check_permission(db, user, "usuarios", "editar")
     return MessagingService(db).save_template(event, data)
 
 
+@router.post("/admin/operaciones/plantillas/{event}/vista-previa")
+def preview_template(event: str, data: TemplatePreview, db: Db, _user: Admin, response: Response):
+    response.headers["Cache-Control"] = "private, no-store"
+    return MessagingService(db).preview(event, data.valores)
+
+
 @router.get("/admin/operaciones/mensajes")
-def message_log(db: Db, _user: Admin):
-    return [row_data(row, exclude={"contenido", "parametros"} if row.canal == "correo" else ()) for row in db.scalars(select(MensajeSalida).order_by(MensajeSalida.id.desc()).limit(200)).all()]
+def message_log(db: Db, _user: Admin, response: Response, evento: str | None = None, estado: str | None = None):
+    response.headers["Cache-Control"] = "private, no-store"
+    statement = select(MensajeSalida)
+    if evento:
+        statement = statement.where(MensajeSalida.evento == evento)
+    if estado:
+        statement = statement.where(MensajeSalida.estado == estado)
+    return [row_data(row, exclude={"contenido", "parametros"} if row.canal == "correo" else ()) for row in db.scalars(statement.order_by(MensajeSalida.id.desc()).limit(200)).all()]
+
+
+@router.get("/admin/operaciones/mensajes-entrantes")
+def incoming_message_log(db: Db, _user: Admin, response: Response):
+    response.headers["Cache-Control"] = "private, no-store"
+    return [row_data(row, exclude={"contenido"}) for row in db.scalars(select(MensajeEntrante).order_by(MensajeEntrante.id.desc()).limit(200)).all()]
 
 
 @router.post("/admin/operaciones/mensajes/{message_id}/reintentar")
 def retry_message(message_id: int, db: Db, user: Admin):
     check_permission(db, user, "usuarios", "editar")
     item = db.get(MensajeSalida, message_id)
-    if item is None or item.estado in {"enviado", "entregado", "leido"}:
+    if item is None or item.estado not in {"pendiente", "error", "pendiente_configuracion"}:
         raise HTTPException(409, "El mensaje no puede reintentarse")
+    if item.canal == "correo" and item.evento in {"verificar", "recuperar"}:
+        from app.models.operations import DesafioCuenta
+        from app.services.access_service import aware, now
+        challenge = db.get(DesafioCuenta, item.entidad_id) if item.entidad_id else None
+        if challenge is None or challenge.usado_en is not None or aware(challenge.expira_en) <= now():
+            raise HTTPException(409, "El código o enlace ya no es válido; el cliente debe solicitar otro correo")
+    from app.services.access_service import now
+    from app.services.operational_message_service import operational_message_ready
+    operational_message_ready(db, item, now())
+    if item.estado == "cancelado":
+        db.commit()
+        raise HTTPException(409, item.error)
     item.estado, item.intentos, item.proximo_intento = "pendiente", 0, None
     db.commit()
     return {"estado": "pendiente"}

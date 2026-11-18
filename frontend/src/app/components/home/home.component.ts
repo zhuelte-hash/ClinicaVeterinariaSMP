@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { PublicProductsService } from '../../core/services/public-products.service';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
+import { InstallationsGalleryComponent } from './installations-gallery.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, ProductCardComponent],
+  imports: [RouterLink, ProductCardComponent, InstallationsGalleryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative isolate overflow-hidden bg-pet-900 text-white">
@@ -91,6 +92,8 @@ import { ProductCardComponent } from '../../shared/product-card/product-card.com
         </a>
       </div>
     </div>
+
+    <app-installations-gallery />
 
     <section class="bg-brand-50 py-16">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

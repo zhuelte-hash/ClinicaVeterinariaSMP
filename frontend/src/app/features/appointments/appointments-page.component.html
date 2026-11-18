@@ -44,7 +44,7 @@
       </div>
     </section>
     <app-reschedule-request [appointments]="appointments()" />
-    <app-attendance-confirmation [appointments]="appointments()" />
+    <app-attendance-confirmation [appointments]="appointments()" (refresh)="loadData()" />
     <p class="mt-6 text-sm text-slate-500">El veterinario revisará tu solicitud y coordinará la confirmación de la cita contigo.</p>
     }
   </div>

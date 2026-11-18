@@ -78,6 +78,21 @@ class ClinicPolicy(ClinicHours):
     dias_recordatorio_vacuna: int = Field(default=3, ge=0, le=30)
 
 
+class GalleryWrite(TextModel):
+    galeria: list[GalleryPhoto] = Field(max_length=50)
+
+    @field_validator("galeria")
+    @classmethod
+    def unique_photos(cls, value):
+        if len({photo.url for photo in value}) != len(value):
+            raise ValueError("No repitas fotografías en la galería")
+        return value
+
+
+class VaccinePolicy(TextModel):
+    dias_recordatorio_vacuna: int = Field(ge=0, le=30)
+
+
 class BookingPolicy(TextModel):
     horas_cancelacion: int = Field(ge=0, le=168)
     horas_reprogramacion: int = Field(ge=4, le=168)
@@ -208,6 +223,23 @@ class TemplateWrite(TextModel):
     contenido: str = Field(min_length=3, max_length=4000)
     variables: list[str] = Field(default_factory=list, max_length=15)
     activa: bool = True
+
+
+class TemplatePreview(TextModel):
+    valores: dict[str, str] = Field(max_length=15)
+
+    @field_validator("valores")
+    @classmethod
+    def bounded_values(cls, values):
+        if any(not value.strip() or len(value) > 500 for value in values.values()):
+            raise ValueError("Cada ejemplo debe contener entre 1 y 500 caracteres")
+        return values
+
+
+class WhatsAppProofWrite(TextModel):
+    monto: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    medio: Literal["yape", "plin", "tarjeta", "transferencia"]
+    codigo_operacion: str | None = Field(default=None, max_length=100, pattern=r"^[A-Za-z0-9-]+$")
 
 
 class SurveyAnswer(TextModel):

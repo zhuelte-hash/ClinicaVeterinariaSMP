@@ -278,6 +278,8 @@ class CashierService:
                         serie_correlativo=f"B001-{order.id:08d}", total_pagar=order.monto_total))
         order.estado_pago = EstadoPago.VALIDADO_CONFIRMADO
         register.total_ingresos_validados += order.monto_total
+        self.db.flush()
+        self._queue_payment_confirmation(order)
         self.db.commit()
 
     def reject_pending(self, cashier_id: int, order_id: int, reason: str) -> None:
@@ -470,6 +472,8 @@ class CashierService:
         )
         self.db.add(receipt)
         register.total_ingresos_validados += total
+        self.db.flush()
+        self._queue_payment_confirmation(order, pre_order)
         if not commit:
             self.db.flush()
             return self.get_receipt(cashier.id, order.id)
@@ -483,6 +487,21 @@ class CashierService:
                     return self._existing_sale(previous, cashier, data)
             raise VentaDuplicadaError from exc
         return self.get_receipt(cashier.id, order.id)
+
+    def _queue_payment_confirmation(self, sale, pending_order=None):
+        if sale.cliente_id is None:
+            return
+        from app.services.document_service import receipt_pdf
+        from app.services.messaging_service import MessagingService
+        user = self.db.get(Usuario, sale.cliente_id)
+        self.db.expire(sale, ["comprobante_venta"])
+        receipt = self.get_receipt(sale.cajero_id, sale.id)
+        key = f"pago:{pending_order.id}" if pending_order else f"venta-pagada:{sale.id}"
+        code = pending_order.codigo if pending_order else sale.codigo_orden
+        reference = pending_order.id if pending_order else sale.id
+        MessagingService(self.db).to_user(user, "pago_validado", key,
+            {"nombre": user.nombre, "codigo": code}, receipt_pdf(receipt),
+            f"{receipt.serie_correlativo}.pdf", entity_id=reference)
 
     def _existing_sale(self, order: OrdenCobro, cashier: Usuario, data: VentaCreate) -> BoletaRead:
         requested = {}

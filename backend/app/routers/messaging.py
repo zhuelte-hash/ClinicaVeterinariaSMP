@@ -7,6 +7,7 @@ import re
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -36,6 +37,28 @@ def verify_webhook(mode: str = Query(alias="hub.mode"), token: str = Query(alias
 def normalized_phone(value):
     digits = "".join(filter(str.isdigit, value or ""))
     return "51" + digits if len(digits) == 9 else digits
+
+
+def download_whatsapp_proof(media_id):
+    """Limita también la descarga real: el tamaño declarado por Meta no basta."""
+    settings = get_settings()
+    headers = {"Authorization": f"Bearer {settings.whatsapp_access_token}"}
+    metadata = httpx.get(f"{settings.whatsapp_api_url}/{media_id}", headers=headers, timeout=20)
+    metadata.raise_for_status()
+    info = metadata.json()
+    maximum = 5 * 1024 * 1024
+    if info.get("file_size", 0) > maximum:
+        raise HTTPException(422, "El comprobante supera los 5 MB")
+    if info.get("mime_type") not in {"image/jpeg", "image/png", "application/pdf"}:
+        raise HTTPException(422, "Adjunta un comprobante JPG, PNG o PDF")
+    with httpx.stream("GET", info["url"], headers=headers, timeout=20) as response:
+        response.raise_for_status()
+        content = bytearray()
+        for chunk in response.iter_bytes():
+            if len(content) + len(chunk) > maximum:
+                raise HTTPException(422, "El comprobante supera los 5 MB")
+            content.extend(chunk)
+    return bytes(content)
 
 
 async def receive_message(message, db):
@@ -75,31 +98,40 @@ async def receive_message(message, db):
                 request_reschedule(db, appointment.mascota.cliente.usuario, appointment.id, RescheduleRequest(fecha_propuesta=reschedule[2], motivo="Solicitado por WhatsApp", canal="whatsapp"))
                 item.resultado = "reprogramacion_solicitada"
         elif kind in {"image", "document"}:
-            code = re.search(r"OC-[A-F0-9]{12}", caption, re.I)
-            amount = re.search(r"MONTO\s*[=:]\s*(\d+(?:\.\d{1,2})?)", caption, re.I)
-            method = re.search(r"MEDIO\s*[=:]\s*(yape|plin|transferencia|tarjeta)", caption, re.I)
-            operation = re.search(r"OPERACION\s*[=:]\s*([A-Za-z0-9-]+)", caption, re.I)
+            code = re.search(r"\bOC-[A-F0-9]{12}\b", caption, re.I)
+            amount = re.search(r"\bMONTO\s*[=:]\s*(\d+(?:\.\d{1,2})?)(?=\s|$)", caption, re.I)
+            method = re.search(r"\bMEDIO\s*[=:]\s*(yape|plin|transferencia|tarjeta)(?=\s|$)", caption, re.I)
+            operation = re.search(r"\bOPERACION\s*[=:]\s*([A-Za-z0-9-]+)(?=\s|$)", caption, re.I)
             if not code or not amount or not method:
                 raise HTTPException(422, "Incluye OC-código, MONTO=importe y MEDIO=yape/plin/transferencia/tarjeta en la leyenda")
             order = db.scalar(select(OrdenPendiente).where(OrdenPendiente.codigo == code[0].upper()).execution_options(skip_branch_filter=True))
             owner = db.get(Usuario, order.cliente_id) if order else None
             if owner is None or normalized_phone(owner.telefono) != phone:
                 raise HTTPException(403, "El remitente no corresponde al propietario de la orden")
-            settings = get_settings()
-            headers = {"Authorization": f"Bearer {settings.whatsapp_access_token}"}
-            media = httpx.get(f"{settings.whatsapp_api_url}/{message[kind]['id']}", headers=headers, timeout=20)
-            media.raise_for_status()
-            metadata = media.json()
-            if metadata.get("file_size", 0) > 5 * 1024 * 1024:
-                raise HTTPException(422, "El comprobante supera los 5 MB")
-            content = httpx.get(metadata["url"], headers=headers, timeout=20)
-            content.raise_for_status()
+            if not owner.activo:
+                raise HTTPException(403, "La cuenta del propietario está desactivada")
             db.info["sucursal_id"] = order.sucursal_id
+            db.info["actor_id"] = owner.id
+            check_permission(db, owner, "ventas", "crear")
             data = InstallmentWrite(monto=amount[1], medio=method[1].lower(), codigo_operacion=operation[1] if operation else None, canal="whatsapp", clave_idempotencia=f"wa:{message_id}")
-            BillingService(db).add_payment(owner, order.id, data, content.content, commit=False)
+            content = download_whatsapp_proof(message[kind]["id"])
+            BillingService(db).add_payment(owner, order.id, data, content, commit=False)
             item.resultado = f"comprobante_vinculado:{order.codigo}"
         else:
             item.resultado = "mensaje_registrado_sin_comando"
+        db.commit()
+    except httpx.HTTPError as exc:
+        db.rollback()
+        # Sin registrar el ID como procesado: Meta puede volver a entregar el evento.
+        raise HTTPException(503, "No se pudo descargar el comprobante; vuelve a entregar el evento") from exc
+    except IntegrityError:
+        db.rollback()
+        if db.scalar(select(MensajeEntrante.id).where(MensajeEntrante.proveedor_id == message_id)):
+            return
+        raise
+    except (ValueError, KeyError, TypeError) as exc:
+        db.rollback()
+        db.add(MensajeEntrante(proveedor_id=message_id, telefono=phone, contenido=caption, resultado="Comprobante o comando inválido; revisa formato y archivo"))
         db.commit()
     except HTTPException as exc:
         db.rollback()
