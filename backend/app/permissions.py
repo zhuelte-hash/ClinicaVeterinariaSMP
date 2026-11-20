@@ -18,7 +18,7 @@ def portal_permission(path, method):
     if path.startswith(("/api/ventas", "/api/admin/ventas", "/caja", "/pedidos-web", "/operaciones/")):
         module = "ventas"
     elif path.startswith("/portal/"):
-        module = "historias_clinicas" if any(part in path for part in ("/historial", "/atencion", "/receta", "/examen", "/derivacion", "/notas-privadas")) else "mascotas" if "/mascotas" in path else "usuarios" if "/clientes" in path else "citas"
+        module = "historias_clinicas" if any(part in path for part in ("/historial", "/atencion", "/receta", "/examen", "/derivacion", "/especialistas", "/notas-privadas")) else "mascotas" if "/mascotas" in path else "usuarios" if "/clientes" in path else "citas"
     else:
         return None
     action = "ver" if method == "GET" else "eliminar" if method == "DELETE" else "editar" if method in {"PATCH", "PUT"} else "crear"

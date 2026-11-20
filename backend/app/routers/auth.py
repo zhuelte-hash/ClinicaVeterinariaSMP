@@ -18,10 +18,15 @@ def register(data: ClientRegisterRequest, background_tasks: BackgroundTasks, db:
     AccessService.require_email_delivery()
     service = UserService(db)
     try:
-        user = service.create_client(data)
+        user = service.create_client(data, commit=False)
+        message_id = AccessService(db).issue(user, "verificar", commit=False)
+        db.commit()
     except CorreoDuplicadoError as exc:
+        db.rollback()
         raise HTTPException(status_code=409, detail="El correo ya esta registrado") from exc
-    message_id = AccessService(db).issue(user, "verificar")
+    except Exception:
+        db.rollback()
+        raise
     background_tasks.add_task(deliver_account_email, message_id)
     return TokenResponse(access_token="", user=user, verification_required=True)
 

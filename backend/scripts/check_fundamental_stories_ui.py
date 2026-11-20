@@ -110,6 +110,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/configuracion")
                 expect(page.get_by_role("heading", name="Comunicaciones de la primera entrega")).to_be_visible()
                 expect(page.get_by_text("SMTP_HOST", exact=True)).to_be_visible()

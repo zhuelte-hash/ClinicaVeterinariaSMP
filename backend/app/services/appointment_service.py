@@ -31,6 +31,7 @@ from app.models.user import Cliente, Usuario, Veterinario
 from app.config import get_settings
 from app.services.policy_service import PolicyService
 from app.services.access_service import aware
+from app.services.operation_utils import branch_id, process_in_branch
 from app.models.operations import DerivacionClinica
 from app.services.whatsapp_service import WhatsAppService
 from app.schemas.appointments import (
@@ -137,7 +138,7 @@ class AppointmentService:
             )
             .outerjoin(ProcesoAtencion.cita)
             .outerjoin(ProcesoAtencion.proceso_medico)
-            .where(or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id))
+            .where(process_in_branch(self.db), or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id, ProcesoAtencion.id.in_(select(DerivacionClinica.proceso_id).where(DerivacionClinica.receptor_id == veterinarian_id, DerivacionClinica.estado == "aceptada"))))
             .group_by(ProcesoAtencion.mascota_id)
             .subquery()
         )
@@ -147,6 +148,7 @@ class AppointmentService:
             .join(Cliente.usuario)
             .outerjoin(appointments, appointments.c.mascota_id == Mascota.id)
             .outerjoin(records, records.c.mascota_id == Mascota.id)
+            .where(or_(Usuario.sucursal_id == branch_id(self.db), appointments.c.citas.is_not(None), records.c.atenciones.is_not(None)))
             .order_by(func.lower(Mascota.nombre), Mascota.id)
         )
         if pet_id is not None:
@@ -194,6 +196,7 @@ class AppointmentService:
             scheduled_at = conflict_end + datetime.timedelta(minutes=1)
         appointment = Cita(
             mascota_id=pet.id,
+            sucursal_id=branch_id(self.db),
             servicio_id=service.id,
             veterinario_id=veterinarian.id,
             fecha_hora_programada=scheduled_at,
@@ -280,6 +283,7 @@ class AppointmentService:
         client_record = self.db.get(Cliente, client.id)
         appointment = Cita(
             mascota_id=data.mascota_id,
+            sucursal_id=branch_id(self.db),
             servicio_id=data.servicio_id,
             fecha_hora_programada=data.fecha_hora_programada,
             fecha_hora_fin_programada=data.fecha_hora_programada + datetime.timedelta(minutes=service.duracion_estimada_min),
@@ -899,6 +903,7 @@ class AppointmentService:
             .outerjoin(ProcesoAtencion.proceso_medico)
             .where(
                 ProcesoAtencion.id == process_id,
+                process_in_branch(self.db),
                 or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id, ProcesoAtencion.id.in_(select(DerivacionClinica.proceso_id).where(DerivacionClinica.receptor_id == veterinarian_id, DerivacionClinica.estado == "aceptada"))),
             )
         )
@@ -938,6 +943,9 @@ class AppointmentService:
             self.db.add(ficha)
         previous = (ficha.examenes_resultados or "").strip()
         ficha.examenes_resultados = f"{previous}\n{result.strip()}".strip() if previous else result.strip()
+        from app.services.automation_service import notify_result
+        from app.services.access_service import digest
+        notify_result(self.db, process, f"laboratorio:resultado:{process.id}:{digest(ficha.examenes_resultados)}")
         self.db.commit()
         return self.get_clinical_record_for_process(process_id)
 
@@ -989,6 +997,9 @@ class AppointmentService:
         item.estado = data.estado
         item.resultado = data.resultado
         item.interpretacion = data.interpretacion
+        if data.estado == EstadoOrdenExamen.RESULTADO_DISPONIBLE:
+            from app.services.automation_service import notify_result
+            notify_result(self.db, self.db.get(ProcesoAtencion, item.proceso_id), f"laboratorio:orden:{item.id}")
         self.db.commit()
         self.db.refresh(item)
         return item
@@ -1054,8 +1065,10 @@ class AppointmentService:
                 or_(
                     Cita.veterinario_id == veterinarian_id,
                     ProcesoAtencionMedica.veterinario_id == veterinarian_id,
+                    ProcesoAtencion.id.in_(select(DerivacionClinica.proceso_id).where(DerivacionClinica.receptor_id == veterinarian_id, DerivacionClinica.estado == "aceptada")),
                 )
             )
+            statement = statement.where(process_in_branch(self.db))
         return list(self.db.scalars(statement.options(
             selectinload(ProcesoAtencion.cita).selectinload(Cita.servicio),
             selectinload(ProcesoAtencion.proceso_medico).selectinload(ProcesoAtencionMedica.ficha_clinica),
@@ -1088,7 +1101,7 @@ class AppointmentService:
             .order_by(ProcesoAtencion.fecha_inicio.desc(), ProcesoAtencion.id.desc())
         )
         if veterinarian_id is not None:
-            statement = statement.where(or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id))
+            statement = statement.where(process_in_branch(self.db), or_(Cita.veterinario_id == veterinarian_id, ProcesoAtencionMedica.veterinario_id == veterinarian_id, ProcesoAtencion.id.in_(select(DerivacionClinica.proceso_id).where(DerivacionClinica.receptor_id == veterinarian_id, DerivacionClinica.estado == "aceptada"))))
         return list(self.db.scalars(statement).all())
 
     def get_notifications(self, user_id: int) -> list[Notificacion]:

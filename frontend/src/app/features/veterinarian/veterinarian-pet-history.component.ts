@@ -114,10 +114,6 @@ export class VeterinarianPetHistoryComponent {
   updatePatient(pet: Pet): void { this.patient.update(current => current ? { ...current, ...pet } : current); }
   uploadImage(event: Event, record: ClinicalRecord, type = this.studyType): void {
     if (this.uploading()) return;
-    if (type === 'Laboratorio') {
-      this.error.set('Para laboratorio registra el examen y sus resultados, no subas una imagen.');
-      return;
-    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;

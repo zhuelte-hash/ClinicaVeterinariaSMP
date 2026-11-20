@@ -10,9 +10,152 @@ Ejecuta los comandos de PowerShell desde `backend`.
 
 API: <http://localhost:8000/docs>. Estado del servidor: <http://localhost:8000/health>.
 
+## Cinco parciales prioritarias — E32, 20/11/2026
+
+Avance de **HU-002, HU-004, HU-036, HU-039 y HU-050**. Conservan estado **Parcial**:
+el diagnóstico del entorno sigue sin `SMTP_HOST`, `MAIL_FROM` ni las cuatro variables
+de Meta/webhook. Conteo vigente: **94 completadas, 21 parciales y 0 pendientes**.
+
+- **HU-002:** registro, desafío de verificación y mensaje se guardan en una sola transacción;
+  si falla la preparación se revierte la cuenta y puede intentarse de nuevo. Reenvíos concurrentes
+  se serializan por cuenta, conservando un solo desafío vigente y el límite de un minuto.
+  Verificar/restablecer y reenviar usan el mismo orden de bloqueo (cuenta → desafío).
+  Un correo pendiente se cancela si se desactiva la cuenta, cambia su dirección o ya fue verificada.
+- **HU-004:** el formulario muestra la espera para solicitar otro enlace y respeta `Retry-After`.
+  El token recibido se retira de la URL al abrir el formulario, permaneciendo solo en memoria;
+  si se recarga antes de terminar, abrir de nuevo el enlace del correo. Se conservan uso único,
+  caducidad y revocación de sesiones. Correos pendientes revalidan cuenta y destinatario actuales.
+- **HU-036:** antes de enviar/reintentar la cancelación se comprueban propietario activo y
+  verificado, estado de la cita, sede y teléfono actual de la reserva (respaldo del perfil).
+  El teléfono inválido no consume intentos. El cliente consulta su estado en **Reservar cita →
+  Comunicaciones y receta de mis citas**, sin acceso al contenido interno del mensaje.
+- **HU-039:** el enlace preparado incluye `ASISTIRE <id> <codigo>`; el código HMAC depende del
+  horario UTC, último evento de horario, contacto, propietario/versión de sesión y sede.
+  Cambiar esos datos exige preparar otro enlace. Abrirlo sigue sin confirmar asistencia.
+  Se conserva compatibilidad con `ASISTIRE <id>`; cuando Meta aporta timestamp, se rechaza
+  el mensaje simple anterior al último cambio de horario. Si el webhook declara otro
+  `metadata.phone_number_id` que el configurado, se rechaza el evento. La interfaz invalida
+  enlaces preparados al actualizar los datos de la cita.
+- **HU-050:** seguimiento privado de receta, código/importe/estado de su orden y descarga
+  autenticada del **mismo PDF persistido para WhatsApp**, después del cierre. Permiso clínico,
+  propiedad, sede y respuesta `private, no-store`; no se exponen parámetros, contenido o errores
+  internos del mensaje. La entrega/reintento comprueba atención cerrada, orden vigente y PDF;
+  anulación/vencimiento de la orden cancela el aviso pendiente, un PDF ausente espera configuración.
+  Descargar no valida un pago ni acredita entrega WhatsApp.
+
+API nueva de consulta: `GET /portal/citas/{id}/comunicaciones` y
+`GET /portal/citas/{id}/receta-pdf`. Los estados se interpretan así: `pendiente` preparado,
+`pendiente_configuracion` requiere intervención de clínica, `enviado` aceptado por proveedor,
+`entregado/leido` confirmado por webhook. El seguimiento y la descarga son de solo consulta.
+
+### Verificación E32
+
+```powershell
+# Desde backend: 27 casos nuevos HTTP/JWT, SMTP TCP local y SQLite aislada
+.\.venv\Scripts\python.exe -m pytest -q tests/test_priority_partial_progress.py
+# Desde la raíz: suite completa, incluidos cuatro casos PostgreSQL nativos nuevos
+.\backend\.venv\Scripts\python.exe backend/scripts/test_postgres.py --all
+# Desde frontend
+npm run build
+# Desde la raíz: Edge y API/JWT reales con SMTP local y webhook controlado
+.\backend\.venv\Scripts\python.exe backend/scripts/check_priority_partials_ui.py
+```
+
+Resultado final: **416 aprobadas, cero fallos y cero omitidas, 107,92 s**. PostgreSQL temporal
+migrado hasta `20261119_26`, contenedor/red eliminados; 31 casos nuevos (27 SQLite/JWT y cuatro
+PostgreSQL). Incluye solicitudes simultáneas de verificación/recuperación, carrera entre reenvío
+y verificación sin interbloqueo y asistencia versionada persistida. Build correcto, 625,38 kB
+iniciales (avisos existentes de presupuesto/CommonJS). Dos recorridos integrados Edge aprobados
+en 1440×1000 y 390×844, sin errores JavaScript: SMTP recibido, verificación, recuperación/espera,
+token retirado/sesión revocada, asistencia mediante webhook firmado, seguimiento de cancelación
+y descarga PDF con orden. Además, 52 regresiones visuales con API controlada aprobadas:
+`check_next_five_stories_ui.py` (18) y `check_fundamental_stories_ui.py` (34).
+
+**Cierre externo pendiente:** configurar los proveedores y completar los cinco recorridos de
+[GUIA_GMAIL_META.md](GUIA_GMAIL_META.md), registrando recepción real, fecha, escenario y referencia.
+SMTP TCP local y webhook/Meta controlados no acreditan recepción en buzón o WhatsApp externo.
+
+## Seis historias restantes — E31, 19/11/2026
+
+**Estado tras E31: 94 completadas, 21 parciales y 0 pendientes (115).**
+HU-043/062/094 completadas; HU-099/107/108 implementadas y verificadas con proveedor
+controlado, en estado Parcial hasta acreditar recepción externa por WhatsApp.
+Los conteos de E28/E29/E30 de los apartados siguientes son históricos.
+
+Aplica la nueva migración **20261119_26** antes de iniciar la API actualizada:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+- **HU-043 — Administración → Ocupación de agenda (`/admin/ocupacion`):** rango inclusivo
+  de hasta 366 días y filtro de veterinario activo de la sede. Porcentaje = minutos
+  ocupados/capacidad disponible × 100. Interseca horarios profesionales e institucionales,
+  excepciones, descansos y bloqueos; combina intervalos superpuestos y excluye cancelaciones
+  e inasistencias. Presenta totales y detalle diario, incluso capacidad cero. Consulta de Citas.
+- **HU-062 — Veterinaria → Derivaciones clínicas (`/veterinario/derivaciones`):** seleccionar
+  atención propia, otro especialista activo de la misma sede y motivo. El receptor acepta o
+  rechaza con respuesta; ambos reciben seguimiento y notificaciones internas. Solo la aceptación
+  habilita continuar el expediente referido desde la ficha del paciente; no crea otra atención
+  ni reasigna la cita original. Rechaza duplicados activos, terceros, otra sede y falta de permisos.
+- **HU-094 — Administración → Sucursales (`/admin/sucursales`):** alta, edición y activación;
+  selector **Sede de trabajo** en el panel, aplicado mediante `X-Sucursal-ID`. Cambiar sede recarga
+  el panel para eliminar datos visuales anteriores. Agenda, horarios, productos, inventario,
+  caja, órdenes, pedidos web y reportes conservan contexto. Personal se asigna desde Usuarios;
+  caja/veterinaria solo operan en su sede, administración puede seleccionarla. Cambiar la sede
+  de un colaborador invalida sesiones y desactiva horarios anteriores; se rechaza mientras
+  tenga caja abierta o citas futuras activas. No se desactiva la sede propia/seleccionada ni
+  una con cajas abiertas. Clientes y permisos por rol, servicios, proveedores y políticas
+  institucionales conservan su naturaleza compartida. No se trasladan existencias entre sedes.
+  La migración persiste la sede de pedidos anteriores desde su venta/producto y crea índice/FK.
+- **HU-099 — Bienvenida:** se encola una vez al verificar el correo y completar el registro.
+  Antes de entregar/reintentar se releen cuenta activa/verificada, sede y teléfono actual;
+  un contacto inválido queda pendiente sin consumir intentos. Plantilla `bienvenida`.
+- **HU-107 — Laboratorio disponible:** guardar resultados escritos, marcar una orden de examen
+  disponible o adjuntar un archivo de tipo Laboratorio encola un aviso transaccional. En Ficha
+  clínica → Imágenes y archivos puede seleccionarse **Laboratorio**. El mensaje contiene un enlace
+  a Mis mascotas; no incluye resultados clínicos ni archivos privados. El propietario inicia
+  sesión para consultarlos; las descargas existentes tienen enlaces firmados de corta duración.
+  Plantilla `laboratorio`.
+- **HU-108 — Encuesta posterior:** el primer ciclo del worker a partir de 24 horas del cierre
+  crea una encuesta única, también para atención sin cita, con token aleatorio guardado como hash
+  y vigencia de 30 días. `/encuesta/:token` permite valorar de 1 a 5 y comentar hasta 2000 caracteres;
+  no exige iniciar sesión ni muestra datos clínicos. Persiste una sola respuesta, rechaza enlaces
+  caducados y cancela envíos pendientes si ya fue respondida. El seguimiento administrativo
+  omite el contenido/parámetros de encuesta para no revelar su enlace. Plantilla `encuesta`.
+
+Para HU-099/107/108 configura las tres plantillas y Meta/webhook según
+[GUIA_GMAIL_META.md](GUIA_GMAIL_META.md), `FRONTEND_URL` accesible y el worker activo.
+Registrar recepción externa con referencia `delivered/read` sigue siendo el criterio de cierre.
+
+### Evidencia E31
+
+```powershell
+# Desde backend: 27 casos nuevos HTTP/JWT y SQLite aislada
+.\.venv\Scripts\python.exe -m pytest -q tests/test_six_remaining_stories.py
+# Desde la raíz: suite completa, migración y tres integraciones PostgreSQL nuevas
+.\backend\.venv\Scripts\python.exe backend/scripts/test_postgres.py --all
+# Desde frontend
+npm run build
+# Desde la raíz: Edge, escritorio y móvil, contra FastAPI/JWT reales y SQLite aislada
+.\backend\.venv\Scripts\python.exe backend/scripts/check_six_stories_ui.py
+```
+
+Resultado final: **385 aprobadas, cero fallos y cero omitidas**, 96,50 s, PostgreSQL temporal
+migrado hasta `20261119_26`; contenedor/red eliminados. Las 30 pruebas nuevas se distribuyen en
+27 SQLite/JWT y tres PostgreSQL nativas; no se confunden los dos tipos de integración.
+Build correcto (625,38 kB iniciales, avisos de presupuesto/CommonJS).
+Dos recorridos integrados Edge aprobados (1440×1000 y 390×844), sin errores JavaScript: cálculo y
+filtros, creación/selección de sede, mantenimiento/vista previa de tres plantillas, derivación,
+aceptación y continuidad, encuesta/respuesta única/enlace inválido. Las peticiones del navegador
+se ejecutan mediante TestClient contra la aplicación real y sus permisos, sin simular respuestas
+de negocio; base SQLite aislada. Además, 60 regresiones visuales aprobadas con API controlada:
+`check_independent_stories_ui.py` (26) y `check_fundamental_stories_ui.py` (34).
+Los avisos WhatsApp y el webhook se prueban con transporte controlado, no con recepción externa.
+
 ## Correo de verificación y recuperación
 
-Para la preparación acordada con **Gmail, una conexión Meta existente y ejecución local**, sigue [GUIA_GMAIL_META.md](GUIA_GMAIL_META.md): parámetros SMTP, once plantillas con textos/variables, webhook HTTPS y los quince recorridos de aceptación externa.
+Para la preparación acordada con **Gmail, una conexión Meta existente y ejecución local**, sigue [GUIA_GMAIL_META.md](GUIA_GMAIL_META.md): parámetros SMTP, catorce plantillas con textos/variables, webhook HTTPS y los dieciocho recorridos de aceptación externa.
 
 Completa estas variables en el archivo existente `backend/.env` con los datos del proveedor de correo. Las opciones también están en `.env.example`.
 
@@ -230,7 +373,10 @@ Con Docker Desktop iniciado y las dependencias del entorno virtual instaladas, e
 
 El script crea PostgreSQL 15 temporal en `localhost:55432`, aplica todas las migraciones y configura `DATABASE_URL`, `TEST_DATABASE_URL` y `TEST_APPOINTMENT_DATABASE_URL` para el proceso de pruebas. La base `test_clinica` se guarda en memoria temporal del contenedor y se elimina al terminar, incluso si las migraciones o las pruebas fallan.
 
-La ejecución incluye las 12 integraciones originales (9 de pedidos web, 1 de ventas, 1 de citas y 1 de respaldo/snapshot/restauración PostgreSQL), la validación de archivos del mismo módulo y las cinco nuevas de HU-040/041/059/079/119: **18 pruebas**. Sin PostgreSQL configurado se omiten 17 casos. La configuración se aplica únicamente a los procesos lanzados por el script.
+La ejecución incluye ventas, citas, pedidos web, respaldo/snapshot/restauración, las integraciones
+de E30/E31 y `test_priority_partial_progress_postgres.py` de E32 (concurrencia de acceso y asistencia).
+Los casos que dependen de PostgreSQL se omiten si no hay base aislada configurada. La configuración
+del script se aplica únicamente a sus procesos de prueba.
 
 Para ejecutar **toda la suite** con PostgreSQL disponible:
 

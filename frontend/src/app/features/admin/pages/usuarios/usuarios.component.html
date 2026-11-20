@@ -176,7 +176,12 @@
           <input class="admin-input" name="especialidad" [(ngModel)]="form.especialidad">
         </label>
       }
-      @if (form.tipo === 'cliente') {
+      <label class="mt-4 block"><span class="admin-label">Sucursal del colaborador</span>
+        <select class="admin-input" required name="sucursal" [(ngModel)]="form.sucursal_id">
+          @for (item of branches(); track item.id) { <option [ngValue]="item.id">{{ item.nombre }}</option> }
+        </select>
+      </label>
+      @if (form.tipo) {
         <label class="mt-4 block">
           <span class="admin-label">Teléfono</span>
           <input class="admin-input" name="telefono" [(ngModel)]="form.telefono">

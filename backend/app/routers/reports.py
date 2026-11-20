@@ -41,7 +41,7 @@ def closure_detail(register_id: int, db: Db, _user: SalesAdmin):
 
 
 @router.get("/ocupacion")
-def occupancy(desde: dt.date, hasta: dt.date, db: Db, _user: Admin, veterinario_id: int | None = None):
+def occupancy(desde: dt.date, hasta: dt.date, db: Db, _user: Annotated[Usuario, Depends(require_permission("citas"))], veterinario_id: Annotated[int | None, Query(gt=0)] = None):
     return ReportingService(db).occupancy(desde, hasta, veterinario_id)
 
 

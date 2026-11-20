@@ -14,6 +14,7 @@ export const VETERINARIAN_ROUTES: Routes = [{
   component: VeterinarianLayoutComponent,
   canActivateChild: [permissionGuard],
   children: [
+    { path: 'derivaciones', title: 'Derivaciones clínicas | Clínica SMP', loadComponent: () => import('./referrals.component').then(m => m.ReferralsComponent) },
     { path: 'ordenes', title: 'Órdenes clínicas | Clínica SMP', loadComponent: () => import('../billing/billing-orders.component').then(m => m.BillingOrdersComponent) },
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     { path: 'inicio', title: 'Inicio | Clínica SMP', loadComponent: () => import('./veterinarian-home.component').then((m) => m.VeterinarianHomeComponent) },

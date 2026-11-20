@@ -28,7 +28,13 @@ export class AttendanceConfirmationComponent {
   readonly refresh = output<void>();
   readonly eligibleAppointments = computed(() => this.appointments().filter(appointment => this.eligible(appointment)));
   private readonly http = inject(HttpClient);
-  readonly busy = signal(false); readonly error = signal(''); readonly link = signal(''); readonly linkId = signal(0);
+  readonly busy = signal(false); readonly error = signal(''); readonly linkId = signal(0);
+  private readonly preparedLink = signal(''); private readonly preparedFor = signal('');
+  readonly link = computed(() => this.preparedFor() === this.signature(this.linkId()) ? this.preparedLink() : '');
+  private signature(id: number): string {
+    const item = this.appointments().find(appointment => appointment.id === id);
+    return item ? [item.id, item.fecha_hora_programada, item.estado, item.telefono_contacto, item.asistencia_confirmada_en, item.fecha_hora_llegada].join('|') : '';
+  }
   eligible(appointment: Appointment): boolean {
     const scheduled = new Date(appointment.fecha_hora_programada);
     const tomorrow = new Date(Date.now() + 86400000);
@@ -37,7 +43,8 @@ export class AttendanceConfirmationComponent {
   }
   prepare(id: number) {
     if (this.busy()) return;
-    this.busy.set(true); this.error.set(''); this.link.set(''); this.linkId.set(id);
-    this.http.get<{ whatsapp_url: string }>(`${environment.apiUrl}/portal/citas/${id}/asistencia-whatsapp`).subscribe({ next: data => { this.link.set(data.whatsapp_url); this.busy.set(false); }, error: error => { this.error.set(operationError(error)); this.busy.set(false); } });
+    const signature = this.signature(id);
+    this.busy.set(true); this.error.set(''); this.preparedLink.set(''); this.linkId.set(id);
+    this.http.get<{ whatsapp_url: string }>(`${environment.apiUrl}/portal/citas/${id}/asistencia-whatsapp`).subscribe({ next: data => { if (this.signature(id) === signature) { this.preparedFor.set(signature); this.preparedLink.set(data.whatsapp_url); } this.busy.set(false); }, error: error => { this.error.set(operationError(error)); this.busy.set(false); } });
   }
 }

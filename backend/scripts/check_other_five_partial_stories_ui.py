@@ -67,6 +67,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/configuracion", wait_until="domcontentloaded")
                 for title in ("Consultorio principal", "Recepción de la clínica"):
                     page.get_by_label("Título de la nueva fotografía", exact=True).fill(title)

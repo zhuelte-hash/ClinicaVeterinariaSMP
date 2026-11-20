@@ -18,6 +18,7 @@ export interface AdminUser {
 }
 
 export interface CreateAdminUser {
+  sucursal_id?: number;
   nombre: string;
   correo: string;
   contrasena: string;
@@ -29,6 +30,7 @@ export interface CreateAdminUser {
 }
 
 export interface UpdateAdminUser {
+  sucursal_id?: number;
   nombre?: string;
   correo?: string;
   contrasena?: string;

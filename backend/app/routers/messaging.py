@@ -71,7 +71,7 @@ async def receive_message(message, db):
     item = MensajeEntrante(proveedor_id=message_id, telefono=phone, contenido=caption)
     db.add(item)
     try:
-        confirmation = re.fullmatch(r"\s*ASISTIR[EÉ]\s+(\d+)\s*", caption, re.I)
+        confirmation = re.fullmatch(r"\s*ASISTIR[EÉ]\s+(\d+)(?:\s+([A-Za-z0-9_-]+))?\s*", caption, re.I)
         reschedule = re.search(r"REPROGRAMAR\s+(\d+)\s+(\S+)", caption, re.I)
         if confirmation or reschedule:
             appointment_id = int((confirmation or reschedule)[1])
@@ -82,8 +82,16 @@ async def receive_message(message, db):
             db.info["actor_id"] = appointment.mascota.cliente_id
             if confirmation:
                 owner = appointment.mascota.cliente.usuario
-                if not owner.activo:
-                    raise HTTPException(403, "La cuenta del propietario está desactivada")
+                if not owner.activo or not owner.correo_verificado:
+                    raise HTTPException(403, "La cuenta del propietario no está activa y verificada")
+                from app.services.attendance_service import attendance_code, schedule_event
+                if confirmation[2]:
+                    if not hmac.compare_digest(confirmation[2].lower(), attendance_code(db, appointment)):
+                        raise HTTPException(409, "El horario o contacto cambió; prepara una nueva confirmación desde Mis citas")
+                elif message.get("timestamp"):
+                    event = schedule_event(db, appointment)
+                    if event and int(message["timestamp"]) < int(aware(event.fecha).timestamp()):
+                        raise HTTPException(409, "El mensaje es anterior al último horario; vuelve a confirmar la cita actual")
                 check_permission(db, owner, "citas", "editar")
                 scheduled = aware(appointment.fecha_hora_programada)
                 if (appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}
@@ -155,6 +163,10 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         for entry in payload.get("entry", []):
             for change in entry.get("changes", []):
                 value = change.get("value", {})
+                receiver = value.get("metadata", {}).get("phone_number_id")
+                configured_receiver = get_settings().whatsapp_phone_number_id
+                if receiver and configured_receiver and receiver != configured_receiver:
+                    raise HTTPException(403, "El evento no corresponde al número WhatsApp de la clínica")
                 for status in value.get("statuses", []):
                     item = db.scalar(select(MensajeSalida).where(MensajeSalida.proveedor_id == status["id"]))
                     if item:
@@ -179,17 +191,20 @@ def automation_cycle(db: Session = Depends(get_db)):
 
 
 @router.get("/encuestas/{token}")
-def survey(token: str, db: Session = Depends(get_db)):
+def survey(token: str, response: Response, db: Session = Depends(get_db)):
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
     item = db.scalar(select(EncuestaConsulta).where(EncuestaConsulta.token_hash == digest(token)))
-    if item is None or aware(item.expira_en) < now():
+    if item is None or aware(item.expira_en) <= now():
         raise HTTPException(404, "La encuesta no existe o ha caducado")
     return {"respondida": item.respondida_en is not None, "pregunta": "¿Cómo calificarías la atención recibida?", "escala": "1: muy mala; 5: excelente"}
 
 
 @router.post("/encuestas/{token}", status_code=204)
-def answer_survey(token: str, data: SurveyAnswer, db: Session = Depends(get_db)):
+def answer_survey(token: str, data: SurveyAnswer, response: Response, db: Session = Depends(get_db)):
+    response.headers["Cache-Control"] = "private, no-store"
     item = db.scalar(select(EncuestaConsulta).where(EncuestaConsulta.token_hash == digest(token)).with_for_update())
-    if item is None or aware(item.expira_en) < now() or item.respondida_en:
+    if item is None or aware(item.expira_en) <= now() or item.respondida_en:
         raise HTTPException(409, "La encuesta caducó o ya fue respondida")
     item.valoracion, item.comentario, item.respondida_en = data.valoracion, data.comentario, now()
     db.commit()

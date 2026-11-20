@@ -73,6 +73,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/citas", wait_until="domcontentloaded")
                 page.get_by_label("Mes del calendario", exact=True).fill("2026-11")
                 calendar = page.locator("app-appointment-calendar")

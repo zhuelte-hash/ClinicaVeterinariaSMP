@@ -123,6 +123,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/dashboard")
                 expect(page.get_by_text("Órdenes pendientes actuales", exact=True)).to_be_visible()
                 expect(page.get_by_text("Saldo: S/ 80.00", exact=True)).to_be_visible()

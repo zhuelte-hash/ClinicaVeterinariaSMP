@@ -73,6 +73,7 @@ def run():
                     route.fulfill(status=200, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/configuracion", wait_until="domcontentloaded")
                 page.get_by_text("Preparar plantillas de cancelación y receta", exact=True).click()
                 for event, label in FLOWS:

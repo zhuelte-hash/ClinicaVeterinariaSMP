@@ -24,6 +24,8 @@ POSTGRES_TESTS = [
     "tests/test_purchase_flow_postgres.py",
     "tests/test_backup_postgres.py",
     "tests/test_independent_stories_postgres.py",
+    "tests/test_six_remaining_postgres.py",
+    "tests/test_priority_partial_progress_postgres.py",
 ]
 
 

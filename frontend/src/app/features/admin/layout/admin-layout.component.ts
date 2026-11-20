@@ -5,14 +5,19 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminApiService, AdminUserNotification } from '../services/admin-api.service';
 import { ThemeToggleComponent } from '../../../shared/theme-toggle/theme-toggle.component';
 import { routeModule } from '../../../core/guards/permission.guard';
+import { FormsModule } from '@angular/forms';
+import { Branch, BranchService } from '../../../core/services/branch.service';
 
 interface NavItem { label: string; path: string; icon: 'grid' | 'box' | 'stock' | 'tag' | 'calendar' | 'sale' | 'bell' | 'users' | 'settings'; }
 
 @Component({
-  selector: 'app-admin-layout', standalone: true, imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
+  selector: 'app-admin-layout', standalone: true, imports: [FormsModule, RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
   templateUrl: './admin-layout.component.html', styleUrl: './admin-layout.component.css',
 })
 export class AdminLayoutComponent {
+  readonly branchesApi = inject(BranchService);
+  readonly branches = signal<Branch[]>([]);
+  readonly selectedBranch = computed(() => this.branchesApi.selected(this.auth.currentUser()?.sucursal_id));
   readonly collapsed = signal(false);
   readonly drawerOpen = signal(false);
   readonly profileOpen = signal(false);
@@ -23,6 +28,8 @@ export class AdminLayoutComponent {
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly today = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   private readonly allNavItems: NavItem[] = [
+    { label: 'Ocupación de agenda', path: 'ocupacion', icon: 'calendar' },
+    { label: 'Sucursales', path: 'sucursales', icon: 'settings' },
     { label: 'Tarifas y servicios', path: 'servicios', icon: 'tag' },
     { label: 'Horarios y solicitudes', path: 'horarios', icon: 'calendar' },
     { label: 'Recepción, lotes y unidades', path: 'recepciones', icon: 'stock' },
@@ -45,6 +52,7 @@ export class AdminLayoutComponent {
 
   private readonly api = inject(AdminApiService);
   constructor(readonly auth: AuthService, private readonly router: Router) {
+    this.branchesApi.available().subscribe({ next: items => this.branches.set(items), error: () => this.branches.set([]) });
     this.refreshNotifications();
     this.api.notificationChanges.pipe(takeUntilDestroyed()).subscribe(() => this.refreshNotifications());
   }

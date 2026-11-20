@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session, with_loader_criteria
 from app.models.clinic import Caja, Cita, EstadoCita, HorarioVeterinario, OrdenCobro, Producto
 from app.models.operations import CompraProveedor, Egreso, EventoAuditoria, EventoCita, OrdenPendiente
 from app.models.user import Usuario
+from app.models.purchase import PedidoWeb
 from app.services.operation_utils import json_value
 
-SCOPED = (Caja, Cita, HorarioVeterinario, OrdenCobro, Producto, CompraProveedor, Egreso, OrdenPendiente)
+SCOPED = (Caja, Cita, HorarioVeterinario, OrdenCobro, Producto, CompraProveedor, Egreso, OrdenPendiente, PedidoWeb)
 CRITICAL = {"usuarios", "permisos_rol", "autorizaciones_descuento", "productos", "ajustes_inventario", "citas", "ordenes_cobro", "ordenes_pendientes", "abonos_orden", "cajas", "compras_proveedor", "movimientos_inventario", "egresos", "plantillas_mensaje", "politicas_clinica", "sucursales", "procesos_atencion", "derivaciones_clinicas", "servicios", "horarios_veterinario", "unidades_medida", "lotes_inventario", "configuracion_clinica", "solicitudes_reprogramacion"}
 HIDDEN = {"contrasena", "secreto_hash", "token_hash", "comprobante", "documento", "notas_privadas", "intentos_fallidos", "bloqueado_hasta"}
 CRITICAL.add("horarios_veterinarios")

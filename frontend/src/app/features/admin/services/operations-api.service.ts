@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 
 export type Numeric = number | string;
+export interface OccupancyReport { desde: string; hasta: string; sucursal_id: number; capacidad_minutos: number; ocupados_minutos: number; porcentaje: number; criterio: string; detalle: { fecha: string; veterinario_id: number; veterinario: string; capacidad_minutos: number; ocupados_minutos: number; porcentaje: number }[]; }
 export interface Ranking { id: number; nombre: string; cantidad: Numeric; }
 export interface OperationsDashboard {
   desde: string; hasta: string; ventas: Numeric; cantidad_ventas: number; citas_por_estado: Record<string, number>;
@@ -39,6 +40,7 @@ export class OperationsApiService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/admin/operaciones`;
   dashboard(desde: string, hasta: string) { return this.http.get<OperationsDashboard>(`${this.base}/dashboard`, { params: { desde, hasta } }); }
+  occupancy(desde: string, hasta: string, vet: string) { return this.http.get<OccupancyReport>(`${this.base}/ocupacion`, { params: { desde, hasta, ...(vet ? { veterinario_id: vet } : {}) } }); }
   appointmentHistory(id: number) { return this.http.get<AppointmentHistory>(`${this.base}/citas/${id}/historial`); }
   closures(desde: string, hasta: string, cashier: string) { return this.http.get<ClosureReport>(`${this.base}/cierres`, { params: { desde, hasta, ...(cashier ? { cajero_id: cashier } : {}) } }); }
   closureDetail(id: number) { return this.http.get<ClosureDetail>(`${this.base}/cierres/${id}`); }

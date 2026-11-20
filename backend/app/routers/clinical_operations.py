@@ -13,14 +13,14 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, ExamenMedicoAdjunto, Mascota, Notificacion, ProcesoAtencion, TipoAplicacionPreventiva
-from app.models.operations import DerivacionClinica, EventoCita, SolicitudReprogramacion
+from app.models.operations import DerivacionClinica, EventoCita, MensajeSalida, OrdenPendiente, SolicitudReprogramacion
 from app.models.user import Usuario, TipoUsuario
 from app.schemas.operations import PrivateNotes, ReferralAnswer, ReferralCreate, RescheduleRequest, RescheduleAnswer
 from app.security import get_current_client_user, get_current_veterinarian_user, require_permission, check_permission
 from app.services.access_service import aware, now
 from app.services.appointment_service import AppointmentService, ACTIVE_BOOKING_STATES, InvalidScheduleError
 from app.services.document_service import make_pdf
-from app.services.operation_utils import row_data
+from app.services.operation_utils import branch_id, process_in_branch, row_data
 from app.services.policy_service import PolicyService
 
 router = APIRouter(tags=["Continuidad clínica y coordinación"])
@@ -96,20 +96,21 @@ def write_private_notes(process_id: int, data: PrivateNotes, db: Db, user: Vet, 
 
 @router.get("/portal/veterinario/especialistas")
 def specialists(db: Db, _user: Vet):
-    return [{"id": user.id, "nombre": user.nombre, "especialidad": user.especialidad} for user in db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo)).all()]
+    check_permission(db, _user, "historias_clinicas")
+    return [{"id": user.id, "nombre": user.nombre, "especialidad": user.especialidad} for user in db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo, Usuario.sucursal_id == branch_id(db), Usuario.id != _user.id)).all()]
 
 
 @router.get("/portal/veterinario/derivaciones")
 def referrals(db: Db, user: Vet):
-    rows = db.scalars(select(DerivacionClinica).where((DerivacionClinica.remitente_id == user.id) | (DerivacionClinica.receptor_id == user.id)).order_by(DerivacionClinica.id.desc())).all()
-    return [{**row_data(row), "mascota_id": db.get(ProcesoAtencion, row.proceso_id).mascota_id} for row in rows]
+    rows = db.scalars(select(DerivacionClinica).join(ProcesoAtencion, ProcesoAtencion.id == DerivacionClinica.proceso_id).where(process_in_branch(db), (DerivacionClinica.remitente_id == user.id) | (DerivacionClinica.receptor_id == user.id)).order_by(DerivacionClinica.id.desc())).all()
+    return [{**row_data(row), "mascota_id": db.get(ProcesoAtencion, row.proceso_id).mascota_id, "mascota": db.get(ProcesoAtencion, row.proceso_id).mascota.nombre, "remitente": db.get(Usuario, row.remitente_id).nombre, "receptor": db.get(Usuario, row.receptor_id).nombre} for row in rows]
 
 
 @router.post("/portal/veterinario/atenciones/{process_id}/derivaciones", status_code=201)
 def create_referral(process_id: int, data: ReferralCreate, db: Db, user: Vet):
     process = AppointmentService(db)._owned_process(user.id, process_id)
     target = db.get(Usuario, data.receptor_id)
-    if process is None or target is None or target.tipo != TipoUsuario.VETERINARIO or not target.activo or target.id == user.id:
+    if process is None or target is None or target.tipo != TipoUsuario.VETERINARIO or not target.activo or target.id == user.id or target.sucursal_id != branch_id(db):
         raise HTTPException(422, "Selecciona una atención propia y otro especialista activo")
     if db.scalar(select(DerivacionClinica.id).where(DerivacionClinica.proceso_id == process.id, DerivacionClinica.receptor_id == target.id, DerivacionClinica.estado.in_(["pendiente", "aceptada"]))):
         raise HTTPException(409, "Ya existe una derivación activa a este especialista")
@@ -122,13 +123,14 @@ def create_referral(process_id: int, data: ReferralCreate, db: Db, user: Vet):
 
 @router.post("/portal/veterinario/derivaciones/{referral_id}/responder")
 def answer_referral(referral_id: int, data: ReferralAnswer, db: Db, user: Vet):
-    item = db.scalar(select(DerivacionClinica).where(DerivacionClinica.id == referral_id).with_for_update())
+    item = db.scalar(select(DerivacionClinica).join(ProcesoAtencion, ProcesoAtencion.id == DerivacionClinica.proceso_id).where(DerivacionClinica.id == referral_id, process_in_branch(db)).with_for_update())
     if item is None or item.receptor_id != user.id:
         raise HTTPException(404, "Derivación no encontrada")
     if item.estado != "pendiente":
         raise HTTPException(409, "La derivación ya fue respondida")
     item.estado, item.respuesta = "aceptada" if data.aceptar else "rechazada", data.respuesta
     item.aceptada_en = now() if data.aceptar else None
+    db.add(Notificacion(usuario_id=item.remitente_id, tipo="derivacion", titulo="Respuesta a derivación clínica", mensaje=f"{user.nombre} {'aceptó' if data.aceptar else 'rechazó'} la derivación: {data.respuesta}"[:500]))
     db.commit()
     return row_data(item)
 
@@ -204,7 +206,51 @@ def attendance_whatsapp(appointment_id: int, db: Db, user: Client):
         phone = "51" + phone
     if not 10 <= len(phone) <= 15:
         raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp")
-    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(f'ASISTIRE {appointment.id}')}"}
+    from app.services.attendance_service import attendance_code
+    command = f"ASISTIRE {appointment.id} {attendance_code(db, appointment)}"
+    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(command)}", "comando": command, "fecha_hora_programada": appointment.fecha_hora_programada}
+
+
+def client_communications(db, user, appointment_id):
+    appointment = AppointmentService(db)._get_owned_appointment(user.id, appointment_id)
+    if appointment is None:
+        raise HTTPException(404, "Cita no encontrada")
+    process = appointment.proceso_atencion
+    rows = db.scalars(select(MensajeSalida).where(
+        MensajeSalida.usuario_id == user.id, MensajeSalida.canal == "whatsapp",
+        ((MensajeSalida.evento == "cita_cancelada") & (MensajeSalida.entidad_id == appointment.id)) |
+        ((MensajeSalida.evento == "receta") & (MensajeSalida.entidad_id == (process.id if process else -1)))
+    ).order_by(MensajeSalida.id.desc())).all()
+    return appointment, process, rows
+
+
+@router.get("/portal/citas/{appointment_id}/comunicaciones")
+def own_communications(appointment_id: int, db: Db, user: Client, response: Response):
+    response.headers["Cache-Control"] = "private, no-store"
+    appointment, process, rows = client_communications(db, user, appointment_id)
+    # El permiso clínico también se aplica al enlace y al estado de la receta.
+    try:
+        check_permission(db, user, "historias_clinicas")
+        clinical_allowed = True
+    except HTTPException:
+        clinical_allowed = False
+    recipe = next((row for row in rows if row.evento == "receta" and row.documento), None) if clinical_allowed else None
+    order = db.scalar(select(OrdenPendiente).where(OrdenPendiente.proceso_id == process.id, OrdenPendiente.cliente_id == user.id)) if process and clinical_allowed else None
+    return {"cita_id": appointment.id, "estado_cita": appointment.estado, "asistencia_confirmada_en": appointment.asistencia_confirmada_en,
+            "receta_disponible": bool(recipe and process.estado.value == "cerrada"),
+            "orden": {"codigo": order.codigo, "total": order.total, "estado": order.estado} if order else None,
+            "mensajes": [{"id": row.id, "evento": row.evento, "estado": row.estado, "intentos": row.intentos, "enviado_en": row.enviado_en, "entregado_en": row.entregado_en} for row in rows if clinical_allowed or row.evento != "receta"],
+            "alcance": "Enviado: aceptado por el proveedor. Entregado/leído: confirmado por webhook. Descargar la receta no acredita recepción por WhatsApp."}
+
+
+@router.get("/portal/citas/{appointment_id}/receta-pdf")
+def own_prescription_pdf(appointment_id: int, db: Db, user: Client):
+    check_permission(db, user, "historias_clinicas")
+    _, process, rows = client_communications(db, user, appointment_id)
+    recipe = next((row for row in rows if row.evento == "receta" and row.documento), None)
+    if process is None or process.estado.value != "cerrada" or recipe is None:
+        raise HTTPException(404, "La receta PDF estará disponible después del cierre de la atención")
+    return Response(recipe.documento, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="receta-cita-{appointment_id}.pdf"', "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/admin/operaciones/reprogramaciones/{request_id}/resolver")

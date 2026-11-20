@@ -62,7 +62,11 @@ class AccessService:
         if not settings.smtp_host or not settings.mail_from:
             raise HTTPException(503, "El envío de correo de la clínica aún no está configurado. Inténtalo más tarde o contacta con la clínica.")
 
-    def issue(self, user, purpose):
+    def issue(self, user, purpose, *, commit=True):
+        # Serializar reenvíos y recuperación de una misma cuenta, también entre workers.
+        user = self.db.scalar(select(Usuario).where(Usuario.id == user.id).with_for_update().execution_options(populate_existing=True))
+        if user is None or not user.activo or purpose not in {"verificar", "recuperar"} or (purpose == "verificar" and user.correo_verificado):
+            raise HTTPException(400, "La cuenta no admite esta solicitud")
         latest = self.db.scalar(select(DesafioCuenta).where(DesafioCuenta.usuario_id == user.id, DesafioCuenta.proposito == purpose).order_by(DesafioCuenta.id.desc()))
         if latest and (now() - aware(latest.creado_en)).total_seconds() < 60:
             remaining = max(1, 60 - int((now() - aware(latest.creado_en)).total_seconds()))
@@ -77,7 +81,9 @@ class AccessService:
         message = (f"Tu código de verificación es {secret}. Caduca en 15 minutos." if purpose == "verificar" else f"Define una nueva contraseña en {link}. El enlace caduca en una hora y solo puede utilizarse una vez.")
         outgoing = MensajeSalida(clave=f"cuenta:{challenge.id}", canal="correo", evento=purpose, destinatario=user.correo, usuario_id=user.id, entidad_id=challenge.id, asunto="Verifica tu cuenta" if purpose == "verificar" else "Recuperación de contraseña", contenido=message)
         self.db.add(outgoing)
-        self.db.commit()
+        self.db.flush()
+        if commit:
+            self.db.commit()
         return outgoing.id
 
     def verify(self, email, secret):
@@ -85,7 +91,7 @@ class AccessService:
         self._use(user, "verificar", secret)
         user.correo_verificado = True
         from app.services.messaging_service import MessagingService
-        MessagingService(self.db).to_user(user, "bienvenida", f"bienvenida:{user.id}", {"nombre": user.nombre})
+        MessagingService(self.db).to_user(user, "bienvenida", f"bienvenida:{user.id}", {"nombre": user.nombre}, entity_id=user.id)
         self.db.commit()
         return user
 
@@ -99,6 +105,10 @@ class AccessService:
         self.db.commit()
 
     def _use(self, user, purpose, secret):
+        # Mismo orden de bloqueo que issue: cuenta y después desafío. Evita el
+        # ciclo entre una verificación/restablecimiento y un reenvío concurrente.
+        if user:
+            user = self.db.scalar(select(Usuario).where(Usuario.id == user.id).with_for_update().execution_options(populate_existing=True))
         challenge = self.db.scalar(select(DesafioCuenta).where(DesafioCuenta.usuario_id == user.id, DesafioCuenta.proposito == purpose, DesafioCuenta.usado_en.is_(None)).order_by(DesafioCuenta.id.desc()).with_for_update()) if user else None
         if not user or not user.activo or not challenge or challenge.intentos >= 5 or aware(challenge.expira_en) <= now():
             raise HTTPException(400, "El código o enlace es inválido, fue usado o ha caducado")

@@ -103,6 +103,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/dashboard")
                 expect(page.get_by_role("heading", name="Servicios más solicitados", exact=True)).to_be_visible()
                 for title, quantity in [("Productos más vendidos", "2.500"), ("Servicios más solicitados", "2"), ("Servicios más atendidos", "1")]:

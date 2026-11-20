@@ -612,12 +612,16 @@ async def upload_clinical_image(process_id: int, tipo_examen: str, fecha_estudio
     folder.mkdir(parents=True, exist_ok=True)
     suffix = Path(archivo.filename or "imagen").suffix.lower() or ".jpg"
     filename = f"{uuid4().hex}{suffix}"
-    contents = await archivo.read()
+    contents = await archivo.read(10 * 1024 * 1024 + 1)
     if len(contents) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="La imagen no puede superar los 10 MB")
     (folder / filename).write_bytes(contents)
     attachment = ExamenMedicoAdjunto(ficha_clinica_id=ficha.id, tipo_examen=tipo_examen, fecha_estudio=fecha_estudio, archivo_ruta=f"/uploads/clinical/{filename}")
     db.add(attachment)
+    db.flush()
+    if "laborator" in tipo_examen.lower():
+        from app.services.automation_service import notify_result
+        notify_result(db, process, f"laboratorio:archivo:{attachment.id}")
     db.commit()
     db.refresh(attachment)
     return {"id": attachment.id, "tipo_examen": attachment.tipo_examen, "archivo_ruta": attachment.archivo_ruta, "fecha_estudio": attachment.fecha_estudio}

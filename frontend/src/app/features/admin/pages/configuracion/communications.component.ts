@@ -86,8 +86,12 @@ export class CommunicationsComponent {
   readonly visibleTemplates = computed(() => this.templates().filter(template => template.evento === this.templateEvent()));
   readonly busy = signal(false); readonly error = signal(''); readonly message = signal('');
   readonly preview = signal<TemplatePreview | null>(null);
-  readonly examples: Record<string, string> = { nombre: 'Cliente de prueba', mascota: 'Mascota de prueba', fecha: '20/11/2026 10:00', motivo: 'Cambio solicitado', codigo: 'OC-PRUEBA', cita: '123', producto: 'Vacuna de prueba', total: '40.00' };
+  readonly examples: Record<string, string> = { nombre: 'Cliente de prueba', mascota: 'Mascota de prueba', fecha: '20/11/2026 10:00', motivo: 'Cambio solicitado', codigo: 'OC-PRUEBA', cita: '123', producto: 'Vacuna de prueba', total: '40.00', enlace: 'https://ejemplo.invalid/encuesta/muestra' };
+  // Los enlaces de vista previa son ficticios; el token real solo viaja en el mensaje al destinatario.
   readonly operationalFlows = [
+    { event: 'bienvenida', label: 'Bienvenida (HU-099)' },
+    { event: 'laboratorio', label: 'Resultado disponible (HU-107)' },
+    { event: 'encuesta', label: 'Encuesta posterior (HU-108)' },
     { event: 'recordatorio_24h', label: 'Recordatorio 24 h (HU-032 / HU-097)' },
     { event: 'recordatorio_2h', label: 'Recordatorio 2 h (HU-097)' },
     { event: 'orden_creada', label: 'Orden creada (HU-066)' },

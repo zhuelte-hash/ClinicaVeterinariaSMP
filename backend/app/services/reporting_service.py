@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from app.models.clinic import BloqueoHorario, Caja, Cita, ComprobanteVenta, DetalleOrdenCobro, EstadoCita, EstadoPago, HorarioVeterinario, OrdenCobro, Producto, Servicio
 from app.models.operations import AbonoOrden, Egreso, EventoAuditoria, MovimientoCaja, OrdenPendiente
 from app.models.purchase import PedidoWeb
-from app.models.user import Usuario
+from app.models.user import TipoUsuario, Usuario
 from app.services.access_service import aware
 from app.services.operation_utils import branch_id, row_data
 from app.services.policy_service import PolicyService, ZONE
@@ -108,7 +108,10 @@ class ReportingService:
 
     def occupancy(self, start, end, veterinarian=None):
         initial, final = bounds(start, end)
-        schedules = self.db.scalars(select(HorarioVeterinario).where(HorarioVeterinario.activo)).all()
+        vets = set(self.db.scalars(select(Usuario.id).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo, Usuario.sucursal_id == branch_id(self.db))).all())
+        if veterinarian is not None and veterinarian not in vets:
+            raise HTTPException(404, "Veterinario activo no encontrado en esta sede")
+        schedules = self.db.scalars(select(HorarioVeterinario).where(HorarioVeterinario.activo, HorarioVeterinario.veterinario_id.in_(vets))).all()
         blocks = self.db.scalars(select(BloqueoHorario).where(BloqueoHorario.fecha_hora_inicio < final, BloqueoHorario.fecha_hora_fin > initial)).all()
         appointments = self.db.scalars(select(Cita).where(Cita.fecha_hora_programada < final, Cita.fecha_hora_fin_programada > initial, Cita.estado.not_in([EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO]))).all()
         policy = PolicyService(self.db)
@@ -141,7 +144,7 @@ class ReportingService:
                 rows.append({"fecha": day, "veterinario_id": vet, "veterinario": db_user_name(self.db, vet), "capacidad_minutos": capacity, "ocupados_minutos": occupied, "porcentaje": round(occupied / capacity * 100, 2) if capacity else 0})
             day += dt.timedelta(days=1)
         capacity, occupied = sum(row["capacidad_minutos"] for row in rows), sum(row["ocupados_minutos"] for row in rows)
-        return {"capacidad_minutos": capacity, "ocupados_minutos": occupied, "porcentaje": round(occupied / capacity * 100, 2) if capacity else 0, "detalle": rows}
+        return {"desde": start, "hasta": end, "sucursal_id": branch_id(self.db), "capacidad_minutos": capacity, "ocupados_minutos": occupied, "porcentaje": round(occupied / capacity * 100, 2) if capacity else 0, "detalle": rows, "criterio": "Minutos ocupados / capacidad disponible × 100. Horario de Perú; se descuentan descansos, cierres y bloqueos. Se excluyen cancelaciones e inasistencias y no se duplican intervalos superpuestos."}
 
 
 def db_user_name(db, user_id):

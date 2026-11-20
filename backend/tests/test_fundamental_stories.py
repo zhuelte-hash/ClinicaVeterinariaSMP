@@ -191,7 +191,9 @@ def test_attendance_link_does_not_confirm_and_signed_message_is_visible_to_roles
     prepare_attendance(db)
     response = http.get("/portal/citas/1/asistencia-whatsapp", headers=headers[1])
     assert response.status_code == 200, response.text
-    assert parse_qs(urlsplit(response.json()["whatsapp_url"]).query)["text"] == ["ASISTIRE 1"]
+    from app.services.attendance_service import attendance_code
+    command = f"ASISTIRE 1 {attendance_code(db, db.get(Cita, 1))}"
+    assert parse_qs(urlsplit(response.json()["whatsapp_url"]).query)["text"] == [command]
     assert db.get(Cita, 1).asistencia_confirmada_en is None
     assert signed_message(http, monkeypatch, "attendance-1").status_code == 200
     instant = aware(db.get(Cita, 1).asistencia_confirmada_en)

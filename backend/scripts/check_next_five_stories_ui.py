@@ -157,6 +157,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body="" if status == 204 else json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/registro")
                 for name, value in {"nombre": "María Pérez", "correo": "owner@example.com", "telefono": "999888777", "password": "Inicial123", "confirmPassword": "Inicial123"}.items():
                     page.locator(f"input[formcontrolname={name}]").fill(value)

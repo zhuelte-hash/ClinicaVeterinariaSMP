@@ -5,6 +5,7 @@ import { clientGuard } from './core/guards/client.guard';
 import { veterinarianGuard } from './core/guards/veterinarian.guard';
 
 export const routes: Routes = [
+  { path: 'encuesta/:token', title: 'Encuesta de atención | Clínica SMP', loadComponent: () => import('./pages/account/survey.component').then(m => m.SurveyComponent) },
   { path: 'verificar-correo', loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
   { path: 'recuperar-clave', loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
   { path: 'mi-perfil', canActivate: [clientGuard], loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },

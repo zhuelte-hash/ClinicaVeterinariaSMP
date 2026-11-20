@@ -92,6 +92,7 @@ class PurchaseService:
         return [self.serialize(order) for order in self.db.scalars(stmt.order_by(PedidoWeb.id.desc()).offset((pagina - 1) * 20).limit(20)).all()]
 
     def create(self, user, data, content):
+        from app.services.operation_utils import branch_id
         mime, extension = validate_proof(content)
         fingerprint = hashlib.sha256(data.model_dump_json().encode() + content).hexdigest()
         key = str(data.clave_idempotencia)
@@ -126,7 +127,7 @@ class PurchaseService:
         total = subtotal + shipping
         if total != data.total_esperado:
             raise HTTPException(409, "Los importes cambiaron. Actualiza el carrito y comprueba el importe antes de pagar")
-        order = PedidoWeb(codigo_pedido=f"PED-{secrets.token_hex(8).upper()}", cliente_id=user.id,
+        order = PedidoWeb(codigo_pedido=f"PED-{secrets.token_hex(8).upper()}", cliente_id=user.id, sucursal_id=branch_id(self.db),
             subtotal=subtotal, total=total, costo_delivery=shipping, metodo_pago=data.metodo_pago,
             datos_cliente=data.cliente.model_dump(), numero_operacion=data.numero_operacion,
             observaciones=data.observaciones, comprobante_pago=f"comprobante-{secrets.token_hex(12)}.{extension}",

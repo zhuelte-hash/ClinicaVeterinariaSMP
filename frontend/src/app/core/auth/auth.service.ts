@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, finalize, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { BRANCH_KEY } from '../services/branch.service';
 import {
   AUTH_TOKEN_KEY,
   AuthUser,
@@ -56,6 +57,7 @@ export class AuthService {
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, credentials)
       .pipe(
         tap(({ access_token, user }) => {
+          localStorage.removeItem(BRANCH_KEY);
           localStorage.setItem(AUTH_TOKEN_KEY, access_token);
           this.tokenState.set(access_token);
           this.userState.set(user);
@@ -81,6 +83,7 @@ export class AuthService {
   }
 
   logout(): void {
+    localStorage.removeItem(BRANCH_KEY);
     localStorage.removeItem(AUTH_TOKEN_KEY);
     this.tokenState.set(null);
     this.userState.set(null);

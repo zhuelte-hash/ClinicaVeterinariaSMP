@@ -269,7 +269,7 @@ class AdminService:
 
     def get_veterinarians(self) -> list[AdminCatalogOption]:
         return [AdminCatalogOption(id=user.id, nombre=user.nombre) for user in self.db.scalars(
-            select(Usuario).join(Usuario.veterinario).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo).order_by(Usuario.nombre)
+            select(Usuario).join(Usuario.veterinario).where(Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo, Usuario.sucursal_id == branch_id(self.db)).order_by(Usuario.nombre)
         ).all()]
 
     def update_appointment(self, appointment_id: int, data: AdminAppointmentUpdate, admin_id: int) -> AdminAppointmentRead:
@@ -300,7 +300,7 @@ class AdminService:
                 raise ValueError("Solo puedes marcar inasistencia si pasó el horario y no se registró la llegada")
         veterinarian_id = values.get("veterinario_id", appointment.veterinario_id)
         if veterinarian_id is not None and self.db.scalar(select(Veterinario).join(Veterinario.usuario).where(
-            Veterinario.usuario_id == veterinarian_id, Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo
+            Veterinario.usuario_id == veterinarian_id, Usuario.tipo == TipoUsuario.VETERINARIO, Usuario.activo, Usuario.sucursal_id == branch_id(self.db)
         )) is None:
             raise ValueError("El veterinario seleccionado no existe")
         if state in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA} and veterinarian_id is None:

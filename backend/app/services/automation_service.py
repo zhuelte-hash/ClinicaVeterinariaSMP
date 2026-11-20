@@ -11,11 +11,13 @@ from app.services.access_service import aware, digest, now
 from app.services.messaging_service import MessagingService
 from app.services.policy_service import PolicyService, ZONE
 from app.services.operational_message_service import has_payment_or_proof, reminder_event, reminder_key
+from app.services.operation_utils import process_in_branch
 
 
 def notify_result(db, process, key):
     user = process.mascota.cliente.usuario
-    MessagingService(db).to_user(user, "laboratorio", key, {"nombre": user.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url}/mis-mascotas"}, entity_id=process.id)
+    if user.activo and user.correo_verificado:
+        return MessagingService(db).to_user(user, "laboratorio", key, {"nombre": user.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url.rstrip('/')}/mis-mascotas"}, entity_id=process.id)
 
 
 def run_automations(db):
@@ -72,14 +74,16 @@ def run_automations(db):
                 if db.scalar(select(MensajeSalida.id).where(MensajeSalida.clave == key)) is None:
                     db.add(Notificacion(usuario_id=admin.id, tipo="vencimiento", titulo="Lote vencido" if stage == "vencido" else "Lote próximo a vencer", mensaje=f"{product.nombre} · lote {lot.codigo} · {lot.cantidad} {product.unidad_medida} · vence {lot.vencimiento}."))
                 service.to_user(admin, "vencimiento", key, {"lote": lot.codigo, "producto": product.nombre, "cantidad": lot.cantidad, "fecha": lot.vencimiento}, entity_id=lot.id)
-        processes = db.scalars(select(ProcesoAtencion).join(ProcesoAtencion.cita).where(ProcesoAtencion.estado == EstadoProcesoAtencion.CERRADA, ProcesoAtencion.fecha_cierre <= now() - dt.timedelta(hours=24)).with_for_update(skip_locked=True)).all()
+        processes = db.scalars(select(ProcesoAtencion).where(process_in_branch(db), ProcesoAtencion.estado == EstadoProcesoAtencion.CERRADA, ProcesoAtencion.fecha_cierre <= current - dt.timedelta(hours=24)).with_for_update(skip_locked=True)).all()
         for process in processes:
+            owner = process.mascota.cliente.usuario
+            if not owner.activo or not owner.correo_verificado:
+                continue
             if db.scalar(select(EncuestaConsulta.id).where(EncuestaConsulta.proceso_id == process.id)):
                 continue
             token = secrets.token_urlsafe(40)
             db.add(EncuestaConsulta(proceso_id=process.id, token_hash=digest(token), expira_en=now() + dt.timedelta(days=30)))
-            owner = process.mascota.cliente.usuario
-            service.to_user(owner, "encuesta", f"encuesta:{process.id}", {"nombre": owner.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url}/encuesta/{token}"}, entity_id=process.id)
+            service.to_user(owner, "encuesta", f"encuesta:{process.id}", {"nombre": owner.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url.rstrip('/')}/encuesta/{token}"}, entity_id=process.id)
         db.commit()
     db.info["sucursal_id"] = current_branch
     count += service.process()

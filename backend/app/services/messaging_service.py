@@ -131,6 +131,12 @@ class MessagingService:
         from app.services.operational_message_service import operational_message_ready
         if not operational_message_ready(self.db, item, now()):
             return
+        from app.services.customer_message_service import customer_message_ready
+        if not customer_message_ready(self.db, item, now()):
+            return
+        from app.services.clinical_message_service import clinical_message_ready
+        if not clinical_message_ready(self.db, item, now()):
+            return
         if item.canal == "whatsapp" and item.evento in {"veterinario_reprogramacion", "veterinario_cancelacion"}:
             user = self.db.get(Usuario, item.usuario_id) if item.usuario_id else None
             if user is None or not user.activo or user.tipo != TipoUsuario.VETERINARIO:
@@ -147,9 +153,12 @@ class MessagingService:
             item.destinatario = phone
         if item.canal == "correo" and item.evento in {"verificar", "recuperar"} and item.entidad_id:
             challenge = self.db.get(DesafioCuenta, item.entidad_id)
-            if challenge is None or challenge.usado_en is not None or aware(challenge.expira_en) <= now():
+            owner = self.db.get(Usuario, challenge.usuario_id) if challenge else None
+            if (challenge is None or challenge.usado_en is not None or aware(challenge.expira_en) <= now()
+                    or owner is None or not owner.activo or owner.correo.lower() != item.destinatario.lower()
+                    or (item.evento == "verificar" and owner.correo_verificado)):
                 item.estado, item.contenido = "cancelado", ""
-                item.error = "El código o enlace ya fue utilizado, sustituido o ha caducado."
+                item.error = "El código/enlace o la cuenta destinataria ya no están vigentes; solicita un correo nuevo."
                 return
         configured = self.settings.smtp_host and self.settings.mail_from if item.canal == "correo" else self.settings.whatsapp_access_token and self.settings.whatsapp_phone_number_id
         template = next((row for row in self.templates() if row["evento"] == item.evento), None) if item.canal == "whatsapp" else None

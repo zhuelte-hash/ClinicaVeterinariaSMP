@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.user import Administrador, Cajero, Cliente, TipoUsuario, Usuario, Veterinario
 from app.schemas.auth import ClientRegisterRequest
 from app.schemas.user import UsuarioCreate, UsuarioUpdate
+from app.services.operation_utils import branch_id
+from app.models.operations import Sucursal
+from fastapi import HTTPException
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -34,7 +37,7 @@ class UserService:
     def get_all(self, skip: int = 0, limit: int = 100, *, solo_personal: bool = False) -> list[Usuario]:
         statement = select(Usuario)
         if solo_personal:
-            statement = statement.where(Usuario.tipo != TipoUsuario.CLIENTE)
+            statement = statement.where(Usuario.tipo != TipoUsuario.CLIENTE, Usuario.sucursal_id == branch_id(self.db))
         statement = statement.order_by(Usuario.id).offset(skip).limit(limit)
         return list(self.db.scalars(statement).all())
 
@@ -67,6 +70,7 @@ class UserService:
         return self.get_by_email(identifier)
 
     def create(self, data: UsuarioCreate) -> Usuario:
+        self._available_branch(data.sucursal_id)
         user = Usuario(
             nombre=data.nombre,
             correo=str(data.correo),
@@ -78,7 +82,7 @@ class UserService:
         self.db.add(user)
         return self._commit(user)
 
-    def create_client(self, data: ClientRegisterRequest) -> Usuario:
+    def create_client(self, data: ClientRegisterRequest, *, commit=True) -> Usuario:
         user = Usuario(
             nombre=data.nombre,
             correo=str(data.correo),
@@ -88,10 +92,27 @@ class UserService:
         )
         user.cliente = Cliente(telefono=data.telefono)
         self.db.add(user)
-        return self._commit(user)
+        if commit:
+            return self._commit(user)
+        try:
+            self.db.flush()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise CorreoDuplicadoError from exc
+        return user
 
     def update(self, user: Usuario, data: UsuarioUpdate) -> Usuario:
         update_data = data.model_dump(exclude_unset=True)
+        if "sucursal_id" in update_data:
+            self._available_branch(update_data["sucursal_id"])
+            if user.sucursal_id != update_data["sucursal_id"]:
+                from app.models.clinic import Caja, Cita, EstadoCita, HorarioVeterinario
+                from app.services.access_service import now
+                if self.db.scalar(select(Caja.id).where(Caja.cajero_id == user.id, Caja.estado_caja == "abierta").execution_options(skip_branch_filter=True).limit(1)) or self.db.scalar(select(Cita.id).where(Cita.veterinario_id == user.id, Cita.fecha_hora_programada > now(), Cita.estado.not_in([EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO, EstadoCita.ATENDIDA])).execution_options(skip_branch_filter=True).limit(1)):
+                    raise HTTPException(409, "Cierra la caja o reasigna las citas futuras antes de cambiar la sede")
+                for schedule in self.db.scalars(select(HorarioVeterinario).where(HorarioVeterinario.veterinario_id == user.id).execution_options(skip_branch_filter=True)).all():
+                    schedule.activo = False
+                user.version_sesion += 1
         if "tipo" in update_data and update_data["tipo"] != user.tipo:
             raise ValueError("El rol no se puede cambiar; crea el perfil con sus datos profesionales")
         profile_data = {
@@ -106,6 +127,11 @@ class UserService:
             setattr(user, field, value)
         self._apply_role_profile(user, profile_data, allow_existing=True)
         return self._commit(user)
+
+    def _available_branch(self, identifier):
+        location = self.db.get(Sucursal, identifier) if identifier else None
+        if location is None or not location.activa:
+            raise HTTPException(422, "Selecciona una sucursal activa")
 
     def delete(self, user: Usuario) -> None:
         self.db.delete(user)

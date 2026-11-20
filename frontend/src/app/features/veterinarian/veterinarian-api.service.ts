@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AppointmentStatus } from '../appointments/appointments.models';
+export interface Referral { id: number; proceso_id: number; mascota_id: number; mascota: string; remitente_id: number; receptor_id: number; remitente: string; receptor: string; motivo: string; estado: string; respuesta: string | null; aceptada_en: string | null; fecha: string; }
 import { ClinicService, Pet } from '../appointments/appointments.models';
 import { AppointmentSummary, AttentionStatus, ClinicalRecord, CoordinationUpdate, Diagnosis, ExamOrder, ExamPriority, ExamStatus, Notification, Prescription, ScheduleBlock, VeterinarianAppointment, VeterinarianClient, VeterinarianClientPayload, VeterinarianClinicalRecord, VeterinarianPatient, VeterinarianSchedule } from './veterinarian.models';
 
@@ -10,6 +11,10 @@ import { AppointmentSummary, AttentionStatus, ClinicalRecord, CoordinationUpdate
 export class VeterinarianApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/portal/veterinario`;
+  referrals() { return this.http.get<Referral[]>(`${this.baseUrl}/derivaciones`); }
+  specialists() { return this.http.get<{ id: number; nombre: string; especialidad: string | null }[]>(`${this.baseUrl}/especialistas`); }
+  createReferral(process: number, receptor_id: number, motivo: string) { return this.http.post(`${this.baseUrl}/atenciones/${process}/derivaciones`, { receptor_id, motivo }); }
+  answerReferral(id: number, aceptar: boolean, respuesta: string) { return this.http.post(`${this.baseUrl}/derivaciones/${id}/responder`, { aceptar, respuesta }); }
 
   getRequests(date?: string, status?: AppointmentStatus, search?: string, includeClosed = false, endDate?: string): Observable<VeterinarianAppointment[]> {
     const params: Record<string, string> = {};

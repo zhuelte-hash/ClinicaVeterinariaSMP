@@ -13,6 +13,7 @@ import {
   UpdateAdminUser,
 } from '../../services/admin-users-api.service';
 import { AdminApiService, Role, RolePermission } from '../../services/admin-api.service';
+import { Branch, BranchService } from '../../../../core/services/branch.service';
 
 @Component({
   selector: 'app-admin-usuarios',
@@ -23,6 +24,8 @@ import { AdminApiService, Role, RolePermission } from '../../services/admin-api.
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsuariosComponent {
+  private readonly branchesApi = inject(BranchService);
+  readonly branches = signal<Branch[]>([]);
   private readonly api = inject(AdminUsersApiService);
   readonly auth = inject(AuthService);
   private readonly permissionsApi = inject(AdminApiService);
@@ -67,7 +70,7 @@ export class UsuariosComponent {
   });
   form: CreateAdminUser = { nombre: '', correo: '', contrasena: '', tipo: 'veterinario' };
 
-  constructor() { this.load(); this.loadPermissions(); }
+  constructor() { this.load(); this.loadPermissions(); this.branchesApi.available().subscribe({ next: data => this.branches.set(data) }); }
 
   load(): void {
     this.loading.set(true);
@@ -115,6 +118,7 @@ export class UsuariosComponent {
       correo: user.correo,
       contrasena: '',
       tipo: user.tipo,
+      sucursal_id: user.sucursal_id,
       telefono: user.telefono ?? '',
       colegiatura: user.colegiatura ?? '',
       especialidad: user.especialidad ?? '',
@@ -218,13 +222,15 @@ export class UsuariosComponent {
   }
 
   resetForm(): void {
-    this.form = { nombre: '', correo: '', contrasena: '', tipo: 'veterinario' };
+    this.form = { nombre: '', correo: '', contrasena: '', tipo: 'veterinario', sucursal_id: this.branchesApi.selected(this.auth.currentUser()?.sucursal_id) };
   }
 
   private updatePayload(user: AdminUser): UpdateAdminUser {
     const data: UpdateAdminUser = {
       nombre: this.form.nombre.trim(),
       correo: this.form.correo.trim(),
+      sucursal_id: this.form.sucursal_id,
+      telefono: this.form.telefono?.trim() ?? '',
     };
     if (this.form.contrasena) data.contrasena = this.form.contrasena;
     if (user.tipo === 'cliente') data.telefono = this.form.telefono?.trim() ?? '';

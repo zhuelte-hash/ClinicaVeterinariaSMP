@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -186,12 +186,16 @@ def branches(db: Db, _user: Admin):
 @router.post("/admin/operaciones/sucursales", status_code=201)
 @router.put("/admin/operaciones/sucursales/{location_id}")
 def write_branch(data: BranchWrite, db: Db, user: Admin, location_id: int | None = None):
-    check_permission(db, user, "usuarios", "editar")
+    check_permission(db, user, "usuarios", "editar" if location_id else "crear")
     item = db.get(Sucursal, location_id) if location_id else Sucursal()
     if item is None:
         raise HTTPException(404, "Sucursal no encontrada")
-    if item.id == user.sucursal_id and not data.activa:
+    if item.id in {user.sucursal_id, branch_id(db)} and not data.activa:
         raise HTTPException(409, "No desactives la sede en la que estás asignado")
+    if db.scalar(select(Sucursal.id).where(func.lower(Sucursal.nombre) == data.nombre.lower(), Sucursal.id != (location_id or 0))):
+        raise HTTPException(409, "Ya existe una sucursal con ese nombre")
+    if location_id and not data.activa and db.scalar(select(Caja.id).where(Caja.sucursal_id == location_id, Caja.estado_caja == "abierta").execution_options(skip_branch_filter=True).limit(1)):
+        raise HTTPException(409, "Cierra las cajas de la sucursal antes de desactivarla")
     for key, value in data.model_dump().items():
         setattr(item, key, value)
     return save(db, item)
@@ -514,7 +518,7 @@ def message_log(db: Db, _user: Admin, response: Response, evento: str | None = N
         statement = statement.where(MensajeSalida.evento == evento)
     if estado:
         statement = statement.where(MensajeSalida.estado == estado)
-    return [row_data(row, exclude={"contenido", "parametros"} if row.canal == "correo" else ()) for row in db.scalars(statement.order_by(MensajeSalida.id.desc()).limit(200)).all()]
+    return [row_data(row, exclude={"contenido", "parametros"} if row.canal == "correo" or row.evento == "encuesta" else ()) for row in db.scalars(statement.order_by(MensajeSalida.id.desc()).limit(200)).all()]
 
 
 @router.get("/admin/operaciones/mensajes-entrantes")
@@ -538,6 +542,10 @@ def retry_message(message_id: int, db: Db, user: Admin):
     from app.services.access_service import now
     from app.services.operational_message_service import operational_message_ready
     operational_message_ready(db, item, now())
+    from app.services.customer_message_service import customer_message_ready
+    customer_message_ready(db, item, now())
+    from app.services.clinical_message_service import clinical_message_ready
+    clinical_message_ready(db, item, now())
     if item.estado == "cancelado":
         db.commit()
         raise HTTPException(409, item.error)

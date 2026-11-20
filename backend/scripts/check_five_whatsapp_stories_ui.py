@@ -73,6 +73,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/admin/configuracion")
                 page.get_by_text("Preparar plantillas de cancelación y receta", exact=True).click()
                 for event in ("cita_confirmada", "cita_reprogramada", "veterinario_reprogramacion", "veterinario_cancelacion"):

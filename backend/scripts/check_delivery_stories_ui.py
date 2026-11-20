@@ -105,6 +105,7 @@ def run():
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
 
                 page.route("**/*", api)
+                page.route("**/publico/sucursales", lambda route: route.fulfill(content_type="application/json", body="[]"))
                 page.goto(base + "/mi-perfil")
                 expect(page.get_by_role("heading", name="Mi perfil", exact=True)).to_be_visible()
                 page.locator("input[name=nombre]").fill(" María   Actualizada ")

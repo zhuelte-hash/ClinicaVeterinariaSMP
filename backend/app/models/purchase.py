@@ -20,6 +20,7 @@ class PedidoWeb(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     codigo_pedido: Mapped[str] = mapped_column(String(50), unique=True)
     cliente_id: Mapped[int] = mapped_column(ForeignKey(f"{SCHEMA}.clientes.usuario_id"), index=True)
+    sucursal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey(f"{SCHEMA}.sucursales.id"), default=1, server_default="1", index=True)
     fecha_pedido: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     descuento: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
