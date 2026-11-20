@@ -27,6 +27,7 @@ export class AdminLayoutComponent {
     { label: 'Horarios y solicitudes', path: 'horarios', icon: 'calendar' },
     { label: 'Recepción, lotes y unidades', path: 'recepciones', icon: 'stock' },
     { label: 'Finanzas', path: 'finanzas', icon: 'sale' },
+    { label: 'Cierres de caja', path: 'cierres', icon: 'sale' },
     { label: 'Auditoría', path: 'auditoria', icon: 'users' },
     { label: 'Reportes Excel', path: 'reportes', icon: 'sale' },
     { label: 'Órdenes y pagos', path: 'ordenes', icon: 'sale' },

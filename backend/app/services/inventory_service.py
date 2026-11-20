@@ -162,6 +162,7 @@ class InventoryService:
         return [{**row_data(row), "usuario_nombre": name or "Sistema / histórico", "lote_codigo": code} for row, name, code in self.db.execute(statement.order_by(MovimientoInventario.id.desc())).all()]
 
     def valuation(self):
-        products = self.db.scalars(select(Producto).where(Producto.sucursal_id == branch_id(self.db), Producto.activo)).all()
-        rows = [{"id": p.id, "producto": p.nombre, "cantidad": p.stock_actual, "unidad": p.unidad_medida, "costo": p.costo_unitario, "valor": (p.stock_actual * p.costo_unitario).quantize(Decimal("0.01")), "costo_pendiente": p.costo_unitario == 0 and p.stock_actual > 0} for p in products]
-        return {"metodo": "Costo promedio ponderado móvil", "total": sum((row["valor"] for row in rows), Decimal(0)), "productos": rows}
+        from decimal import ROUND_HALF_UP
+        products = self.db.scalars(select(Producto).where(Producto.sucursal_id == branch_id(self.db)).order_by(Producto.nombre, Producto.id)).all()
+        rows = [{"id": p.id, "sku": p.sku, "activo": p.activo, "producto": p.nombre, "cantidad": p.stock_actual, "unidad": p.unidad_medida, "costo": p.costo_unitario, "valor": (p.stock_actual * p.costo_unitario).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), "costo_pendiente": p.costo_unitario == 0 and p.stock_actual > 0} for p in products]
+        return {"metodo": "Costo promedio ponderado móvil", "criterio": "Existencias actuales de la sede, incluidos productos inactivos y lotes vencidos; cantidad por costo promedio registrado, redondeado por producto a dos decimales. Costo cero con existencias se señala para revisión; no se sustituye por precio de venta.", "total": sum((row["valor"] for row in rows), Decimal(0)), "sin_costo": sum(row["costo_pendiente"] for row in rows), "productos": rows}

@@ -51,7 +51,16 @@ def capture_changes(db, _context):
             tracked = {key: value for key, value in changes.items() if key in {"estado", "fecha_hora_programada", "veterinario_id", "asistencia_confirmada_en", "fecha_hora_propuesta"}}
             if not tracked:
                 continue
-            event_name = "creada" if item in db.new else "reprogramada" if "fecha_hora_programada" in tracked else json_value(item.estado)
+            from app.services.access_service import aware
+            if item not in db.new:
+                # Distintas representaciones de un mismo instante no son cambios.
+                for key in ("fecha_hora_programada", "fecha_hora_propuesta"):
+                    history = state.attrs[key].history
+                    if key in tracked and history.deleted and history.deleted[0] is not None and getattr(item, key) is not None and aware(history.deleted[0]) == aware(getattr(item, key)):
+                        tracked.pop(key)
+            if not tracked:
+                continue
+            event_name = "creada" if item in db.new else "cancelada" if "estado" in tracked and item.estado == EstadoCita.CANCELADA else "reprogramada" if "fecha_hora_programada" in tracked else "reasignada" if "veterinario_id" in tracked and "estado" not in tracked else "asistencia_confirmada" if set(tracked) == {"asistencia_confirmada_en"} else "horario_propuesto" if set(tracked) == {"fecha_hora_propuesta"} else "estado_actualizado" if "estado" in tracked else "actualizada"
             db.add(EventoCita(cita_id=item.id, usuario_id=actor, accion=event_name, anterior={key: value["antes"] for key, value in tracked.items()}, actual={key: value["despues"] for key, value in tracked.items()}, motivo=item.nota_coordinacion))
             if item in db.new or item.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA, EstadoCita.CANCELADA}:
                 continue
@@ -84,3 +93,9 @@ def capture_changes(db, _context):
             if item.veterinario_id and name in {"cita_reprogramada", "cita_cancelada"}:
                 vet = db.get(Usuario, item.veterinario_id)
                 service.to_user(vet, "veterinario_cancelacion" if name == "cita_cancelada" else "veterinario_reprogramacion", f"vet:{item.id}:{key}", values, entity_id=item.id)
+
+
+@event.listens_for(EventoCita, "before_update")
+@event.listens_for(EventoCita, "before_delete")
+def preserve_appointment_history(_mapper, _connection, _target):
+    raise ValueError("El historial de citas es inmutable")

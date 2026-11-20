@@ -2,7 +2,7 @@ import datetime as dt
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -31,8 +31,13 @@ def dashboard(desde: dt.date, hasta: dt.date, db: Db, _user: SalesAdmin):
 
 
 @router.get("/cierres")
-def closures(desde: dt.date, hasta: dt.date, db: Db, _user: SalesAdmin):
-    return ReportingService(db).closures(desde, hasta)
+def closures(desde: dt.date, hasta: dt.date, db: Db, _user: SalesAdmin, cajero_id: Annotated[int | None, Query(gt=0)] = None):
+    return ReportingService(db).closures(desde, hasta, cajero_id)
+
+
+@router.get("/cierres/{register_id}")
+def closure_detail(register_id: int, db: Db, _user: SalesAdmin):
+    return ReportingService(db).closure_detail(register_id)
 
 
 @router.get("/ocupacion")

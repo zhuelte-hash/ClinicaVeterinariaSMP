@@ -23,6 +23,12 @@ export type MedicalKind = 'consulta_general' | 'cirugia' | 'vacunacion' | 'despa
 export interface ManagedService { id: number; codigo: string; nombre: string; descripcion: string; precio_referencial: Numeric; duracion_estimada_min: number; activo: boolean; tipo: 'medica' | 'estetica'; tipo_medico: MedicalKind | null; }
 export type ServiceWrite = Omit<ManagedService, 'id' | 'tipo_medico'> & { tipo_medico: MedicalKind };
 export interface Reschedule { id: number; cita_id: number; cliente_id: number; fecha_propuesta: string; motivo: string; canal: string; estado: string; }
+export interface AppointmentHistory { cantidad: number; reprogramaciones: number; cancelaciones: number; alcance: string; eventos: { id: number; fecha: string; autor: string; accion: string; motivo: string | null; anterior: Record<string, unknown>; actual: Record<string, unknown> }[]; }
+export interface CashTotals { fondo_inicial: Numeric; ingresos_efectivo: Numeric; ingresos_digitales: Numeric; efectivo_esperado: Numeric; efectivo_contado: Numeric; diferencia: Numeric; }
+export interface CashClosure extends CashTotals { id: number; cajero_id: number; cajero: string; fecha_apertura: string; fecha_cierre: string; }
+export interface ClosureReport { cantidad: number; criterio: string; totales: CashTotals; cierres: CashClosure[]; por_dia: (CashTotals & { fecha: string; cantidad: number })[]; }
+export interface ClosureDetail { id: number; cajero: string; movimientos: { referencia: string; medio: string; monto: Numeric; motivo: string; fecha: string }[]; }
+export interface InventoryValuation { metodo: string; criterio: string; total: Numeric; sin_costo: number; productos: { id: number; sku: string; activo: boolean; producto: string; cantidad: Numeric; unidad: string; costo: Numeric; valor: Numeric; costo_pendiente: boolean }[]; }
 export function operationError(error: unknown): string {
   const detail = (error as { error?: { detail?: unknown } })?.error?.detail;
   if (Array.isArray(detail)) return detail.map(item => typeof item?.msg === 'string' ? item.msg.replace(/^Value error, /, '') : '').filter(Boolean).join(' · ') || 'Revisa los datos del formulario.';
@@ -33,6 +39,10 @@ export class OperationsApiService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/admin/operaciones`;
   dashboard(desde: string, hasta: string) { return this.http.get<OperationsDashboard>(`${this.base}/dashboard`, { params: { desde, hasta } }); }
+  appointmentHistory(id: number) { return this.http.get<AppointmentHistory>(`${this.base}/citas/${id}/historial`); }
+  closures(desde: string, hasta: string, cashier: string) { return this.http.get<ClosureReport>(`${this.base}/cierres`, { params: { desde, hasta, ...(cashier ? { cajero_id: cashier } : {}) } }); }
+  closureDetail(id: number) { return this.http.get<ClosureDetail>(`${this.base}/cierres/${id}`); }
+  valuation() { return this.http.get<InventoryValuation>(`${this.base}/valorizacion`); }
   units() { return this.http.get<Unit[]>(`${this.base}/unidades`); }
   productUnits() { return this.http.get<Unit[]>(`${environment.apiUrl}/admin/productos/unidades`); }
   suppliers() { return this.http.get<{ id: number; razon_social: string }[]>(`${this.base}/proveedores`); }

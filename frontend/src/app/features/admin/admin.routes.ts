@@ -4,6 +4,7 @@ import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const ADMIN_ROUTES: Routes = [{
   path: '', component: AdminLayoutComponent, canActivateChild: [permissionGuard], children: [
+    { path: 'cierres', title: 'Cierres de caja | Clínica SMP', loadComponent: () => import('./pages/reportes/cash-closures.component').then(m => m.CashClosuresComponent) },
     { path: 'servicios', title: 'Tarifas y servicios | Clínica SMP', loadComponent: () => import('./pages/servicios/servicios.component').then(m => m.ServiciosComponent) },
     { path: 'horarios', title: 'Horarios | Clínica SMP', loadComponent: () => import('./pages/horarios/horarios.component').then(m => m.HorariosComponent) },
     { path: 'recepciones', title: 'Lotes y unidades | Clínica SMP', loadComponent: () => import('./pages/recepciones/recepciones.component').then(m => m.RecepcionesComponent) },

@@ -6,8 +6,9 @@ import { NoticeService } from '../../../../core/services/notice.service';
 import { AdminApiService, AdminProduct, InventoryAdjustment } from '../../services/admin-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { InventoryMovement, OperationsApiService, operationError } from '../../services/operations-api.service';
+import { InventoryValuationComponent } from './inventory-valuation.component';
 
-@Component({ selector: 'app-admin-inventario', standalone: true, imports: [FormsModule, PageHeaderComponent], templateUrl: './inventario.component.html', styleUrl: '../../shared/admin-ui.css' })
+@Component({ selector: 'app-admin-inventario', standalone: true, imports: [FormsModule, PageHeaderComponent, InventoryValuationComponent], templateUrl: './inventario.component.html', styleUrl: '../../shared/admin-ui.css' })
 export class InventarioComponent {
   private readonly api = inject(AdminApiService);
   private readonly operations = inject(OperationsApiService);

@@ -164,6 +164,31 @@ Pruebas: `python -m pytest -q tests/test_priority_pending_stories.py` aporta **4
 
 ## Pruebas
 
+### Cinco historias sin correo ni WhatsApp: HU-040, HU-041, HU-059, HU-079 y HU-119 (E30)
+
+Implementadas y verificadas el 19/11/2026. Conteo vigente del informe maestro: **91 completadas, 18 parciales y 6 pendientes** (115 en total). Los conteos E28/E29 anteriores son históricos.
+
+- **HU-040 — Administración → Citas:** selector de historial del listado y detalle desde el calendario. Muestra autor, fecha, valores anteriores/nuevos, nota y cantidades de reprogramaciones/cancelaciones. La creación, una reasignación y la misma fecha con otro huso horario no incrementan reprogramaciones. El historial es de consulta, sin endpoints de modificación; la actualización/eliminación ORM se rechaza. Conserva los eventos existentes; no reconstruye cambios anteriores a la trazabilidad.
+- **HU-041 — Administración → Citas → Calendario mensual:** mes completo, navegación, filtro por veterinario o sin asignar, todos los estados y detalle de cita. Horario de Perú, independiente de los filtros del listado; consultas administrativas en modo lectura y aislamiento por sede. API reutilizada: `GET /admin/citas?fecha_inicial=AAAA-MM-01&fecha_final=AAAA-MM-DD`.
+- **HU-059 — Cliente → Mis mascotas → Descargar carnet:** PDF específico de vacunas, con paciente, propietario, aplicación, lote, próxima fecha y profesional. No incluye desparasitaciones ni notas privadas. Sin aplicaciones, informa que no hay vacunas registradas. Descarga autenticada, permiso de Mascotas, propiedad y respuesta privada sin caché: `GET /portal/mascotas/{id}/carnet`.
+- **HU-079 — Administración → Cierres de caja (`/admin/cierres`):** rango inclusivo por día de cierre en Perú, filtro opcional por ID del cajero, consolidado diario, diferencias y movimientos de cada caja cerrada. Incluye todos los cajeros de la sede; no duplica la venta final de una orden ya cobrada mediante abonos. El efectivo esperado incluye fondo más ingresos netos en efectivo, sin digitales. API: `GET /admin/operaciones/cierres?desde=AAAA-MM-DD&hasta=AAAA-MM-DD&cajero_id=5` (cajero opcional), `GET /admin/operaciones/cierres/{id}`. Requiere consulta de Ventas.
+- **HU-119 — Administración → Inventario → Inventario valorizado al costo:** capital total, cantidad/unidad, costo promedio con cuatro decimales y valor por producto a dos decimales, búsqueda y filtro de costo pendiente. Método: promedio ponderado móvil de las compras existentes. Incluye productos inactivos y existencias físicas vencidas; señala costo cero con stock, sin sustituirlo por precio de venta. Total de valores redondeados por producto y subtotal del filtro; no suma cantidades de distintas unidades. `GET /admin/operaciones/valorizacion`, con permiso de consulta de Inventario y aislamiento por sede.
+
+Verificación E30:
+
+```powershell
+# Desde backend: 21 casos HTTP/JWT con SQLite aislada
+.\.venv\Scripts\python.exe -m pytest -q tests/test_five_independent_stories.py
+# Desde la raíz: suite completa y cinco integraciones nativas nuevas
+.\backend\.venv\Scripts\python.exe backend/scripts/test_postgres.py --all
+# Desde frontend: compilación Angular
+npm run build
+# Desde la raíz: Edge, escritorio y móvil, API controlada
+.\backend\.venv\Scripts\python.exe backend/scripts/check_independent_stories_ui.py
+```
+
+Resultado: **355 pruebas aprobadas, cero fallos y cero omitidas**, con migraciones completas en PostgreSQL temporal; contenedor/red eliminados al terminar. De los 26 casos nuevos, 21 usan SQLite y cinco PostgreSQL nativo (`test_independent_stories_postgres.py`). Las pruebas nativas nuevas usan transacción aislada revertida al terminar. Compilación correcta (624,37 kB iniciales; avisos de presupuesto/CommonJS). **26 comprobaciones Edge nuevas + 46 de regresión** (`check_fundamental_stories_ui.py`: 34 y `check_five_stories_ui.py`: 12), sin errores JavaScript, en 1440×1000 y 390×844. La API visual es controlada; HTTP/JWT y PostgreSQL se verifican por separado. No requiere migraciones nuevas ni datos de proveedores externos.
+
 ### Cinco historias fundamentales: respaldo, vencimientos, asistencia, políticas y Kardex
 
 - **HU-095 — Configuración → Respaldo de información:** descargar ZIP completo y seleccionar el archivo para verificar su restauración lógica aislada. Incluye todas las tablas y sedes, valores binarios, `uploads` y `clinical_private`, con SHA-256. La lectura PostgreSQL utiliza una transacción independiente `REPEATABLE READ` de solo lectura para mantener una fotografía consistente ante escrituras concurrentes. La verificación de interfaz usa SQLite temporal y rechaza archivos dañados, relaciones inválidas y rutas/esquemas incompatibles; no reemplaza tablas operativas. Requiere edición de Usuarios. La copia es manual: no programa retención ni almacenamiento externo.
@@ -205,7 +230,7 @@ Con Docker Desktop iniciado y las dependencias del entorno virtual instaladas, e
 
 El script crea PostgreSQL 15 temporal en `localhost:55432`, aplica todas las migraciones y configura `DATABASE_URL`, `TEST_DATABASE_URL` y `TEST_APPOINTMENT_DATABASE_URL` para el proceso de pruebas. La base `test_clinica` se guarda en memoria temporal del contenedor y se elimina al terminar, incluso si las migraciones o las pruebas fallan.
 
-La ejecución incluye las 12 integraciones que normalmente se omiten (9 de pedidos web, 1 de ventas, 1 de citas y 1 de respaldo/snapshot/restauración PostgreSQL), más la validación de archivos del mismo módulo: **13 pruebas**. La configuración se aplica únicamente a los procesos lanzados por el script.
+La ejecución incluye las 12 integraciones originales (9 de pedidos web, 1 de ventas, 1 de citas y 1 de respaldo/snapshot/restauración PostgreSQL), la validación de archivos del mismo módulo y las cinco nuevas de HU-040/041/059/079/119: **18 pruebas**. Sin PostgreSQL configurado se omiten 17 casos. La configuración se aplica únicamente a los procesos lanzados por el script.
 
 Para ejecutar **toda la suite** con PostgreSQL disponible:
 

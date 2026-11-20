@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, ExamenMedicoAdjunto, Mascota, Notificacion, ProcesoAtencion
+from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, ExamenMedicoAdjunto, Mascota, Notificacion, ProcesoAtencion, TipoAplicacionPreventiva
 from app.models.operations import DerivacionClinica, EventoCita, SolicitudReprogramacion
 from app.models.user import Usuario, TipoUsuario
 from app.schemas.operations import PrivateNotes, ReferralAnswer, ReferralCreate, RescheduleRequest, RescheduleAnswer
@@ -62,12 +62,16 @@ def clinical_file(file_id: int, token: str, db: Db):
 
 @router.get("/portal/mascotas/{pet_id}/carnet")
 def vaccination_card(pet_id: int, db: Db, client: Client):
+    check_permission(db, client, "mascotas")
     pet = db.get(Mascota, pet_id)
     if pet is None or pet.cliente_id != client.id:
         raise HTTPException(404, "Mascota no encontrada")
-    rows = db.scalars(select(AplicacionPreventiva).join(ProcesoAtencion, ProcesoAtencion.id == AplicacionPreventiva.proceso_id).where(ProcesoAtencion.mascota_id == pet.id).order_by(AplicacionPreventiva.fecha_aplicacion)).all()
-    pdf = make_pdf("Carnet digital de vacunación y desparasitación", [f"Paciente: {pet.nombre} · {pet.especie} · {pet.raza or 'Sin raza registrada'}", f"Nacimiento: {pet.fecha_nacimiento or 'Sin registrar'}", f"Propietario: {client.nombre}"], [["Fecha", "Aplicación", "Producto", "Lote", "Próxima fecha"]] + [[row.fecha_aplicacion, row.tipo.value, row.producto, row.lote, row.proxima_fecha] for row in rows])
-    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="carnet-{pet.id}.pdf"'})
+    rows = db.scalars(select(AplicacionPreventiva).join(ProcesoAtencion, ProcesoAtencion.id == AplicacionPreventiva.proceso_id).where(ProcesoAtencion.mascota_id == pet.id, AplicacionPreventiva.tipo == TipoAplicacionPreventiva.VACUNA).order_by(AplicacionPreventiva.fecha_aplicacion, AplicacionPreventiva.id)).all()
+    lines = [f"Paciente: {pet.nombre} · {pet.especie} · {pet.raza or 'Sin raza registrada'}", f"Nacimiento: {pet.fecha_nacimiento or 'Sin registrar'}", f"Propietario: {client.nombre}", "Aplicaciones registradas por el personal veterinario; próxima fecha según indicación clínica."]
+    if not rows:
+        lines.append("Sin vacunas registradas para esta mascota.")
+    pdf = make_pdf("Carnet digital de vacunación", lines, [["Fecha", "Vacuna", "Lote", "Próxima fecha", "Veterinario"]] + [[row.fecha_aplicacion, row.producto, row.lote, row.proxima_fecha, db.get(Usuario, row.veterinario_id).nombre] for row in rows])
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="carnet-{pet.id}.pdf"', "Cache-Control": "private, no-store"})
 
 
 @router.get("/portal/veterinario/atenciones/{process_id}/notas-privadas")
@@ -231,4 +235,4 @@ def appointment_history(appointment_id: int, db: Db, _user: Admin):
     if AppointmentService(db)._get_appointment_with_details(appointment_id) is None:
         raise HTTPException(404, "Cita no encontrada")
     rows = db.scalars(select(EventoCita).where(EventoCita.cita_id == appointment_id).order_by(EventoCita.id)).all()
-    return {"cantidad": len(rows), "reprogramaciones": sum(row.accion == "reprogramada" for row in rows), "eventos": [{**row_data(row), "autor": db.get(Usuario, row.usuario_id).nombre if row.usuario_id else "Sistema"} for row in rows]}
+    return {"cantidad": len(rows), "reprogramaciones": sum(row.anterior.get("fecha_hora_programada") is not None and row.anterior.get("fecha_hora_programada") != row.actual.get("fecha_hora_programada") for row in rows), "cancelaciones": sum(row.actual.get("estado") == "cancelada" and row.anterior.get("estado") != "cancelada" for row in rows), "eventos": [{**row_data(row), "autor": db.get(Usuario, row.usuario_id).nombre if row.usuario_id else "Sistema"} for row in rows], "alcance": "Eventos conservados desde la activación de la trazabilidad; no reconstruye cambios anteriores."}

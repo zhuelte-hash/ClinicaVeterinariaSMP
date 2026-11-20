@@ -278,6 +278,8 @@ class AdminService:
         if appointment is None:
             raise AdminNotFoundError
         values = data.model_dump(exclude_unset=True)
+        if values.get("fecha_hora_programada") is not None:
+            values["fecha_hora_programada"] = values["fecha_hora_programada"].astimezone(datetime.timezone.utc)
         if not values:
             return self._appointment_read(appointment)
         if appointment.estado in {EstadoCita.ATENDIDA, EstadoCita.CANCELADA, EstadoCita.NO_ASISTIO}:
@@ -307,7 +309,7 @@ class AdminService:
         if scheduling and appointment.fecha_hora_llegada is not None:
             raise AdminConflictError("No se puede reprogramar una cita cuya llegada ya se registró")
         if state in ACTIVE_BOOKING_STATES and (scheduling or state != appointment.estado):
-            scheduled = data.fecha_hora_programada or appointment.fecha_hora_programada
+            scheduled = values.get("fecha_hora_programada") or appointment.fecha_hora_programada
             if scheduled.tzinfo is None:
                 scheduled = scheduled.replace(tzinfo=datetime.timezone.utc)
             try:

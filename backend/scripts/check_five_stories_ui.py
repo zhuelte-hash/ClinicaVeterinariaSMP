@@ -83,6 +83,8 @@ def run():
                         data = {"ventas": "40.00", "cantidad_ventas": 2, "citas_por_estado": {"confirmada": 2, "cancelada": 1, "atendida": 0}, "ordenes_pendientes": 3, "saldo_pendiente": "80.00", "pagos_por_validar": 1, "pagos_web_por_validar": 2, "stock_bajo": [{"id": 1, "nombre": "Medicina", "stock": 2, "minimo": 3}], "productos_mas_vendidos": [], "servicios_mas_atendidos": [], "finanzas": {"cobros": 40, "egresos": 0, "resultado": 40, "criterio": "Prueba"}}
                     elif path in {"/admin/productos", "/admin/inventario"}:
                         data = [PRODUCT, WEIGHT]
+                    elif path == "/admin/operaciones/valorizacion":
+                        data = {"metodo": "Costo promedio ponderado móvil", "criterio": "Existencias de la sede", "total": "11.25", "sin_costo": 0, "productos": []}
                     elif path == "/admin/productos/catalogo":
                         data = {"categorias": [{"id": 1, "nombre": "Medicamentos"}], "proveedores": [{"id": 1, "nombre": "Proveedor"}]}
                     elif path == "/admin/categorias":

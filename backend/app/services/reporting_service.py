@@ -78,15 +78,33 @@ class ReportingService:
         confirmed = self.db.scalar(select(func.coalesce(func.sum(AbonoOrden.monto), 0)).join(OrdenPendiente, OrdenPendiente.id == AbonoOrden.orden_id).where(AbonoOrden.estado == "validado", OrdenPendiente.estado.in_(["pendiente", "parcial"]))) or Decimal(0)
         return {"desde": start, "hasta": end, "sucursal_id": branch_id(self.db), "ventas": sum((sale.monto_total for sale in sales), Decimal(0)), "cantidad_ventas": len(sales), "citas_por_estado": states, "ordenes_pendientes": len(pending), "saldo_pendiente": sum((order.total for order in pending), Decimal(0)) - confirmed, "pagos_web_por_validar": web_pending, "pagos_por_validar": awaiting, "stock_bajo": [{"id": p.id, "nombre": p.nombre, "stock": p.stock_actual, "minimo": p.stock_minimo} for p in low], "productos_mas_vendidos": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(product_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "servicios_mas_solicitados": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(requested_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "servicios_mas_atendidos": [{"id": key[0], "nombre": key[1], "cantidad": qty} for key, qty in sorted(service_totals.items(), key=lambda row: (-row[1], row[0][0]))[:10]], "finanzas": {"cobros": cash + direct, "egresos": expenses, "resultado": cash + direct - expenses, "criterio": "Cobros efectivos del período, incluidos abonos; egresos y recepciones de mercadería registrados"}}
 
-    def closures(self, start, end):
+    def closures(self, start, end, cashier=None):
         initial, final = bounds(start, end)
         from app.services.cashier_service import CashierService
-        registers = self.db.scalars(select(Caja).where(Caja.estado_caja == "cerrada", Caja.fecha_cierre >= initial, Caja.fecha_cierre < final).order_by(Caja.fecha_cierre.desc())).all()
+        statement = select(Caja).where(Caja.estado_caja == "cerrada", Caja.fecha_cierre >= initial, Caja.fecha_cierre < final)
+        if cashier is not None:
+            statement = statement.where(Caja.cajero_id == cashier)
+        registers = self.db.scalars(statement.order_by(Caja.fecha_cierre.desc(), Caja.id.desc())).all()
         rows = []
         for register in registers:
             cash, digital = CashierService(self.db)._payment_totals(register.id)
             rows.append({**row_data(register), "cajero": db_user_name(self.db, register.cajero_id), "ingresos_efectivo": cash, "ingresos_digitales": digital, "efectivo_esperado": register.fondo_inicial + cash})
-        return {"cierres": rows, "cantidad": len(rows), "diferencia_total": sum((row["diferencia"] or 0 for row in rows), Decimal(0))}
+        totals = lambda items: {key: sum((row[key] or Decimal(0) for row in items), Decimal(0)) for key in ("fondo_inicial", "ingresos_efectivo", "ingresos_digitales", "efectivo_esperado", "efectivo_contado", "diferencia")}
+        daily = defaultdict(list)
+        for row in rows:
+            daily[aware(row["fecha_cierre"]).astimezone(ZONE).date()].append(row)
+        return {"desde": start, "hasta": end, "cierres": rows, "cantidad": len(rows), "diferencia_total": totals(rows)["diferencia"], "totales": totals(rows), "por_dia": [{"fecha": day, "cantidad": len(items), **totals(items)} for day, items in sorted(daily.items(), reverse=True)], "criterio": "Cajas cerradas en la sede actual, por fecha de cierre en Perú. El efectivo esperado incluye fondo e ingresos netos; los digitales no forman parte del arqueo físico."}
+
+    def closure_detail(self, register_id):
+        register = self.db.scalar(select(Caja).where(Caja.id == register_id, Caja.estado_caja == "cerrada"))
+        if register is None:
+            raise HTTPException(404, "Cierre no encontrado en esta sede")
+        # Igual criterio de _payment_totals: la venta final de una preorden
+        # no duplica los abonos que ya entraron como movimientos de caja.
+        orders = self.db.scalars(select(OrdenCobro).where(OrdenCobro.caja_id == register.id, OrdenCobro.estado_pago == EstadoPago.VALIDADO_CONFIRMADO, OrdenCobro.preorden_id.is_(None)).order_by(OrdenCobro.id)).all()
+        entries = [{"referencia": order.codigo_orden, "medio": payment["medio"], "monto": Decimal(str(payment["monto"])), "motivo": "Venta directa", "fecha": order.comprobante_venta.fecha_emision if order.comprobante_venta else register.fecha_apertura} for order in orders for payment in (order.pagos or [{"medio": order.medio_pago, "monto": order.monto_total}])]
+        entries += [{"referencia": f"Abono #{row.abono_id}", "medio": row.medio, "monto": row.monto, "motivo": row.motivo, "fecha": row.fecha} for row in self.db.scalars(select(MovimientoCaja).where(MovimientoCaja.caja_id == register.id).order_by(MovimientoCaja.id)).all()]
+        return {"id": register.id, "cajero": db_user_name(self.db, register.cajero_id), "movimientos": entries}
 
     def occupancy(self, start, end, veterinarian=None):
         initial, final = bounds(start, end)

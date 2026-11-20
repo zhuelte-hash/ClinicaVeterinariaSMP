@@ -83,6 +83,8 @@ def run():
                         policy.update(body); data = policy
                     elif path in {"/admin/productos", "/admin/inventario"}:
                         data = [PRODUCT]
+                    elif path == "/admin/operaciones/valorizacion":
+                        data = {"metodo": "Costo promedio ponderado móvil", "criterio": "Existencias de la sede", "total": "10.00", "sin_costo": 0, "productos": []}
                     elif path == "/admin/operaciones/unidades":
                         data = UNITS
                     elif path == "/admin/operaciones/proveedores":
