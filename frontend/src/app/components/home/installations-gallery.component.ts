@@ -10,7 +10,7 @@ import { environment } from '../../../environments/environment';
     @else {
       <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         @for (photo of photos(); track photo.url) {
-          <figure class="overflow-hidden rounded-2xl border bg-white shadow-sm"><img [src]="imageUrl(photo.url)" [alt]="photo.titulo" loading="lazy" class="h-64 w-full object-cover"><figcaption class="p-4 font-bold text-pet-900">{{ photo.titulo }}</figcaption></figure>
+          <figure class="overflow-hidden rounded-2xl border bg-white shadow-sm"><img [src]="imageUrl(photo.url)" [alt]="photo.titulo" loading="lazy" class="aspect-square w-full bg-slate-50 object-contain"><figcaption class="p-4 font-bold text-pet-900">{{ photo.titulo }}</figcaption></figure>
         } @empty { <p class="text-slate-600">Próximamente compartiremos fotografías de nuestras instalaciones.</p> }
       </div>
     }

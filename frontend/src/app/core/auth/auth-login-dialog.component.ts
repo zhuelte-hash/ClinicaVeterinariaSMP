@@ -31,6 +31,7 @@ export interface AuthDialogData {
         @if (errorMessage()) { <p role="alert" class="rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{{ errorMessage() }}</p> }
         <button type="submit" [disabled]="loginForm.invalid || submitting()" class="site-button min-h-12 rounded-xl">{{ submitting() ? 'Ingresando...' : 'Iniciar sesión' }}</button>
       </form>
+      <div class="mt-3 text-right"><button type="button" (click)="openPasswordRecovery()" class="text-sm font-bold text-[#0799AE] hover:underline">¿Olvidaste tu contraseña?</button></div>
 
       <div class="mt-6 border-t border-slate-200 pt-5 text-center"><p class="mb-3 text-sm text-slate-500">¿Aún no tienes cuenta?</p><button type="button" (click)="openRegistration()" class="site-button site-button-secondary w-full rounded-xl">Crear nueva cuenta</button></div>
     </section>
@@ -69,6 +70,11 @@ export class AuthLoginDialogComponent {
         },
         error: (error: unknown) => this.errorMessage.set(this.getErrorMessage(error)),
       });
+  }
+
+  openPasswordRecovery(): void {
+    this.dialogRef.close(false);
+    void this.router.navigate(['/recuperar-clave']);
   }
 
   openRegistration(): void {

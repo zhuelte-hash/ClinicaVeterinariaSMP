@@ -10,7 +10,24 @@ Ejecuta los comandos de PowerShell desde `backend`.
 
 API: <http://localhost:8000/docs>. Estado del servidor: <http://localhost:8000/health>.
 
-## Cinco parciales prioritarias — E32, 20/11/2026
+## Revisión actual de parciales y pendientes
+
+Estado vigente **E33 — 23/11/2026: 96 completadas, 19 parciales y 0 pendientes (115)**.
+HU-002 y HU-004 cerradas mediante recepción real en Gmail y aceptación manual del
+usuario: verificación e ingreso, recuperación, rechazo de contraseña anterior/enlace
+anterior y acceso con nueva clave. Tras otra recuperación en incógnito, la sesión
+normal previa perdió el acceso y volvió a funcionar al autenticar con la última clave.
+La comprobación de sesiones fue visual; no se inspeccionó la respuesta HTTP.
+SMTP conectado y autenticado correctamente. Se añadió recuperación al diálogo de
+login; `npm run build` correcto (625,71 kB; avisos de presupuesto/CommonJS).
+
+Consulta [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md) para la evidencia E33 y la matriz
+de las 19 historias parciales (18 de WhatsApp y HU-018 de fotografías reales).
+La revalidación local anterior a E33 obtuvo 392 pruebas aprobadas
+y 24 omitidas por falta de PostgreSQL de prueba, sin fallos, y compilación correcta.
+Las evidencias completas de E32 que siguen corresponden a su ejecución histórica.
+
+## Cinco parciales prioritarias — E32, 20/11/2026 (histórico)
 
 Avance de **HU-002, HU-004, HU-036, HU-039 y HU-050**. Conservan estado **Parcial**:
 el diagnóstico del entorno sigue sin `SMTP_HOST`, `MAIL_FROM` ni las cuatro variables

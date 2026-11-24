@@ -2,6 +2,17 @@
 
 Configuración acordada: Gmail `uzielzarate2003@gmail.com` como remitente de prueba; conexión Meta existente; sistema local y despliegue posterior. Esta guía prepara las pruebas, pero no acredita recepción ni aprobación de plantillas.
 
+**Actualización E33 — 23/11/2026:** HU-002 y HU-004 completadas mediante recepción
+real en Gmail y aceptación manual del usuario. Registro/código/verificación/ingreso,
+recuperación, contraseña anterior rechazada y nueva aceptada; enlace anterior rechazado
+al intentar reutilizarlo. Segunda recuperación en incógnito con pérdida visual del
+acceso de la sesión normal previa y recuperación del acceso tras autenticar con la
+última clave; no se inspeccionó HTTP. Diagnóstico SMTP conectado/autenticado.
+Detalle y límites en [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md).
+Conteo vigente: **96 completadas, 19 parciales, 0 pendientes**. Las instrucciones
+y evidencias E20–E32 siguientes conservan su contexto histórico; WhatsApp sigue
+requiriendo aceptación externa propia.
+
 ## 1. Gmail: dos historias de acceso
 
 En la cuenta Google del remitente:
