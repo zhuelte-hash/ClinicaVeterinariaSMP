@@ -1,0 +1,162 @@
+{
+  "VET-MED-001": {
+    "codigo": "MED-001",
+    "nombre": "Aurizon - Gotas oticas x 20 ml.",
+    "archivo": "/catalogo/productos/vet-med-001-715126a03108.webp",
+    "url_origen": "https://shop.convet.com.pe/wp-content/uploads/sites/100/2025/04/0710101002-AURIZON-GOTAS-x-20-ML.webp",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-003": {
+    "codigo": "MED-003",
+    "nombre": "CARDIAL 5 mg.",
+    "archivo": "/catalogo/productos/vet-med-003-7dcbcb515a9a.webp",
+    "url_origen": "https://www.superpet.pe/on/demandware.static/-/Sites-SuperPet-master-catalog/default/dwde6f0229/images/holliday-cardial-5mg-caja-30-tbs.jpg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-010": {
+    "codigo": "MED-010",
+    "nombre": "PREDNISOLONA HOLLIDAY 20 MG X UND",
+    "archivo": "/catalogo/productos/vet-med-010-d0c952c4f508.webp",
+    "url_origen": "https://mascotify.pe/wp-content/uploads/2026/03/Holliday-Prednisolona-20mg-Blister-10un-Glucorticoide.jpg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-011": {
+    "codigo": "MED-011",
+    "nombre": "CEFAVET 300 mg x 32 tab",
+    "archivo": "/catalogo/productos/vet-med-011-cb963f1c007e.webp",
+    "url_origen": "https://animarket.net/wp-content/uploads/2019/11/cefavet-300-precio-lima-peru.jpeg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-012": {
+    "codigo": "MED-012",
+    "nombre": "APOQUEL 16 mg x 20 tab",
+    "archivo": "/catalogo/productos/vet-med-012-c932e1313665.webp",
+    "url_origen": "https://promart.vteximg.com.br/arquivos/ids/11347861/imageUrl_1.jpg?v=639224569069800000",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-015": {
+    "codigo": "MED-015",
+    "nombre": "ANTALVET COMPUESTO 100 ML",
+    "archivo": "/catalogo/productos/vet-med-015-27095f7a631a.webp",
+    "url_origen": "https://shop.convet.com.pe/wp-content/uploads/sites/100/2025/04/0480117002-ANTALVET-COMPUESTO-NEO-x-100-ML.webp",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-014": {
+    "codigo": "MED-014",
+    "nombre": "ANTALVET COMPUESTO 50 ML",
+    "archivo": "/catalogo/productos/vet-med-014-46e451fc261c.webp",
+    "url_origen": "https://asisvet.com.ec/wp-content/uploads/2026/01/ANTALVET.COMPUESTO_montana.jpg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-MED-002": {
+    "codigo": "MED-002",
+    "nombre": "BRONCOPET x 50 ml.",
+    "archivo": "/catalogo/productos/vet-med-002-6129034067a3.webp",
+    "url_origen": "https://sur.convet.com.pe/wp-content/uploads/sites/94/2025/04/0220101002-BRONCOPET-x-50-ML.webp",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-GAT-001": {
+    "codigo": "GAT-001",
+    "nombre": "BRIT CARE CAT GF INDOOR ANTI-STRESS 2KG",
+    "archivo": "/catalogo/productos/vet-gat-001-9b39fc1d81e4.webp",
+    "url_origen": "https://www.miau.pe/cdn/shop/products/britcareantiestresgatosalimento_1200x1200.jpg?v=1647632775",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-GAT-002": {
+    "codigo": "GAT-002",
+    "nombre": "BRIT CARE CAT SENIOR WEIGHT CONTROL 2 KG",
+    "archivo": "/catalogo/productos/vet-gat-002-95bc26237410.webp",
+    "url_origen": "https://www.miau.pe/cdn/shop/products/X_britcarecatseniorweightcontrol2118_1200x1200.jpg?v=1647634524",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-GAT-003": {
+    "codigo": "GAT-003",
+    "nombre": "BRIT CARE CAT STERILIZED WEIGHT CONTROL 2KG",
+    "archivo": "/catalogo/productos/vet-gat-003-86069cbf10c5.webp",
+    "url_origen": "https://gezanipe.vtexassets.com/arquivos/ids/180340/LUM000000000240.jpg?v=639294886346230000",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ANT-001": {
+    "codigo": "ANT-001",
+    "nombre": "Bravecto 10 - 20 kg. (500mg.)",
+    "archivo": "/catalogo/productos/vet-ant-001-e0b5ba548ad1.webp",
+    "url_origen": "https://gopet.vtexassets.com/arquivos/ids/199249/20190237_1.jpg?v=639302119982970000",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-HIG-003": {
+    "codigo": "HIG-003",
+    "nombre": "ARENA CRISTAL SAN 1.6 Kg",
+    "archivo": "/catalogo/productos/vet-hig-003-85dc260172c4.webp",
+    "url_origen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3RGvY8yi65Y43wTmfR8Biry7r8v1aU9KwKQRLG5G46tuvSK2TvLRLv3Y&s=10",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-HIG-004": {
+    "codigo": "HIG-004",
+    "nombre": "ARENA MITZI 5Kg",
+    "archivo": "/catalogo/productos/vet-hig-004-b1de80892d7e.webp",
+    "url_origen": "https://media.falabella.com/tottusPE/40492994_1/w=800,h=800,fit=pad",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-HIG-005": {
+    "codigo": "HIG-005",
+    "nombre": "ARENA DEAR CAT CERO HUELLAS 5 Kg",
+    "archivo": "/catalogo/productos/vet-hig-005-7e574888846a.webp",
+    "url_origen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT_kbrbDuq-MaZNS3N1ToPnKj0_UFKjwfzQ5S4xovzvVsRo319ljKiSDP4&s=10",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ANT-002": {
+    "codigo": "ANT-002",
+    "nombre": "Bravecto 2 - 4.5 kg. (112.5 mg.)",
+    "archivo": "/catalogo/productos/vet-ant-002-7432d013369e.webp",
+    "url_origen": "https://www.superpet.pe/on/demandware.static/-/Sites-SuperPet-master-catalog/default/dw543ad49a/images/msd-bravecto-1125mg-2-45kg.jpg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ANT-003": {
+    "codigo": "ANT-003",
+    "nombre": "Bravecto 20 - 40 kg. (1000 mg.)",
+    "archivo": "/catalogo/productos/vet-ant-003-4fca3c0e9575.webp",
+    "url_origen": "https://www.superpet.pe/on/demandware.static/-/Sites-SuperPet-master-catalog/default/dw013a0068/images/msd-bravecto-1000mg-20-40kg.jpg",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ANT-004": {
+    "codigo": "ANT-004",
+    "nombre": "Bravecto 4.5 - 10 kg. (250 mg.)",
+    "archivo": "/catalogo/productos/vet-ant-004-9504d07451e6.webp",
+    "url_origen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUDALVrdyGXz7rZBdEyFJ9OzujQnF9p_KPF_EAmRQ4Dj8h1QxC15GSop4&s=10",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ANT-005": {
+    "codigo": "ANT-005",
+    "nombre": "NexGard Spectra M (7.6 - 15 kg) x 1 tableta",
+    "archivo": "/catalogo/productos/vet-ant-005-b69d423f1aea.webp",
+    "url_origen": "https://mascotify.pe/wp-content/uploads/2020/10/NEXGARD-SPECTRA-7-6kg-a-15kg-Antipulgas-y-antiparasitario.png",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  },
+  "VET-ACC-004": {
+    "codigo": "ACC-004",
+    "nombre": "Soga de Nylon Xl",
+    "archivo": "/catalogo/productos/vet-acc-004-e1344e95b65e.webp",
+    "url_origen": "https://http2.mlstatic.com/D_NQ_NP_647571-MLA80173489289_102024-O.webp",
+    "fecha": "2026-11-24",
+    "comprobacion": "enlace_directo_proporcionado_por_usuario"
+  }
+}

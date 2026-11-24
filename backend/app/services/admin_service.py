@@ -80,7 +80,7 @@ class AdminService:
         return self._product_read(product)
 
     def create_product(self, data: AdminProductCreate) -> AdminProductRead:
-        if self.db.get(CategoriaProducto, data.categoria_id) is None or self.db.get(Proveedor, data.proveedor_id) is None:
+        if self.db.get(CategoriaProducto, data.categoria_id) is None or (data.proveedor_id is not None and self.db.get(Proveedor, data.proveedor_id) is None):
             raise AdminNotFoundError
         product = Producto(**data.model_dump(), sucursal_id=branch_id(self.db))
         if product.requiere_vencimiento and product.stock_actual:
@@ -498,6 +498,8 @@ class AdminService:
             proveedor_id=product.proveedor_id, descripcion=product.descripcion, especies=product.especies,
             unidad_medida=product.unidad_medida, fraccionable=product.fraccionable, costo_unitario=product.costo_unitario, sucursal_id=product.sucursal_id,
             requiere_vencimiento=product.requiere_vencimiento,
+            marca=product.marca, presentacion=product.presentacion, subcategoria=product.subcategoria,
+            catalogo_origen=product.catalogo_origen, es_demostracion=product.es_demostracion,
         )
 
     @staticmethod

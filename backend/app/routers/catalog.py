@@ -29,9 +29,10 @@ def get_public_products(
     ).all()
     return [AdminService._product_read(product) for product in products
             if (categoria_id is None or product.categoria_id == categoria_id)
-            and (precio_min is None or product.precio_venta >= precio_min)
-            and (precio_max is None or product.precio_venta <= precio_max)
-            and (not especie or not product.especies or especie.casefold() in [value.casefold() for value in product.especies])]
+            and (precio_min is None or (product.precio_venta is not None and product.precio_venta >= precio_min))
+            and (precio_max is None or (product.precio_venta is not None and product.precio_venta <= precio_max))
+            and (not especie or especie.casefold() in [value.casefold() for value in product.especies]
+                 or (not product.especies and not (product.catalogo_origen and product.catalogo_origen.get("especie") is None)))]
 
 
 @router.get("/productos/{product_id}", response_model=AdminProductRead)

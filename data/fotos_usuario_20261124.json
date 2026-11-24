@@ -1,0 +1,9 @@
+[
+  {"sku":"VET-MED-014","url":"https://asisvet.com.ec/wp-content/uploads/2026/01/ANTALVET.COMPUESTO_montana.jpg","aplicar":true},
+  {"sku":"VET-MED-002","url":"https://sur.convet.com.pe/wp-content/uploads/sites/94/2025/04/0220101002-BRONCOPET-x-50-ML.webp","aplicar":true},
+  {"sku":"VET-MED-013","url":"https://shop.convet.com.pe/wp-content/uploads/sites/100/2025/04/0220199003-ALERDOG-x-40-UND.webp","aplicar":false,"observacion":"El enlace indica ALERDOG; el producto es DOLORDOG. Pendiente de confirmar."},
+  {"sku":"VET-GAT-001","url":"https://www.miau.pe/cdn/shop/products/britcareantiestresgatosalimento_1200x1200.jpg?v=1647632775","aplicar":true},
+  {"sku":"VET-GAT-002","url":"https://www.miau.pe/cdn/shop/products/X_britcarecatseniorweightcontrol2118_1200x1200.jpg?v=1647634524","aplicar":true},
+  {"sku":"VET-GAT-003","url":"https://gezanipe.vtexassets.com/arquivos/ids/180340/LUM000000000240.jpg?v=639294886346230000","aplicar":true},
+  {"sku":"VET-ANT-001","url":"https://gopet.vtexassets.com/arquivos/ids/199249/20190237_1.jpg?v=639302119982970000","aplicar":true}
+]

@@ -1,0 +1,45 @@
+[
+  {
+    "sku": "VET-MED-002",
+    "url": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-24.png",
+    "aplicar": false,
+    "observacion": "La foto muestra Broncopet 100 ml; el producto registrado es de 50 ml."
+  },
+  {
+    "sku": "VET-MED-003",
+    "url": "https://www.superpet.pe/on/demandware.static/-/Sites-SuperPet-master-catalog/default/dwde6f0229/images/holliday-cardial-5mg-caja-30-tbs.jpg",
+    "aplicar": true
+  },
+  {
+    "sku": "VET-MED-010",
+    "url": "https://mascotify.pe/wp-content/uploads/2026/03/Holliday-Prednisolona-20mg-Blister-10un-Glucorticoide.jpg",
+    "aplicar": true
+  },
+  {
+    "sku": "VET-MED-011",
+    "url": "https://animarket.net/wp-content/uploads/2019/11/cefavet-300-precio-lima-peru.jpeg",
+    "aplicar": true
+  },
+  {
+    "sku": "VET-MED-012",
+    "url": "https://promart.vteximg.com.br/arquivos/ids/11347861/imageUrl_1.jpg?v=639224569069800000",
+    "aplicar": true
+  },
+  {
+    "sku": "VET-MED-013",
+    "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUCErDEMsjYuZHZd3VzV-ofDUwW4Vt3EFwUsP3nh3I9RqdgJx6mBLLTuqm&s=10",
+    "aplicar": false,
+    "observacion": "La foto muestra 30 comprimidos; el producto registrado indica 40."
+  },
+  {
+    "sku": "VET-MED-014",
+    "url": "https://montanaweb-bucket.s3.amazonaws.com/web/products/1009/P-20000028.jpg",
+    "aplicar": false,
+    "observacion": "La foto muestra Antalvet compuesto 100 ml; este SKU corresponde a 50 ml."
+  },
+  {
+    "sku": "VET-MED-015",
+    "url": "https://shop.convet.com.pe/wp-content/uploads/sites/100/2025/04/0480117002-ANTALVET-COMPUESTO-NEO-x-100-ML.webp",
+    "aplicar": true
+  }
+]

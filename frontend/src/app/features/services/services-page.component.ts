@@ -50,7 +50,7 @@ export class ServicesPageComponent {
             summary: item.descripcion || 'Atención veterinaria profesional.', description: item.descripcion || 'Atención veterinaria profesional.',
             price: Number(item.precio_referencial), duration: item.duracion_estimada_min, featured: design?.featured };
         })); this.loading.set(false);
-      }, error: () => { this.error.set('No se pudo cargar el catálogo de servicios y tarifas. Intenta actualizar la página.'); this.loading.set(false); },
+      }, error: () => { this.error.set('No se pudo cargar el catálogo de servicios. Intenta actualizar la página.'); this.loading.set(false); },
     });
     inject(ActivatedRoute).fragment.pipe(takeUntilDestroyed()).subscribe((fragment) => {
       if (fragment) this.selectedCategory.set('Todos');

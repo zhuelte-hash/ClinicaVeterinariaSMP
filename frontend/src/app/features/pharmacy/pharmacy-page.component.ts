@@ -12,7 +12,7 @@ type SortOption = 'Recomendados' | 'Menor precio' | 'Mayor precio' | 'Nombre A-Z
     </section>
     <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div class="mb-7 flex flex-col gap-4 rounded-3xl bg-white p-4 shadow-sm sm:flex-row">
-        <label class="relative flex-1"><span class="sr-only">Buscar en farmacia</span><svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar por nombre, categoría o presentación" class="w-full rounded-full border border-slate-200 py-3 pl-12 pr-4 outline-none focus:border-sky-400" /></label>
+        <label class="site-search flex-1"><span class="sr-only">Buscar en farmacia</span><svg class="h-5 w-5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar por nombre, categoría o presentación" /></label>
         <select aria-label="Ordenar productos" (change)="setSort($event)" class="rounded-full border border-slate-200 bg-white px-5 py-3 font-semibold text-slate-700 outline-none focus:border-sky-400">@for (option of sortOptions; track option) { <option [value]="option">{{ option }}</option> }</select>
         <button type="button" (click)="mobileFiltersOpen.update(value => !value)" class="site-button lg:hidden" [attr.aria-expanded]="mobileFiltersOpen()">Filtros</button>
       </div>
@@ -40,8 +40,14 @@ export class PharmacyPageComponent {
   readonly search = signal(''); readonly categoryFilter = signal(''); readonly sort = signal<SortOption>('Recomendados'); readonly mobileFiltersOpen = signal(false);
   readonly filteredProducts = computed(() => {
     const term = this.search().trim().toLocaleLowerCase('es');
-    const products = this.catalog.products().filter((product) => this.categories.includes(product.category) && (!this.categoryFilter() || product.category === this.categoryFilter()) && (!term || `${product.name} ${product.category}`.toLocaleLowerCase('es').includes(term)));
-    return [...products].sort((a, b) => this.sort() === 'Menor precio' ? a.price - b.price : this.sort() === 'Mayor precio' ? b.price - a.price : this.sort() === 'Nombre A-Z' ? a.name.localeCompare(b.name, 'es') : 0);
+    const products = this.catalog.products().filter((product) => this.categories.includes(product.category) && (!this.categoryFilter() || product.category === this.categoryFilter()) && (!term || `${product.name} ${product.category} ${product.brand || ''} ${product.presentation || ''}`.toLocaleLowerCase('es').includes(term)));
+    return [...products].sort((a, b) => {
+      if (this.sort() === 'Nombre A-Z') return a.name.localeCompare(b.name, 'es');
+      if (this.sort() === 'Recomendados') return 0;
+      if (a.price === null) return b.price === null ? 0 : 1;
+      if (b.price === null) return -1;
+      return this.sort() === 'Menor precio' ? a.price - b.price : b.price - a.price;
+    });
   });
   constructor() { this.catalog.load(); }
   setSearch(event: Event): void { this.search.set((event.target as HTMLInputElement).value); }

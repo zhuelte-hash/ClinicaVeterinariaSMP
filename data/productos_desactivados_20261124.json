@@ -1,0 +1,218 @@
+[
+  {
+    "id": 1,
+    "sku": "ALI-002",
+    "nombre": "Alimento premium gato 1 kg",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 2,
+    "sku": "ALI-001",
+    "nombre": "Alimento premium perro 3 kg",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 3,
+    "sku": "HIG-002",
+    "nombre": "Pasta dental para mascotas",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 4,
+    "sku": "HIG-001",
+    "nombre": "Shampoo veterinario 500 ml",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 5,
+    "sku": "ACC-002",
+    "nombre": "Plato antideslizante",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 6,
+    "sku": "ACC-001",
+    "nombre": "Correa ajustable",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 7,
+    "sku": "FAR-002",
+    "nombre": "Suplemento multivitaminico",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 8,
+    "sku": "FAR-001",
+    "nombre": "Antipulgas pipeta",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 9,
+    "sku": "ALI-003",
+    "nombre": "Snack dental canino",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 10,
+    "sku": "HIG-003",
+    "nombre": "Toallitas húmedas para mascotas",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 11,
+    "sku": "ACC-003",
+    "nombre": "Juguete mordedor resistente",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 12,
+    "sku": "FAR-003",
+    "nombre": "Spray cicatrizante veterinario",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 13,
+    "sku": "WEB-ALI-01",
+    "nombre": "Alimento para perro adulto",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 14,
+    "sku": "WEB-ALI-02",
+    "nombre": "Alimento balanceado para gattito",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 15,
+    "sku": "WEB-ALI-03",
+    "nombre": "Croquetas premium sabor pollo",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 16,
+    "sku": "WEB-ACC-01",
+    "nombre": "Collar ajustable acolchado",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 17,
+    "sku": "WEB-ACC-02",
+    "nombre": "Correa resistente para paseo",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 18,
+    "sku": "WEB-ACC-03",
+    "nombre": "Arnés cómodo para perro",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 19,
+    "sku": "WEB-DES-01",
+    "nombre": "Cama acolchada lavable",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 20,
+    "sku": "WEB-ACC-04",
+    "nombre": "Juguete mordedor de cuerda",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 21,
+    "sku": "WEB-ROP-01",
+    "nombre": "Chaleco abrigador impermeable",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 22,
+    "sku": "WEB-ACC-05",
+    "nombre": "Transportadora ventilada",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 23,
+    "sku": "WEB-ROP-02",
+    "nombre": "Suéter suave para mascota",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 24,
+    "sku": "WEB-DES-02",
+    "nombre": "Manta térmica para descanso",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 25,
+    "sku": "WEB-FAR-01",
+    "nombre": "Suplemento vitamínico canino",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 26,
+    "sku": "WEB-FAR-02",
+    "nombre": "Shampoo dermatológico suave",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 27,
+    "sku": "WEB-FAR-03",
+    "nombre": "Antiparasitario externo",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 28,
+    "sku": "WEB-FAR-04",
+    "nombre": "Alimento digestivo especializado",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 29,
+    "sku": "WEB-FAR-05",
+    "nombre": "Protector articular",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 30,
+    "sku": "WEB-FAR-06",
+    "nombre": "Solución ótica de cuidado",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 31,
+    "sku": "WEB-FAR-07",
+    "nombre": "Tabletas de cuidado dental",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 32,
+    "sku": "WEB-FAR-08",
+    "nombre": "Desinfectante veterinario",
+    "motivo": "ejemplo"
+  },
+  {
+    "id": 33,
+    "sku": "355",
+    "nombre": "jabon",
+    "motivo": "solicitud_usuario"
+  },
+  {
+    "id": 47,
+    "sku": "VET-MED-013",
+    "nombre": "DOLORDOG 44 x 40 tab",
+    "motivo": "solicitud_usuario"
+  },
+  {
+    "id": 79,
+    "sku": "VET-ACC-001",
+    "nombre": "Microchip para mascotas Pet ID",
+    "motivo": "solicitud_usuario"
+  },
+  {
+    "id": 80,
+    "sku": "VET-ACC-002",
+    "nombre": "Microchip para mascotas ANIMAL ID",
+    "motivo": "solicitud_usuario"
+  }
+]

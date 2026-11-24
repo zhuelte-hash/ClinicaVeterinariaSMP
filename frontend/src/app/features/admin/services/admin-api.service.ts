@@ -4,12 +4,12 @@ import { Observable, Subject, map, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { VeterinarianClinicalRecord } from '../../veterinarian/veterinarian.models';
 
-export interface AdminProduct { id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; activo: boolean; imagen_url: string; categoria_id: number; categoria_nombre: string; proveedor_id: number; descripcion: string | null; especies: string[]; unidad_medida: string; fraccionable: boolean; requiere_vencimiento: boolean; costo_unitario: number; }
+export interface AdminProduct { id: number; sku: string; nombre: string; precio_venta: number | null; stock_actual: number; stock_minimo: number; activo: boolean; imagen_url: string; categoria_id: number; categoria_nombre: string; proveedor_id: number | null; descripcion: string | null; especies: string[]; unidad_medida: string; fraccionable: boolean; requiere_vencimiento: boolean; costo_unitario: number; marca?: string | null; presentacion?: string | null; subcategoria?: string | null; es_demostracion?: boolean; catalogo_origen?: { precio_compra?: string | null; tipo_precio_compra?: string; stock_inicial?: number; stock_demostracion?: boolean; fecha_vencimiento?: string | null; vencimiento_ficticio?: boolean; fecha_consulta?: string } | null; }
 export interface AdminClient { id: number; nombre: string; correo: string; telefono: string | null; direccion: string | null; mascotas: number; citas: number; ultima_cita: string | null; }
 export interface CatalogOption { id: number; nombre: string; }
 export interface ProductCatalog { categorias: CatalogOption[]; proveedores: CatalogOption[]; }
 export interface AdminCategory { id: number; nombre: string; productos: number; }
-export interface ProductCreate { categoria_id: number; proveedor_id: number; sku: string; nombre: string; precio_venta: number; stock_actual: number; stock_minimo: number; imagen_url: string; descripcion?: string | null; especies?: string[]; unidad_medida?: string; fraccionable?: boolean; requiere_vencimiento?: boolean; costo_unitario?: number; }
+export interface ProductCreate { categoria_id: number; proveedor_id: number | null; sku: string; nombre: string; precio_venta: number | null; stock_actual: number; stock_minimo: number; imagen_url: string; descripcion?: string | null; especies?: string[]; unidad_medida?: string; fraccionable?: boolean; requiere_vencimiento?: boolean; costo_unitario?: number; marca?: string | null; presentacion?: string | null; subcategoria?: string | null; }
 export interface AdminAppointment { id: number; fecha_hora_programada: string; fecha_hora_fin_programada: string; estado: string; cliente_nombre: string; mascota_nombre: string; servicio_nombre: string; veterinario_id: number | null; veterinario_nombre: string | null; nota_coordinacion: string | null; es_urgente: boolean; asistencia_confirmada_en?: string | null; }
 export interface AppointmentReport { fecha_inicial: string; fecha_final: string; total: number; urgentes: number; por_estado: Record<string, number>; }
 export interface Supplier { id: number; razon_social: string; productos: number; }
@@ -33,7 +33,7 @@ export class AdminApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/admin`;
   readonly notificationChanges = new Subject<void>();
-  private normalizeProduct(product: AdminProduct): AdminProduct { return { ...product, precio_venta: Number(product.precio_venta), costo_unitario: Number(product.costo_unitario) }; }
+  private normalizeProduct(product: AdminProduct): AdminProduct { return { ...product, precio_venta: product.precio_venta === null ? null : Number(product.precio_venta), costo_unitario: Number(product.costo_unitario) }; }
   getProducts(): Observable<AdminProduct[]> { return this.http.get<AdminProduct[]>(`${this.baseUrl}/productos`).pipe(map((items) => items.map((item) => this.normalizeProduct(item)))); }
   getProductCatalog(): Observable<ProductCatalog> { return this.http.get<ProductCatalog>(`${this.baseUrl}/productos/catalogo`); }
   getCategories(): Observable<AdminCategory[]> { return this.http.get<AdminCategory[]>(`${this.baseUrl}/categorias`); }

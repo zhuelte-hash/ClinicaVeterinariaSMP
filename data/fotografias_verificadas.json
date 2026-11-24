@@ -1,0 +1,26 @@
+{
+  "PER-007": {
+    "archivo": "/catalogo/productos/per-007.webp",
+    "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83157843/resize/480/480?1793217726=",
+    "verificado_en": "2026-11-24",
+    "criterio": "Revisión visual: Monge Fruit, Duck and Orange / Anatra e Arancia, 100 g legibles. Coinciden marca, sabor y presentación."
+  },
+  "PER-008": {
+    "archivo": "/catalogo/productos/per-008.webp",
+    "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83157900/resize/480/480?1793217941=",
+    "verificado_en": "2026-11-24",
+    "criterio": "Revisión visual: Monge Fruit, Pork and Pineapple / Maiale e Ananas, 100 g legibles. Coinciden marca, sabor y presentación."
+  },
+  "PER-009": {
+    "archivo": "/catalogo/productos/per-009.webp",
+    "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83158167/resize/480/480?1793218519=",
+    "verificado_en": "2026-11-24",
+    "criterio": "Revisión visual: Monge Fruit, Salmon and Pear / Salmone e Pera, 100 g legibles. Coinciden marca, sabor y presentación."
+  },
+  "HIG-001": {
+    "archivo": "/catalogo/productos/hig-001.webp",
+    "url_origen": "https://cdnx.jumpseller.com/openvet1/image/81916035/resize/480/480?1790974231=",
+    "verificado_en": "2026-11-24",
+    "criterio": "Revisión visual: Drag Pharma Petever Forte, clorhexidina 3 %, shampoo, 150 mL legibles. Coinciden fabricante, concentración y presentación descritos."
+  }
+}

@@ -1,0 +1,338 @@
+{
+  "fecha": "2026-11-24",
+  "fotos": {
+    "VET-MED-004": {
+      "codigo": "MED-004",
+      "nombre": "DOXITEL 100 (Doxiciclina 100mg, Via Oral 32 comprimidos)",
+      "archivo": "/catalogo/productos/med-004-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/76444515/resize/480/480?1778342385",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-MED-005": {
+      "codigo": "MED-005",
+      "nombre": "Vacuna Canino Vanguard Plus 5L4 (Recojo en tienda)",
+      "archivo": "/catalogo/productos/med-005-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/75682130/resize/480/480?1775845152",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-MED-006": {
+      "codigo": "MED-006",
+      "nombre": "Vacuna Canino Vanguard 5L4 CV (Recojo en tienda)",
+      "archivo": "/catalogo/productos/med-006-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/75682381/resize/480/480?1775845959",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-MED-007": {
+      "codigo": "MED-007",
+      "nombre": "Vacuna Cachorros Novibac Puppy DP Plus (Recojo en tienda)",
+      "archivo": "/catalogo/productos/med-007-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/75684411/resize/480/480?1775851292",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-MED-008": {
+      "codigo": "MED-008",
+      "nombre": "Vacuna canina Novibac KC (Bordetella)",
+      "archivo": "/catalogo/productos/med-008-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/75684670/resize/480/480?1775851814",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-MED-009": {
+      "codigo": "MED-009",
+      "nombre": "Vacuna Felinos Felocell 3",
+      "archivo": "/catalogo/productos/med-009-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/75685120/resize/480/600?1775852443",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-001": {
+      "codigo": "PER-001",
+      "nombre": "Snout Paté Beef 380g Holistic Wellness",
+      "archivo": "/catalogo/productos/per-001-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/80530366/resize/480/480?1787776999",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-002": {
+      "codigo": "PER-002",
+      "nombre": "Snout paté 380g Chicken Dogs",
+      "archivo": "/catalogo/productos/per-002-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/80531493/resize/480/480?1787778796",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-003": {
+      "codigo": "PER-003",
+      "nombre": "Snout croqueta 3kg Chicken All Breeds",
+      "archivo": "/catalogo/productos/per-003-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/80534851/resize/480/652?1787783363",
+      "pagina_origen": "https://www.openvet.pe/alimento-para-caninos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-004": {
+      "codigo": "PER-004",
+      "nombre": "Snout croqueta 3kg Lamb All Breeds Hypoallergenic",
+      "archivo": "/catalogo/productos/per-004-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/80535667/resize/480/559?1787784767",
+      "pagina_origen": "https://www.openvet.pe/alimento-para-caninos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-005": {
+      "codigo": "PER-005",
+      "nombre": "Snout croqueta 3kg Trucha All Breeds Hypoallergenic",
+      "archivo": "/catalogo/productos/per-005-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/80536683/resize/480/411?1787786794",
+      "pagina_origen": "https://www.openvet.pe/alimento-para-caninos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-006": {
+      "codigo": "PER-006",
+      "nombre": "Monge – Vet Solution – Perro – Recovery – 150g",
+      "archivo": "/catalogo/productos/per-006-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83157350/resize/480/641?1793216695=",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "enlace_directo_del_archivo",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-PER-010": {
+      "codigo": "PER-010",
+      "nombre": "Hill’s PD – i/d – Perro – Cuidado digestivo (Estofado de pollo y vegetales) – 156gr",
+      "archivo": "/catalogo/productos/per-010-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83327122/resize/480/480?1793492258",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-GAT-004": {
+      "codigo": "GAT-004",
+      "nombre": "Monge – Vet Solution – Gatos – Recovery – 100gr",
+      "archivo": "/catalogo/productos/gat-004-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83157564/resize/480/480?1793217057=",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "enlace_directo_del_archivo",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-GAT-005": {
+      "codigo": "GAT-005",
+      "nombre": "Hill’s PD – Gato – ONC CARE – Soporte nutricional para pacientes con cáncer – 82g",
+      "archivo": "/catalogo/productos/gat-005-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83327041/resize/480/480?1793491890",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-GAT-006": {
+      "codigo": "GAT-006",
+      "nombre": "Hill’s PD – a/d – Perro y gato – Urgent Care (Recuperación) – 156 gr",
+      "archivo": "/catalogo/productos/gat-006-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/83327188/resize/480/480?1793492551",
+      "pagina_origen": "https://www.openvet.pe/alimento-humedo",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-GAT-007": {
+      "codigo": "GAT-007",
+      "nombre": "OWNAT CLASSIC Kitten (Gatito)",
+      "archivo": "/catalogo/productos/gat-007-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/84005226/resize/480/480?1794693978=",
+      "pagina_origen": "https://www.openvet.pe/alimento-para-felinos",
+      "comprobacion": "enlace_directo_del_archivo",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-GAT-008": {
+      "codigo": "GAT-008",
+      "nombre": "OWNAT Care Urinary (CAT)",
+      "archivo": "/catalogo/productos/gat-008-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/84005581/resize/480/480?1794695318=",
+      "pagina_origen": "https://www.openvet.pe/alimento-para-felinos",
+      "comprobacion": "enlace_directo_del_archivo",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-ANT-006": {
+      "codigo": "ANT-006",
+      "nombre": "Seresto collar caninos mayores de 8 kg",
+      "archivo": "/catalogo/productos/ant-006-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/79539020/resize/480/480?1785630029",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-ANT-007": {
+      "codigo": "ANT-007",
+      "nombre": "Vantaggio 20.1 a 32 kg (4ml) – Pipeta antipulgas para perros",
+      "archivo": "/catalogo/productos/ant-007-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/79539176/resize/480/480?1785631435",
+      "pagina_origen": "https://www.openvet.pe/en/farmacos",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-HIG-002": {
+      "codigo": "HIG-002",
+      "nombre": "Shampoo de Limpieza Avena Perro/Gato EcaDerm 100ml",
+      "archivo": "/catalogo/productos/hig-002-tienda.webp",
+      "url_origen": "https://cdnx.jumpseller.com/openvet1/image/82377134/resize/480/480?1791592811=",
+      "pagina_origen": "https://www.openvet.pe/limpieza-y-cuidado-para-caninos",
+      "comprobacion": "enlace_directo_del_archivo",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-ACC-003": {
+      "codigo": "ACC-003",
+      "nombre": "Juguete Pulpo",
+      "archivo": "/catalogo/productos/acc-003-tienda.webp",
+      "url_origen": "https://petshopfluker.com/api/storage/buckets/productos/objects/1792108705486-6oaid-gemini-generated-image-ah82wsah82wsah82.webp?v=343b47afdd5011630f2c3a7e71ecdca7",
+      "pagina_origen": "https://www.petshopfluker.com/catalogo?cat=accesorios",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    },
+    "VET-ACC-005": {
+      "codigo": "ACC-005",
+      "nombre": "Plato Cara de Gato",
+      "archivo": "/catalogo/productos/acc-005-tienda.webp",
+      "url_origen": "https://petshopfluker.com/api/storage/buckets/productos/objects/1792099439621-qkuio-d82c-ahora-ponle-el-mismo-fondo-a-esta-foto-sin-el-gato.webp?v=46e537293cda2e170c62e99b6f89ebb4",
+      "pagina_origen": "https://www.petshopfluker.com/catalogo?cat=accesorios",
+      "comprobacion": "nombre_exacto_en_alt_de_la_tienda",
+      "presentacion_verificada_visualmente": false
+    }
+  },
+  "pendientes": [
+    {
+      "codigo": "MED-001",
+      "nombre": "Aurizon - Gotas oticas x 20 ml.",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "MED-002",
+      "nombre": "BRONCOPET x 50 ml.",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "MED-003",
+      "nombre": "CARDIAL 5 mg.",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "MED-010",
+      "nombre": "PREDNISOLONA HOLLIDAY 20 MG X UND",
+      "tienda": "https://pharmivet.pe/"
+    },
+    {
+      "codigo": "MED-011",
+      "nombre": "CEFAVET 300 mg x 32 tab",
+      "tienda": "https://argospetfarma.com/producto/cefavet-300-mg-x-32-tab/"
+    },
+    {
+      "codigo": "MED-012",
+      "nombre": "APOQUEL 16 mg x 20 tab",
+      "tienda": "https://argospetfarma.com/producto/apoquel-16-mg-x-20-tab/"
+    },
+    {
+      "codigo": "MED-013",
+      "nombre": "DOLORDOG 44 x 40 tab",
+      "tienda": "https://argospetfarma.com/producto/dolordog-44-x-40-tab/"
+    },
+    {
+      "codigo": "MED-014",
+      "nombre": "ANTALVET COMPUESTO 50 ML",
+      "tienda": "https://dmavetperu.com/tienda/"
+    },
+    {
+      "codigo": "MED-015",
+      "nombre": "ANTALVET COMPUESTO 100 ML",
+      "tienda": "https://dmavetperu.com/tienda/"
+    },
+    {
+      "codigo": "GAT-001",
+      "nombre": "BRIT CARE CAT GF INDOOR ANTI-STRESS 2KG",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "GAT-002",
+      "nombre": "BRIT CARE CAT SENIOR WEIGHT CONTROL 2 KG",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "GAT-003",
+      "nombre": "BRIT CARE CAT STERILIZED WEIGHT CONTROL 2KG",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "ANT-001",
+      "nombre": "Bravecto 10 - 20 kg. (500mg.)",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "ANT-002",
+      "nombre": "Bravecto 2 - 4.5 kg. (112.5 mg.)",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "ANT-003",
+      "nombre": "Bravecto 20 - 40 kg. (1000 mg.)",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "ANT-004",
+      "nombre": "Bravecto 4.5 - 10 kg. (250 mg.)",
+      "tienda": "https://veterinariavillaran.com.pe/tienda/"
+    },
+    {
+      "codigo": "ANT-005",
+      "nombre": "NexGard Spectra M (7.6 - 15 kg) x 1 tableta",
+      "tienda": "https://www.openvet.pe/nexgard",
+      "motivo": "Foto descartada: indica 7.5–15 kg"
+    },
+    {
+      "codigo": "HIG-003",
+      "nombre": "ARENA CRISTAL SAN 1.6 Kg",
+      "tienda": "https://argospetfarma.com/producto/arena-cristal-san-1-6-kg/"
+    },
+    {
+      "codigo": "HIG-004",
+      "nombre": "ARENA MITZI 5Kg",
+      "tienda": "https://argospetfarma.com/"
+    },
+    {
+      "codigo": "HIG-005",
+      "nombre": "ARENA DEAR CAT CERO HUELLAS 5 Kg",
+      "tienda": "https://argospetfarma.com/"
+    },
+    {
+      "codigo": "ACC-001",
+      "nombre": "Microchip para mascotas Pet ID",
+      "tienda": "https://www.openvet.pe/tienda"
+    },
+    {
+      "codigo": "ACC-002",
+      "nombre": "Microchip para mascotas ANIMAL ID",
+      "tienda": "https://www.openvet.pe/tienda"
+    },
+    {
+      "codigo": "ACC-004",
+      "nombre": "Soga de Nylon Xl",
+      "tienda": "https://www.petshopfluker.com/catalogo?cat=accesorios"
+    }
+  ],
+  "fuentes_no_disponibles": {
+    "https://argospetfarma.com/": "URLError",
+    "https://argospetfarma.com/producto/apoquel-16-mg-x-20-tab/": "URLError",
+    "https://argospetfarma.com/producto/arena-cristal-san-1-6-kg/": "URLError",
+    "https://argospetfarma.com/producto/cefavet-300-mg-x-32-tab/": "URLError",
+    "https://argospetfarma.com/producto/dolordog-44-x-40-tab/": "URLError",
+    "https://veterinariavillaran.com.pe/tienda/": "HTTPError"
+  }
+}

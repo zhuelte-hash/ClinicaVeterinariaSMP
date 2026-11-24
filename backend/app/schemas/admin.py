@@ -11,14 +11,19 @@ class AdminProductRead(BaseModel):
     id: int
     sku: str
     nombre: str
-    precio_venta: Decimal
+    precio_venta: Decimal | None
     stock_actual: float
     stock_minimo: float
     activo: bool
     imagen_url: str
     categoria_id: int
     categoria_nombre: str
-    proveedor_id: int
+    proveedor_id: int | None
+    marca: str | None = None
+    presentacion: str | None = None
+    subcategoria: str | None = None
+    catalogo_origen: dict | None = None
+    es_demostracion: bool = False
     descripcion: str | None = None
     especies: list[str] = Field(default_factory=list)
     unidad_medida: str = "unidad"
@@ -29,12 +34,20 @@ class AdminProductRead(BaseModel):
 
 
 class ProductDescription(BaseModel):
+    marca: str | None = Field(default=None, max_length=150)
+    presentacion: str | None = Field(default=None, max_length=250)
+    subcategoria: str | None = Field(default=None, max_length=100)
     descripcion: str | None = Field(default=None, max_length=5000)
     especies: list[str] = Field(default_factory=list, max_length=12)
     unidad_medida: str = Field(default="unidad", min_length=1, max_length=15)
     fraccionable: bool = False
     requiere_vencimiento: bool = False
     costo_unitario: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=4)
+
+    @field_validator("marca", "presentacion", "subcategoria", mode="before")
+    @classmethod
+    def empty_commercial_text(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
 
     @field_validator("especies")
     @classmethod
@@ -47,7 +60,7 @@ class ProductDescription(BaseModel):
 
 class AdminProductUpdate(ProductDescription):
     categoria_id: int | None = None
-    proveedor_id: int | None = None
+    proveedor_id: int | None = Field(default=None, ge=1)
     sku: str | None = Field(default=None, min_length=2, max_length=50)
     nombre: str | None = Field(default=None, min_length=2, max_length=150)
     precio_venta: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
@@ -56,7 +69,7 @@ class AdminProductUpdate(ProductDescription):
 
     @model_validator(mode="after")
     def non_null_product_fields(self):
-        for field in self.model_fields_set - {"descripcion"}:
+        for field in self.model_fields_set - {"descripcion", "marca", "presentacion", "subcategoria", "precio_venta", "proveedor_id"}:
             if getattr(self, field) is None:
                 raise ValueError(f"{field} no puede ser nulo")
         return self
@@ -71,10 +84,10 @@ class InventoryStockUpdate(BaseModel):
 
 class AdminProductCreate(ProductDescription):
     categoria_id: int
-    proveedor_id: int
+    proveedor_id: int | None = Field(default=None, ge=1)
     sku: str = Field(min_length=2, max_length=50)
     nombre: str = Field(min_length=2, max_length=150)
-    precio_venta: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    precio_venta: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     stock_actual: Decimal = Field(ge=0, max_digits=14, decimal_places=3)
     stock_minimo: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=3)
     imagen_url: str = Field(default="/logo.png", max_length=500)

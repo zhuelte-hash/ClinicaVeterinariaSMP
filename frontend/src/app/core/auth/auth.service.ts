@@ -40,6 +40,7 @@ export class AuthService {
     return user?.tipo === 'administrador';
   });
   readonly isCashier = computed(() => this.userState()?.tipo === 'cajero');
+  readonly isClient = computed(() => this.isAuthenticated() && this.userState()?.tipo === 'cliente');
   readonly isVeterinarian = computed(() => this.userState()?.tipo === 'veterinario');
   readonly isLoading = computed(() => this.loadingState());
 

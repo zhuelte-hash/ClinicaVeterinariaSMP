@@ -18,3 +18,22 @@ Para publicarla en un entorno nuevo, desde `backend`, usando su configuración l
 El comando agrega la fotografía sin reemplazar las existentes ni otras políticas.
 Usa un nombre derivado del contenido para evitar duplicarla al repetir el comando.
 Después puede titularse, ordenarse o retirarse desde Configuración → Galería.
+
+## Fotografías aportadas desde `frontend/public`
+
+Se incorporaron las nueve fotografías `imgen1.png` e `ima2.png` a `ima9.png`.
+Las copias JPEG de esta carpeta tienen nombres descriptivos, compresión progresiva
+y un ajuste leve de contraste y nitidez. En `ima4.png` se retiró el encabezado de
+captura; las fotografías se muestran completas en la galería y en el visor.
+Los archivos originales permanecen en `frontend/public`.
+
+Las nueve copias pasan de 9439 KB a 1352 KB aproximadamente (86 % menos).
+Para regenerarlas y agregarlas a la galería del entorno configurado, desde `backend`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/prepare_installation_photos.py --publish
+```
+
+Sin `--publish` solo se generan los JPEG. La publicación conserva las fotografías
+existentes y permite seguir administrando los títulos y el orden desde Configuración.
+Repetirla con los mismos archivos no duplica las fotografías.

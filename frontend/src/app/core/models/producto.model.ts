@@ -4,7 +4,7 @@ export interface Product {
   id: string;
   name: string;
   category: ProductCategory;
-  price: number;
+  price: number | null;
   stock: number;
   previousPrice?: number;
   image: string;
@@ -12,6 +12,12 @@ export interface Product {
   featured?: boolean;
   description?: string;
   species?: string[];
+  brand?: string | null;
+  presentation?: string | null;
+  subcategory?: string | null;
+  demo?: boolean;
+  historicalPrice?: boolean;
+  speciesPending?: boolean;
 }
 
 export type PharmacyCategory = 'Medicamentos veterinarios' | 'Alimento medicado' | 'Higiene y cuidado' | 'Suplementos';

@@ -1,0 +1,2152 @@
+{
+  "fecha": "2026-11-24T16:17:51.976003+00:00",
+  "resumen": {
+    "productos": 83,
+    "productos_sin_foto": 23,
+    "fotos_instalaciones": 10,
+    "urls_comprobadas": 107,
+    "urls_con_error": 2
+  },
+  "imagenes": [
+    {
+      "tipo": "producto",
+      "nombre": "ANTALVET COMPUESTO 100 ML",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-015",
+      "id": 49,
+      "sin_foto": true,
+      "tienda": "https://dmavetperu.com/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "ANTALVET COMPUESTO 50 ML",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-014",
+      "id": 48,
+      "sin_foto": true,
+      "tienda": "https://dmavetperu.com/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "APOQUEL 16 mg x 20 tab",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-012",
+      "id": 46,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/producto/apoquel-16-mg-x-20-tab/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "ARENA CRISTAL SAN 1.6 Kg",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-HIG-003",
+      "id": 76,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/producto/arena-cristal-san-1-6-kg/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "ARENA DEAR CAT CERO HUELLAS 5 Kg",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-HIG-005",
+      "id": 78,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "ARENA MITZI 5Kg",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-HIG-004",
+      "id": 77,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Alimento balanceado para gattito",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ALI-02",
+      "id": 14,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1125
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Alimento digestivo especializado",
+      "ruta": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-04",
+      "id": 28,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        900
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Alimento para perro adulto",
+      "ruta": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ALI-01",
+      "id": 13,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Alimento premium gato 1 kg",
+      "ruta": "https://images.unsplash.com/photo-1606214174585-fe31582dc6ee?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1606214174585-fe31582dc6ee?auto=format&fit=crop&w=300&q=80",
+      "sku": "ALI-002",
+      "id": 1,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        450
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Alimento premium perro 3 kg",
+      "ruta": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=300&q=80",
+      "sku": "ALI-001",
+      "id": 2,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        200
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Antiparasitario externo",
+      "ruta": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-03",
+      "id": 27,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        629
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Antipulgas pipeta",
+      "ruta": "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=300&q=80",
+      "sku": "FAR-001",
+      "id": 8,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        200
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Arnés cómodo para perro",
+      "ruta": "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ACC-03",
+      "id": 18,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Aurizon - Gotas oticas x 20 ml.",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-001",
+      "id": 35,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "BRIT CARE CAT GF INDOOR ANTI-STRESS 2KG",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-GAT-001",
+      "id": 59,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "BRIT CARE CAT SENIOR WEIGHT CONTROL 2 KG",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-GAT-002",
+      "id": 60,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "BRIT CARE CAT STERILIZED WEIGHT CONTROL 2KG",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-GAT-003",
+      "id": 61,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "BRONCOPET x 50 ml.",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-002",
+      "id": 36,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Bravecto 10 - 20 kg. (500mg.)",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ANT-001",
+      "id": 67,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Bravecto 2 - 4.5 kg. (112.5 mg.)",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ANT-002",
+      "id": 68,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Bravecto 20 - 40 kg. (1000 mg.)",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ANT-003",
+      "id": 69,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Bravecto 4.5 - 10 kg. (250 mg.)",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ANT-004",
+      "id": 70,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "CARDIAL 5 mg.",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-003",
+      "id": 37,
+      "sin_foto": true,
+      "tienda": "https://veterinariavillaran.com.pe/tienda/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "CEFAVET 300 mg x 32 tab",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-011",
+      "id": 45,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/producto/cefavet-300-mg-x-32-tab/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Cama acolchada lavable",
+      "ruta": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-DES-01",
+      "id": 19,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Chaleco abrigador impermeable",
+      "ruta": "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ROP-01",
+      "id": 21,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1200
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Collar ajustable acolchado",
+      "ruta": "https://images.unsplash.com/photo-1605639156481-244775d6f4f5?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1605639156481-244775d6f4f5?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ACC-01",
+      "id": 16,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "error_http",
+      "http": 404
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Correa ajustable",
+      "ruta": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=300&q=80",
+      "sku": "ACC-001",
+      "id": 6,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        398
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Correa resistente para paseo",
+      "ruta": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ACC-02",
+      "id": 17,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        571
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Croquetas premium sabor pollo",
+      "ruta": "https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ALI-03",
+      "id": 15,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "DOLORDOG 44 x 40 tab",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-013",
+      "id": 47,
+      "sin_foto": true,
+      "tienda": "https://argospetfarma.com/producto/dolordog-44-x-40-tab/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "DOXITEL 100 (Doxiciclina 100mg, Via Oral 32 comprimidos)",
+      "ruta": "/catalogo/productos/med-004-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-004-tienda.webp",
+      "sku": "VET-MED-004",
+      "id": 38,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Desinfectante veterinario",
+      "ruta": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-08",
+      "id": 32,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Hill’s PD – Gato – ONC CARE – Soporte nutricional para pacientes con cáncer – 82g",
+      "ruta": "/catalogo/productos/gat-005-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/gat-005-tienda.webp",
+      "sku": "VET-GAT-005",
+      "id": 63,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-felinos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Hill’s PD – a/d – Perro y gato – Urgent Care (Recuperación) – 156 gr",
+      "ruta": "/catalogo/productos/gat-006-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/gat-006-tienda.webp",
+      "sku": "VET-GAT-006",
+      "id": 64,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-felinos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Hill’s PD – i/d – Perro – Cuidado digestivo (Estofado de pollo y vegetales) – 156gr",
+      "ruta": "/catalogo/productos/per-010-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-010-tienda.webp",
+      "sku": "VET-PER-010",
+      "id": 58,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Juguete Pulpo",
+      "ruta": "/catalogo/productos/acc-003-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/acc-003-tienda.webp",
+      "sku": "VET-ACC-003",
+      "id": 81,
+      "sin_foto": false,
+      "tienda": "https://www.petshopfluker.com/catalogo?cat=accesorios",
+      "estado": "ok",
+      "dimensiones": [
+        755,
+        1000
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Juguete mordedor de cuerda",
+      "ruta": "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ACC-04",
+      "id": 20,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1347
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Juguete mordedor resistente",
+      "ruta": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=300&q=80",
+      "sku": "ACC-003",
+      "id": 11,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        398
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Manta térmica para descanso",
+      "ruta": "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-DES-02",
+      "id": 24,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1201
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Microchip para mascotas ANIMAL ID",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ACC-002",
+      "id": 80,
+      "sin_foto": true,
+      "tienda": "https://www.openvet.pe/tienda",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Microchip para mascotas Pet ID",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ACC-001",
+      "id": 79,
+      "sin_foto": true,
+      "tienda": "https://www.openvet.pe/tienda",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Monge Fruit – Cerdo y Piña – 100gr",
+      "ruta": "/catalogo/productos/per-008.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-008.webp",
+      "sku": "VET-PER-008",
+      "id": 56,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Monge Fruit – Pato y Naranja – 100gr",
+      "ruta": "/catalogo/productos/per-007.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-007.webp",
+      "sku": "VET-PER-007",
+      "id": 34,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Monge Fruit – Salmón y Pera – 100gr",
+      "ruta": "/catalogo/productos/per-009.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-009.webp",
+      "sku": "VET-PER-009",
+      "id": 57,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Monge – Vet Solution – Gatos – Recovery – 100gr",
+      "ruta": "/catalogo/productos/gat-004-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/gat-004-tienda.webp",
+      "sku": "VET-GAT-004",
+      "id": 62,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Monge – Vet Solution – Perro – Recovery – 150g",
+      "ruta": "/catalogo/productos/per-006-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-006-tienda.webp",
+      "sku": "VET-PER-006",
+      "id": 55,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-humedo",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        641
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "NexGard Spectra M (7.6 - 15 kg) x 1 tableta",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ANT-005",
+      "id": 71,
+      "sin_foto": true,
+      "tienda": "https://www.openvet.pe/nexgard",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "OWNAT CLASSIC Kitten (Gatito)",
+      "ruta": "/catalogo/productos/gat-007-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/gat-007-tienda.webp",
+      "sku": "VET-GAT-007",
+      "id": 65,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-felinos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "OWNAT Care Urinary (CAT)",
+      "ruta": "/catalogo/productos/gat-008-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/gat-008-tienda.webp",
+      "sku": "VET-GAT-008",
+      "id": 66,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-felinos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "PREDNISOLONA HOLLIDAY 20 MG X UND",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-MED-010",
+      "id": 44,
+      "sin_foto": true,
+      "tienda": "https://pharmivet.pe/",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Pasta dental para mascotas",
+      "ruta": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=300&q=80",
+      "sku": "HIG-002",
+      "id": 3,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        450
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Plato Cara de Gato",
+      "ruta": "/catalogo/productos/acc-005-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/acc-005-tienda.webp",
+      "sku": "VET-ACC-005",
+      "id": 83,
+      "sin_foto": false,
+      "tienda": "https://www.petshopfluker.com/catalogo?cat=accesorios",
+      "estado": "ok",
+      "dimensiones": [
+        1000,
+        493
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Plato antideslizante",
+      "ruta": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&q=80",
+      "sku": "ACC-002",
+      "id": 5,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        200
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Protector articular",
+      "ruta": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-05",
+      "id": 29,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Seresto collar caninos mayores de 8 kg",
+      "ruta": "/catalogo/productos/ant-006-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/ant-006-tienda.webp",
+      "sku": "VET-ANT-006",
+      "id": 72,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Shampoo Clorhexidina 3% Drag Pharma 150ml",
+      "ruta": "/catalogo/productos/hig-001.webp",
+      "url": "http://localhost:4200/catalogo/productos/hig-001.webp",
+      "sku": "VET-HIG-001",
+      "id": 74,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/limpieza-y-cuidado-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Shampoo de Limpieza Avena Perro/Gato EcaDerm 100ml",
+      "ruta": "/catalogo/productos/hig-002-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/hig-002-tienda.webp",
+      "sku": "VET-HIG-002",
+      "id": 75,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/limpieza-y-cuidado-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Shampoo dermatológico suave",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-02",
+      "id": 26,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1125
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Shampoo veterinario 500 ml",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=300&q=80",
+      "sku": "HIG-001",
+      "id": 4,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        375
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snack dental canino",
+      "ruta": "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=300&q=80",
+      "sku": "ALI-003",
+      "id": 9,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        200
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snout Paté Beef 380g Holistic Wellness",
+      "ruta": "/catalogo/productos/per-001-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-001-tienda.webp",
+      "sku": "VET-PER-001",
+      "id": 50,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snout croqueta 3kg Chicken All Breeds",
+      "ruta": "/catalogo/productos/per-003-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-003-tienda.webp",
+      "sku": "VET-PER-003",
+      "id": 52,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        652
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snout croqueta 3kg Lamb All Breeds Hypoallergenic",
+      "ruta": "/catalogo/productos/per-004-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-004-tienda.webp",
+      "sku": "VET-PER-004",
+      "id": 53,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        559
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snout croqueta 3kg Trucha All Breeds Hypoallergenic",
+      "ruta": "/catalogo/productos/per-005-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-005-tienda.webp",
+      "sku": "VET-PER-005",
+      "id": 54,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        411
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Snout paté 380g Chicken Dogs",
+      "ruta": "/catalogo/productos/per-002-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/per-002-tienda.webp",
+      "sku": "VET-PER-002",
+      "id": 51,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/alimento-para-caninos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Soga de Nylon Xl",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "sku": "VET-ACC-004",
+      "id": 82,
+      "sin_foto": true,
+      "tienda": "https://www.petshopfluker.com/catalogo?cat=accesorios",
+      "estado": "ok"
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Solución ótica de cuidado",
+      "ruta": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-06",
+      "id": 30,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Spray cicatrizante veterinario",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=300&q=80",
+      "sku": "FAR-003",
+      "id": 12,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        375
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Suplemento multivitaminico",
+      "ruta": "https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=300&q=80",
+      "sku": "FAR-002",
+      "id": 7,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        225
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Suplemento vitamínico canino",
+      "ruta": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-01",
+      "id": 25,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        675
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Suéter suave para mascota",
+      "ruta": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ROP-02",
+      "id": 23,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1164
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Tabletas de cuidado dental",
+      "ruta": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-FAR-07",
+      "id": 31,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        601
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Toallitas húmedas para mascotas",
+      "ruta": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&q=80",
+      "url": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&q=80",
+      "sku": "HIG-003",
+      "id": 10,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        300,
+        400
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Transportadora ventilada",
+      "ruta": "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=85",
+      "sku": "WEB-ACC-05",
+      "id": 22,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vacuna Cachorros Novibac Puppy DP Plus (Recojo en tienda)",
+      "ruta": "/catalogo/productos/med-007-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-007-tienda.webp",
+      "sku": "VET-MED-007",
+      "id": 41,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vacuna Canino Vanguard 5L4 CV (Recojo en tienda)",
+      "ruta": "/catalogo/productos/med-006-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-006-tienda.webp",
+      "sku": "VET-MED-006",
+      "id": 40,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vacuna Canino Vanguard Plus 5L4 (Recojo en tienda)",
+      "ruta": "/catalogo/productos/med-005-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-005-tienda.webp",
+      "sku": "VET-MED-005",
+      "id": 39,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vacuna Felinos Felocell 3",
+      "ruta": "/catalogo/productos/med-009-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-009-tienda.webp",
+      "sku": "VET-MED-009",
+      "id": 43,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        600
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vacuna canina Novibac KC (Bordetella)",
+      "ruta": "/catalogo/productos/med-008-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/med-008-tienda.webp",
+      "sku": "VET-MED-008",
+      "id": 42,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "Vantaggio 20.1 a 32 kg (4ml) – Pipeta antipulgas para perros",
+      "ruta": "/catalogo/productos/ant-007-tienda.webp",
+      "url": "http://localhost:4200/catalogo/productos/ant-007-tienda.webp",
+      "sku": "VET-ANT-007",
+      "id": 73,
+      "sin_foto": false,
+      "tienda": "https://www.openvet.pe/en/farmacos",
+      "estado": "ok",
+      "dimensiones": [
+        480,
+        480
+      ]
+    },
+    {
+      "tipo": "producto",
+      "nombre": "jabon",
+      "ruta": "http://localhost:8000/uploads/products/b7cbca01098548469e4c7ae8be8e682d.png",
+      "url": "http://localhost:8000/uploads/products/b7cbca01098548469e4c7ae8be8e682d.png",
+      "sku": "355",
+      "id": 33,
+      "sin_foto": false,
+      "tienda": null,
+      "estado": "ok",
+      "dimensiones": [
+        921,
+        584
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Fachada y entrada de la Clínica Veterinaria San Martín de Porres",
+      "ruta": "/uploads/instalaciones/4996c519e0f6a867254f6f1acc6614c2abb2a1e3f0d9008fe4d8fd3bcd8f2cc7.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/4996c519e0f6a867254f6f1acc6614c2abb2a1e3f0d9008fe4d8fd3bcd8f2cc7.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        1020,
+        1020
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Nuestro equipo en las instalaciones de la clínica",
+      "ruta": "/uploads/instalaciones/9a9b8482be4ffc75ab9b8748b04d248c7d79e64f4f404487de8c180100197888.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/9a9b8482be4ffc75ab9b8748b04d248c7d79e64f4f404487de8c180100197888.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        867,
+        853
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Tienda y alimentos para el bienestar de tu mascota",
+      "ruta": "/uploads/instalaciones/38ea6c4d860d6726d565e97b78d4231db486e9ab08a6b36187443a3f8ed60a11.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/38ea6c4d860d6726d565e97b78d4231db486e9ab08a6b36187443a3f8ed60a11.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        1153,
+        845
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Atención cercana para nuestros pacientes",
+      "ruta": "/uploads/instalaciones/518c8b0a9d0637a8faa3d0ff6fd1c05eb0c8c1dc0012363e6a0366fefdbd3ddb.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/518c8b0a9d0637a8faa3d0ff6fd1c05eb0c8c1dc0012363e6a0366fefdbd3ddb.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        876,
+        852
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "El equipo de San Martín de Porres",
+      "ruta": "/uploads/instalaciones/7cc3bad64ad6623dbad067b990a98dd107f05606d7c2d7c48e0c98dd7f61a687.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/7cc3bad64ad6623dbad067b990a98dd107f05606d7c2d7c48e0c98dd7f61a687.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        981,
+        860
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Cuidado y compañía en el consultorio",
+      "ruta": "/uploads/instalaciones/2e32056c1b8ab5b2b82bff43c7f0253ff51a318516987992d26effffd7b58e7b.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/2e32056c1b8ab5b2b82bff43c7f0253ff51a318516987992d26effffd7b58e7b.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        637,
+        760
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Un momento después del cuidado y aseo",
+      "ruta": "/uploads/instalaciones/44b8a2ff300d3a531c2c0d78d5b189f2a35187bc15726986f5470dd1382b2197.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/44b8a2ff300d3a531c2c0d78d5b189f2a35187bc15726986f5470dd1382b2197.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        609,
+        780
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Nuestros pequeños visitantes después de su aseo",
+      "ruta": "/uploads/instalaciones/4c35c5a7cfd34cb1ffb2fc9a3c5dfb9808be28b38b4645f6129376ee63b6644a.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/4c35c5a7cfd34cb1ffb2fc9a3c5dfb9808be28b38b4645f6129376ee63b6644a.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        701,
+        867
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Atención con cariño en cada visita",
+      "ruta": "/uploads/instalaciones/79055e3d0adb4764a3a2d23786d255c83b872fcf740ece58585d0abbdda5f9bb.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/79055e3d0adb4764a3a2d23786d255c83b872fcf740ece58585d0abbdda5f9bb.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        627,
+        776
+      ]
+    },
+    {
+      "tipo": "instalacion",
+      "nombre": "Cuidado y bienestar para nuestros compañeros",
+      "ruta": "/uploads/instalaciones/d3581ed4c68a0ba1641e65b2faec4c66957473e17bcc3b5b278dbefc7af5aae4.jpg",
+      "url": "http://localhost:8000/uploads/instalaciones/d3581ed4c68a0ba1641e65b2faec4c66957473e17bcc3b5b278dbefc7af5aae4.jpg",
+      "estado": "ok",
+      "dimensiones": [
+        862,
+        861
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/carrito/carrito.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80",
+      "url": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        1600,
+        1068
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=200&q=80",
+      "url": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=200&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        200,
+        265
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=200&q=80",
+      "url": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=200&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        200,
+        134
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=200&q=80",
+      "url": "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=200&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        200,
+        300
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-58.png",
+      "url": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-58.png",
+      "estado": "ok",
+      "dimensiones": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-59.png",
+      "url": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-59.png",
+      "estado": "ok",
+      "dimensiones": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/contacto/contacto.component.ts",
+      "ruta": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-60.png",
+      "url": "https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-60.png",
+      "estado": "ok",
+      "dimensiones": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/footer/footer.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80",
+      "url": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        600,
+        400
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1200&q=88",
+      "url": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1200&q=88",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        800
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80",
+      "url": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        1600,
+        1068
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=400&q=80",
+      "url": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=400&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        400,
+        530
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=600&q=80",
+      "url": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=600&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        600,
+        400
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=400&q=80",
+      "url": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=400&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        400,
+        267
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=400&q=80",
+      "url": "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=400&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        400,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        571
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=400&q=80",
+      "url": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=400&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        400,
+        599
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/home/home.component.ts",
+      "ruta": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80",
+      "url": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        600,
+        401
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/components/navbar/navbar.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/auth/auth-login-dialog.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        801
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=1200&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        800
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1200&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        802
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=1200&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        800
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=1200&q=85",
+      "estado": "no_disponible",
+      "error": "TimeoutError"
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/blog.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=1200&q=85",
+      "url": "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=1200&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1200,
+        800
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1517423440428-a5a00ad493e8?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1164
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        675
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1201
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        900
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1125
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        629
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        601
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1200
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1347
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        571
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1605639156481-244775d6f4f5?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1605639156481-244775d6f4f5?auto=format&fit=crop&w=900&q=85",
+      "estado": "error_http",
+      "http": 404
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/data/productos.mock.ts",
+      "ruta": "https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=900&q=85",
+      "url": "https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=900&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/core/utils/public-image-url.ts",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "estado": "ok"
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/admin/layout/admin-layout.component.html",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/admin/pages/productos/productos.component.ts",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "estado": "ok"
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/admin/pages/productos/productos.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/admin/services/admin-mock-data.service.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/appointments/pet-editor.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/cashier/cashier-layout.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/cashier/cashier-sales.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/products/product-detail.component.ts",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "estado": "ok"
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services-page.component.html",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services-page.component.html",
+      "ruta": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=1800&q=85",
+      "url": "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&w=1800&q=85",
+      "estado": "ok",
+      "dimensiones": [
+        1800,
+        1200
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1516841273335-e39b37888115?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1516841273335-e39b37888115?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        616
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1358
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1443
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1193
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        506
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1581595220892-b0739db3ba8c?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1581595220892-b0739db3ba8c?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1125
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        601
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1599443015574-be5fe8a05783?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1599443015574-be5fe8a05783?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758125946-6ec2ef64daf8?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1601758125946-6ec2ef64daf8?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1349
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        1350
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/services/services.data.ts",
+      "ruta": "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=900&q=80",
+      "url": "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=900&q=80",
+      "estado": "ok",
+      "dimensiones": [
+        900,
+        600
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/veterinarian/veterinarian-layout.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/features/veterinarian/veterinarian-module.component.ts",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/pages/login/login.component.html",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/pages/register/register.component.html",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/app/shared/product-card/product-card.component.ts",
+      "ruta": "/catalogo/producto-sin-foto.svg",
+      "url": "http://localhost:4200/catalogo/producto-sin-foto.svg",
+      "estado": "ok"
+    },
+    {
+      "tipo": "frontend",
+      "nombre": "frontend/src/index.html",
+      "ruta": "/logo.png",
+      "url": "http://localhost:4200/logo.png",
+      "estado": "ok",
+      "dimensiones": [
+        1254,
+        1254
+      ]
+    }
+  ]
+}

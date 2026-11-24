@@ -10,6 +10,30 @@ Ejecuta los comandos de PowerShell desde `backend`.
 
 API: <http://localhost:8000/docs>. Estado del servidor: <http://localhost:8000/health>.
 
+## Catálogo comercial de 50 productos
+
+Integración local preparada en las tablas existentes, con seed idempotente y SQL
+en `data/importar_productos_neon.sql`. Documentación, tratamiento de NULL, fotografías,
+demostración y pasos de despliegue: [data/README.md](../data/README.md).
+
+**Requiere migración `20261124_27` antes de usar esta versión contra una base
+existente; ya fue aplicada en el entorno configurado.** Los SKU comerciales usan `VET-` para evitar
+colisiones con productos de las migraciones antiguas; la carga normal inicia con
+stock operativo cero y conserva los datos ficticios en metadatos.
+
+Estado actual: 47 productos activos con imagen; 724 unidades estimadas marcadas
+como demostración, con lotes y movimientos. Las operaciones y sus registros están
+documentados en [data/README.md](../data/README.md).
+
+Validación sin conexión, desde `backend`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/seed_veterinary_products.py
+```
+
+Verificación local: 433 pruebas aprobadas con PostgreSQL temporal; build Angular
+correcto y dos recorridos Edge integrados contra FastAPI/JWT y SQLite aislada.
+
 ## Revisión actual de parciales y pendientes
 
 Estado vigente **E33 — 23/11/2026: 96 completadas, 19 parciales y 0 pendientes (115)**.

@@ -26,6 +26,7 @@ export class CartService {
   ));
 
   add(item: NewCartItem, quantity = 1): void {
+    if (!this.isNewItem(item) || !Number.isFinite(quantity) || quantity <= 0) return;
     const items = this.itemsState().map((current) => ({ ...current }));
     const existing = items.find((current) => current.id === item.id);
     if (existing) {
@@ -92,6 +93,7 @@ export class CartService {
     return typeof item['id'] === 'string'
       && typeof item['nombre'] === 'string'
       && typeof item['precio'] === 'number'
+      && Number.isFinite(item['precio']) && item['precio'] >= 0
       && typeof item['imagen'] === 'string'
       && typeof item['imageAlt'] === 'string'
       && typeof item['stock'] === 'number'

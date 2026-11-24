@@ -55,7 +55,6 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           <span class="hidden md:inline text-[#1A98A2]">|</span>
            <a href="tel:965939522" class="hidden md:inline hover:text-brand-200">965 939 522</a>
         </p>
-        <p class="hidden sm:flex items-center gap-1.5">vamospetshop&#64;gmail.com</p>
       </div>
     </div>
 
@@ -74,7 +73,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </a>
 
           <!-- Menú central -->
-           <nav class="hidden xl:flex items-center gap-0 text-xs font-semibold text-pet-900 uppercase" aria-label="Navegación principal">
+           <nav class="hidden 2xl:flex items-center gap-0 text-xs font-semibold text-pet-900 uppercase" aria-label="Navegación principal">
             <a routerLink="/inicio" routerLinkActive="active" class="nav-link">Nosotros</a>
             <div class="relative" (mouseenter)="desktopServicesOpen.set(true)" (mouseleave)="desktopServicesOpen.set(false)" (focusout)="closeDesktopMenuAfterFocus($event)" (keydown.escape)="desktopServicesOpen.set(false)">
               <button
@@ -125,9 +124,11 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
                 </div>
               }
             </div>
+            @if (auth.isClient()) {
             <a routerLink="/mis-compras" routerLinkActive="active" class="nav-link">Mis compras</a>
             <a routerLink="/mis-pagos" routerLinkActive="active" class="nav-link">Mis pagos</a>
             <a routerLink="/mis-mascotas" routerLinkActive="active" class="nav-link">Mis mascotas</a>
+            }
             <a routerLink="/productos" routerLinkActive="active" class="nav-link">Productos</a>
             <a routerLink="/farmacia" routerLinkActive="active" class="nav-link">Farmacia</a>
              <a routerLink="/contacto" routerLinkActive="active" class="nav-link">Contáctanos</a>
@@ -136,7 +137,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
 
           <!-- Acciones -->
           <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
-             <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-brand-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brand-700 md:inline-flex">Reservar cita</a>
+             @if (customerActionsVisible()) { <a routerLink="/reservar-cita" class="hidden min-h-11 items-center rounded-full bg-brand-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brand-700 md:inline-flex">Reservar cita</a> }
             <a routerLink="/productos" title="Buscar" aria-label="Buscar productos" class="hidden h-10 w-10 items-center justify-center rounded-full text-[#0B1B6D] transition hover:bg-[#0799AE]/10 hover:text-[#0799AE] lg:flex">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M10 17a7 7 0 110-14 7 7 0 010 14z"/></svg>
             </a>
@@ -209,7 +210,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
             } @else {
               <button type="button" (click)="openLogin()" class="hidden items-center gap-2 rounded-full border border-[#0B1B6D]/25 bg-white px-3 py-2 text-xs font-bold text-[#0B1B6D] transition hover:border-[#0799AE] hover:bg-[#0799AE]/10 md:inline-flex" aria-label="Iniciar sesión"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Iniciar sesión</button>
             }
-            <button type="button" (click)="mobileMenuOpen.update(open => !open)" class="grid h-10 w-10 place-items-center rounded-full text-[#0B1B6D] hover:bg-sky-50 xl:hidden" aria-label="Abrir menú de navegación" [attr.aria-expanded]="mobileMenuOpen()" aria-controls="mobile-navigation">
+            <button type="button" (click)="mobileMenuOpen.update(open => !open)" class="grid h-10 w-10 place-items-center rounded-full text-[#0B1B6D] hover:bg-sky-50 2xl:hidden" aria-label="Abrir menú de navegación" [attr.aria-expanded]="mobileMenuOpen()" aria-controls="mobile-navigation">
               @if (mobileMenuOpen()) { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg> }
               @else { <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg> }
             </button>
@@ -218,7 +219,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
       </div>
 
       <!-- Menú móvil -->
-       @if (mobileMenuOpen()) { <nav id="mobile-navigation" class="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain border-t border-gray-100 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-gray-700 xl:hidden" aria-label="Navegación móvil">
+       @if (mobileMenuOpen()) { <nav id="mobile-navigation" class="max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain border-t border-gray-100 px-4 py-4 text-sm font-semibold uppercase tracking-wide text-gray-700 2xl:hidden" aria-label="Navegación móvil">
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <a routerLink="/inicio" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Nosotros</a>
           <button type="button" class="flex items-center gap-1 rounded-xl px-3 py-2.5 whitespace-nowrap hover:bg-sky-50 hover:text-[#1A98A2]" [attr.aria-expanded]="mobileServicesOpen()" aria-controls="mobile-services-menu" (click)="mobileServicesOpen.update(open => !open)" aria-label="Abrir menú de servicios">
@@ -226,9 +227,11 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
             <svg class="h-3 w-3 transition" [class.rotate-180]="mobileServicesOpen()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></svg>
           </button>
           <a routerLink="/productos" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Productos</a>
+          @if (auth.isClient()) {
           <a routerLink="/mis-compras" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis compras</a>
           <a routerLink="/mis-pagos" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis pagos y boletas</a>
           <a routerLink="/mis-mascotas" (click)="closeMobileMenu()" class="rounded-xl px-3 py-2.5 hover:bg-sky-50">Mis mascotas</a>
+          }
           <a routerLink="/farmacia" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Farmacia</a>
            <a routerLink="/contacto" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Contáctanos</a>
           <a routerLink="/blog" (click)="closeMobileMenu()" routerLinkActive="text-[#1A98A2]" class="rounded-xl px-3 py-2.5 hover:bg-sky-50 hover:text-[#1A98A2]">Blog</a>
@@ -255,7 +258,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           </div>
          }
          <div class="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
-           <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="site-button">Reservar cita</a>
+           @if (customerActionsVisible()) { <a routerLink="/reservar-cita" (click)="closeMobileMenu()" class="site-button">Reservar cita</a> }
            @if (auth.isAuthenticated()) {
              <a [routerLink]="accountRoute()" (click)="closeMobileMenu()" class="flex items-center justify-center gap-2 rounded-full border border-[#0B1B6D]/25 px-4 py-3 text-[#0B1B6D] hover:bg-[#0799AE]/10"><svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM5 21a7 7 0 0 1 14 0"/></svg>Mi cuenta</a>
              <button type="button" (click)="logout()" class="rounded-full border border-rose-200 px-4 py-3 text-center font-bold text-rose-600 hover:bg-rose-50">Cerrar sesión</button>
@@ -280,8 +283,9 @@ export class NavbarComponent implements OnDestroy {
     if (this.auth.isAdmin()) return '/admin/dashboard';
     if (this.auth.isCashier()) return '/caja/dashboard';
     if (this.auth.isVeterinarian()) return '/veterinario';
-    return this.auth.isAuthenticated() ? '/reservar-cita' : '/login';
+    return this.auth.isClient() ? '/mi-perfil' : '/login';
   });
+  readonly customerActionsVisible = computed(() => !this.auth.isLoading() && (!this.auth.isAuthenticated() || this.auth.isClient()));
   readonly desktopServicesOpen = signal(false);
   readonly mobileServicesOpen = signal(false);
   readonly mobileMenuOpen = signal(false);

@@ -92,6 +92,8 @@ class BillingService:
             target = product or service
             if target is None or not target.activo or (product and product.sucursal_id != branch_id(self.db)):
                 raise HTTPException(422, "El artículo no está disponible en esta sede")
+            if product and product.precio_venta is None:
+                raise HTTPException(422, "El producto tiene un precio pendiente de confirmar")
             if (product and not product.fraccionable or service) and item.cantidad != item.cantidad.to_integral_value():
                 raise HTTPException(422, "El artículo no admite cantidades fraccionarias")
             if product and product.stock_actual < item.cantidad:

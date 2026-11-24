@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../core/services/clinic-policy.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-contacto',
@@ -9,14 +10,14 @@ import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../c
   imports: [FormsModule, CommonModule],
   template: `
     <div class="relative bg-pet-900 text-white py-14 text-center overflow-hidden">
-       <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30" />
+       @if (photos()[0]; as photo) { <img [src]="imageUrl(photo.url)" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30" /> }
       <div class="relative">
          <h1 class="text-3xl font-extrabold sm:text-4xl">Contacto</h1>
         <p class="mt-2 text-sm text-sky-100"><a href="/" class="hover:underline">Inicio</a> - Contacto</p>
         <div class="flex justify-center gap-2 mt-4">
-          <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=200&q=80" class="w-16 h-16 rounded-full object-cover border-2 border-white" alt="perrito" />
-          <img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=200&q=80" class="w-16 h-16 rounded-full object-cover border-2 border-white" alt="gatito" />
-          <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=200&q=80" class="w-16 h-16 rounded-full object-cover border-2 border-white" alt="perro" />
+          @for (photo of photos().slice(1, 4); track photo.url) {
+            <img [src]="imageUrl(photo.url)" class="w-16 h-16 rounded-full object-cover border-2 border-white" [alt]="photo.titulo" />
+          }
         </div>
       </div>
     </div>
@@ -37,16 +38,11 @@ import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../c
             } @else { <p role="status">{{ hoursError() || 'Cargando horarios…' }}</p> }
           </section>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <img src="https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-58.png" alt="mascota 1" class="rounded-2xl object-cover h-32 w-full shadow" />
-          <img src="https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-59.png" alt="mascota 2" class="rounded-2xl object-cover h-32 w-full shadow" />
-          <img src="https://veterinariavamospet.pe/wp-content/uploads/2025/12/Diseno-sin-titulo-60.png" alt="mascota 3" class="rounded-2xl object-cover h-32 w-full shadow" />
+        <div class="grid grid-cols-3 gap-3 mb-6" aria-label="Fotografías reales de nuestras instalaciones">
+          @for (photo of photos().slice(4, 7); track photo.url) {
+            <img [src]="imageUrl(photo.url)" [alt]="photo.titulo" loading="lazy" class="rounded-2xl object-cover h-32 w-full shadow" />
+          }
         </div>
-        <iframe
-          title="mapa"
-          src="https://www.google.com/maps?q=Jr+Quinua+178+Cercado+Ayacucho&output=embed"
-          class="w-full h-64 rounded-2xl border shadow-sm"
-          loading="lazy"></iframe>
       </div>
 
        <div class="site-card p-6 sm:p-8">
@@ -74,6 +70,8 @@ import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../c
 })
 export class ContactoComponent {
   readonly policy = signal<ClinicPolicy | null>(null);
+  readonly photos = computed(() => this.policy()?.galeria ?? []);
+  imageUrl(url: string): string { return /^https?:\/\//.test(url) ? url : environment.apiUrl + url; }
   readonly hoursError = signal('');
   readonly days = WEEKDAYS;
   readonly hours = hoursLabel;

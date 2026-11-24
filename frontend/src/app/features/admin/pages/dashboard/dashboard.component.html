@@ -81,7 +81,7 @@
       <div class="flex items-start justify-between"><div><p class="panel-kicker !text-rose-600">Atención</p><h2>Alertas de inventario</h2><p>Productos que requieren reposición.</p></div><a routerLink="../inventario" class="panel-link">Gestionar</a></div>
       <div class="mt-4 divide-y divide-slate-100">
         @if (settings()?.alertas_stock === false) { <p class="py-6 text-center text-sm text-slate-500">Las alertas están desactivadas en Configuración.</p> } @else { @for (product of lowStock(); track product.id) {
-           <div class="flex items-center gap-3 py-3.5"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-10 w-10 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.sku }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
+           <div class="flex items-center gap-3 py-3.5"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-10 w-10 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.sku }} · {{ product.precio_venta === null ? 'Precio por confirmar' : 'S/ ' + product.precio_venta.toFixed(2) }}</p></div><b class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs text-rose-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
         } @empty { <p class="py-6 text-center text-sm text-slate-500">Inventario sin alertas.</p> } }
       </div>
     </article>
@@ -90,7 +90,7 @@
       <div><p class="panel-kicker">Existencias</p><h2>Productos disponibles</h2><p>Productos con mayor stock en el catálogo actual.</p></div>
       <div class="mt-4 space-y-3">
         @for (product of highestStock(); track product.id) {
-            <div class="product-row"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-11 w-11 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.categoria_nombre }} · S/ {{ product.precio_venta.toFixed(2) }}</p></div><b class="text-sm text-teal-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
+            <div class="product-row"><img [src]="product.imagen_url" [alt]="product.nombre" class="h-11 w-11 rounded-2xl object-cover"><div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-slate-800">{{ product.nombre }}</p><p class="text-xs text-slate-500">{{ product.categoria_nombre }} · {{ product.precio_venta === null ? 'Precio por confirmar' : 'S/ ' + product.precio_venta.toFixed(2) }}</p></div><b class="text-sm text-teal-700">{{ product.stock_actual }} {{ product.unidad_medida }}</b></div>
         }
       </div>
     </article>

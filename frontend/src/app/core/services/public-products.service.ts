@@ -4,16 +4,22 @@ import { environment } from '../../../environments/environment';
 import { Product } from '../models/producto.model';
 import { CartService } from '../../services/cart.service';
 import { NoticeService } from './notice.service';
+import { publicImageUrl } from '../utils/public-image-url';
 
 export interface CatalogProduct {
   id: number;
   nombre: string;
   categoria_nombre: string;
-  precio_venta: string;
+  precio_venta: string | null;
   stock_actual: number;
   imagen_url: string;
   descripcion: string | null;
   especies: string[];
+  marca?: string | null;
+  presentacion?: string | null;
+  subcategoria?: string | null;
+  es_demostracion?: boolean;
+  catalogo_origen?: { especie?: string | null; tipo_precio_venta?: string; fecha_consulta?: string; fotografia_verificada?: unknown } | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,13 +39,16 @@ export class PublicProductsService {
       next: (items) => {
         const products = items.map((item) => ({
           id: String(item.id), name: item.nombre, category: item.categoria_nombre,
-          price: Number(item.precio_venta), stock: item.stock_actual,
-          image: item.imagen_url || '/logo.png', imageAlt: item.nombre,
+          price: item.precio_venta === null ? null : Number(item.precio_venta), stock: item.stock_actual,
+          image: publicImageUrl(item.imagen_url), imageAlt: item.nombre,
           description: item.descripcion || '', species: item.especies,
+          brand: item.marca, presentation: item.presentacion, subcategory: item.subcategoria,
+          demo: item.es_demostracion, historicalPrice: item.catalogo_origen?.tipo_precio_venta === 'publicado_historico_indexado',
+          speciesPending: item.catalogo_origen?.especie === null,
         }));
         this.productsState.set(products);
-        if (this.cart.reconcile(products.map((item) => ({
-          id: item.id, nombre: item.name, precio: item.price, stock: item.stock,
+        if (this.cart.reconcile(products.filter(item => item.price !== null).map((item) => ({
+          id: item.id, nombre: item.name, precio: item.price!, stock: item.stock,
           imagen: item.image, imageAlt: item.imageAlt,
         })))) this.notice.show('Tu carrito se actualizó con los precios y existencias actuales.');
         this.loading.set(false);

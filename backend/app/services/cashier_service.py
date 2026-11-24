@@ -190,7 +190,7 @@ class CashierService:
     def get_products(
         self, query: str | None = None, category_id: int | None = None
     ) -> list[Producto]:
-        statement = select(Producto).options(selectinload(Producto.categoria)).where(Producto.activo, Producto.sucursal_id == branch_id(self.db))
+        statement = select(Producto).options(selectinload(Producto.categoria)).where(Producto.activo, Producto.precio_venta.is_not(None), Producto.sucursal_id == branch_id(self.db))
         if query:
             pattern = f"%{query.strip()}%"
             statement = statement.where(
@@ -384,6 +384,8 @@ class CashierService:
         details: list[DetalleOrdenCobro] = []
         for product_id, quantity in quantities.items():
             product = product_by_id[product_id]
+            if product.precio_venta is None:
+                raise VentaInvalidaError("El producto tiene un precio pendiente de confirmar")
             if expected_prices is not None and product.precio_venta != expected_prices.get(product_id):
                 raise VentaInvalidaError("El precio de un producto cambió. Rechaza el pedido y coordina con el cliente")
             if product.stock_actual < quantity:

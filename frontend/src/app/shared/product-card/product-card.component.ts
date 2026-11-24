@@ -22,14 +22,17 @@ import { RouterLink } from '@angular/router';
       <div class="flex flex-1 flex-col p-5">
         <p class="text-xs font-bold uppercase tracking-[0.08em] text-brand-600">{{ item().category }}</p>
         <h3 class="mt-2 text-lg font-bold leading-6 text-pet-900"><a [routerLink]="['/productos', item().id]" class="hover:underline">{{ item().name }}</a></h3>
+        @if (brand()) { <p class="mt-2 text-sm font-semibold text-slate-600">{{ brand() }}</p> }
         <a [routerLink]="['/productos', item().id]" class="mt-2 text-sm font-semibold text-brand-600">Ver detalle y disponibilidad</a>
         @if (presentation()) { <p class="mt-2 text-sm text-slate-500">Presentación: {{ presentation() }}</p> }
         <div class="mt-auto flex items-end gap-2 pt-5">
-          <strong class="text-xl text-pet-900">S/ {{ item().price.toFixed(2) }}</strong>
+          <strong class="text-xl text-pet-900">{{ priceLabel() }}</strong>
           @if (previousPrice()) { <span class="pb-0.5 text-sm text-slate-400 line-through">S/ {{ previousPrice()!.toFixed(2) }}</span> }
         </div>
         <p class="mt-2 text-xs font-semibold" [class.text-[#276508]]="item().stock > 0" [class.text-rose-700]="item().stock <= 0">{{ item().stock > 0 ? item().stock + ' unidades disponibles' : 'Sin stock' }}</p>
-        <button type="button" (click)="addToCart()" [disabled]="item().stock <= 0" class="site-button mt-4 w-full">
+        @if (demo()) { <p class="mt-2 text-xs font-bold text-amber-800">Existencias de demostración</p> }
+        @if (historicalPrice()) { <p class="mt-2 text-xs text-slate-500">Precio de fuente histórica; pendiente de actualización.</p> }
+        <button type="button" (click)="addToCart()" [disabled]="item().stock <= 0 || item().price === null" class="site-button mt-4 w-full">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2 12h11l2-8H6m4 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm9 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
           Agregar al carrito
         </button>
@@ -50,8 +53,13 @@ export class ProductCardComponent {
 
   presentation(): string | undefined {
     const product = this.item();
-    return 'presentation' in product ? product.presentation : undefined;
+    return 'presentation' in product ? product.presentation ?? undefined : undefined;
   }
+
+  brand(): string | null | undefined { const product = this.item(); return 'brand' in product ? product.brand : undefined; }
+  demo(): boolean { const product = this.item(); return 'demo' in product && !!product.demo; }
+  historicalPrice(): boolean { const product = this.item(); return 'historicalPrice' in product && !!product.historicalPrice; }
+  priceLabel(): string { const price = this.item().price; return price === null ? 'Precio por confirmar' : 'S/ ' + price.toFixed(2); }
 
   previousPrice(): number | undefined {
     const product = this.item();
@@ -60,23 +68,24 @@ export class ProductCardComponent {
 
   addToCart(): void {
     const product = this.item();
-    if (product.stock <= 0) return;
-    const cartItem = this.toCartItem(product);
+    const price = product.price;
+    if (product.stock <= 0 || price === null) return;
+    const cartItem = this.toCartItem(product, price);
     this.cart.add(cartItem);
     this.notice.show('Producto añadido al carrito');
   }
 
   onImageError(event: Event): void {
     const image = event.target as HTMLImageElement;
-    if (image.src.endsWith('/logo.png')) return;
-    image.src = '/logo.png';
+    if (image.src.endsWith('/catalogo/producto-sin-foto.svg')) return;
+    image.src = '/catalogo/producto-sin-foto.svg';
   }
 
-  private toCartItem(product: Product | PharmacyProduct) {
+  private toCartItem(product: Product | PharmacyProduct, price: number) {
     return {
       id: product.id,
       nombre: product.name,
-      precio: product.price,
+      precio: price,
       imagen: product.image,
       imageAlt: product.imageAlt,
       stock: product.stock,

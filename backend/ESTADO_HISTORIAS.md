@@ -60,6 +60,16 @@ Capturas de verificación guardadas en la carpeta temporal de trabajo, no en Git
 El conteo se conserva en 96/19/0 hasta la confirmación visual final del usuario
 de la galería publicada; no se exige un número adicional de fotografías.
 
+Actualización de galería: se incorporaron las nueve fotografías reales aportadas en
+`frontend/public`, con copias JPEG optimizadas en `assets/instalaciones` (9439 KB
+a 1352 KB). El entorno activo publica diez fotografías contando la fachada.
+Presentación adaptable en columnas sin recortar las fotos, títulos descriptivos y
+visor ampliado con navegación, cierre por Escape y retorno del foco. Comprobado en
+Edge contra frontend/API reales en 1440×1000 y 390×844: diez imágenes cargadas,
+sin desbordamiento horizontal ni errores JavaScript; navegación y cierre correctos.
+Compilación correcta, con los avisos existentes de presupuesto y CommonJS.
+HU-018 conserva su estado hasta la confirmación visual final del usuario.
+
 | Historia | Funcionalidad implementada | Criterio restante para completar |
 | --- | --- | --- |
 | HU-018 | Subida, orden y publicación de galería; fachada real aportada por el usuario ya publicada y verificada en escritorio/móvil | Confirmación visual final del usuario de la fotografía en la galería pública. |

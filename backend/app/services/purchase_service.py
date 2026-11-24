@@ -116,6 +116,8 @@ class PurchaseService:
             raise HTTPException(409, "Uno de los productos ya no está disponible")
         details = []
         for product in products:
+            if product.precio_venta is None:
+                raise HTTPException(409, "El producto tiene un precio pendiente de confirmar")
             quantity = quantities[product.id]
             if quantity > 100 or product.stock_actual < quantity:
                 raise HTTPException(409, f"Stock insuficiente para {product.nombre}")

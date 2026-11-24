@@ -26,10 +26,10 @@ type CategoryFilter = string;
                <button type="button" (click)="selectedCategory.set(category)" class="min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-brand-600" [class.border-brand-600]="selectedCategory() === category" [class.bg-brand-600]="selectedCategory() === category" [class.text-white]="selectedCategory() === category" [class.border-slate-300]="selectedCategory() !== category" [class.text-slate-700]="selectedCategory() !== category" [attr.aria-pressed]="selectedCategory() === category">{{ category }}</button>
             }
           </div>
-          <label class="relative block w-full lg:max-w-sm">
+          <label class="site-search w-full shrink-0 lg:max-w-sm">
             <span class="sr-only">Buscar productos</span>
-             <svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#147d87]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-             <input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar productos" class="site-input rounded-full pl-12" />
+             <svg class="h-5 w-5 shrink-0 text-[#147d87]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+             <input type="search" [value]="search()" (input)="setSearch($event)" placeholder="Buscar productos" />
           </label>
         </div>
          <div class="mt-4 grid gap-3 sm:grid-cols-3">
@@ -68,9 +68,9 @@ export class ProductsPageComponent {
     const term = this.search().trim().toLocaleLowerCase('es');
     if (this.invalidPrices()) return [];
     return this.catalog.products().filter((product) => (this.selectedCategory() === 'Todos' || product.category === this.selectedCategory())
-      && (!term || `${product.name} ${product.category} ${product.description || ''}`.toLocaleLowerCase('es').includes(term))
-      && (!this.species() || !product.species?.length || product.species.includes(this.species()))
-      && (this.minPrice() === null || product.price >= this.minPrice()!) && (this.maxPrice() === null || product.price <= this.maxPrice()!));
+      && (!term || `${product.name} ${product.category} ${product.brand || ''} ${product.presentation || ''} ${product.description || ''}`.toLocaleLowerCase('es').includes(term))
+      && (!this.species() || (!product.speciesPending && (!product.species?.length || product.species.includes(this.species()))))
+      && (this.minPrice() === null || (product.price !== null && product.price >= this.minPrice()!)) && (this.maxPrice() === null || (product.price !== null && product.price <= this.maxPrice()!)));
   });
 
   constructor() {

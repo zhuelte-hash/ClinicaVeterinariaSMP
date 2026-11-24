@@ -716,14 +716,19 @@ class Producto(Base):
         ForeignKey(f"{SCHEMA}.categorias_producto.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    proveedor_id: Mapped[int] = mapped_column(
+    proveedor_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(f"{SCHEMA}.proveedores.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
-    precio_venta: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    precio_venta: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    marca: Mapped[str | None] = mapped_column(String(150))
+    presentacion: Mapped[str | None] = mapped_column(String(250))
+    subcategoria: Mapped[str | None] = mapped_column(String(100))
+    catalogo_origen: Mapped[dict | None] = mapped_column(JSON)
+    es_demostracion: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
     descripcion: Mapped[str | None] = mapped_column(Text)
     especies: Mapped[list[str]] = mapped_column(JSON, default=list, server_default=text("'[]'"), nullable=False)
     costo_unitario: Mapped[Decimal] = mapped_column(Numeric(14, 4), default=0, server_default="0", nullable=False)
@@ -746,7 +751,7 @@ class Producto(Base):
     )
 
     categoria: Mapped[CategoriaProducto] = relationship(back_populates="productos")
-    proveedor: Mapped[Proveedor] = relationship(back_populates="productos")
+    proveedor: Mapped[Proveedor | None] = relationship(back_populates="productos")
     detalles_venta: Mapped[list["DetalleOrdenCobro"]] = relationship(
         back_populates="producto"
     )

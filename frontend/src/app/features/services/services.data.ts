@@ -138,7 +138,7 @@ export const VETERINARY_SERVICES: readonly VeterinaryService[] = [
     summary: 'Un espacio seguro, cómodo y supervisado durante tu ausencia.',
     description: 'Tu mascota recibe alojamiento, alimentación, paseos y atención cercana para que se sienta acompañada mientras estás fuera.',
     category: 'Hospitalización y cuidados',
-    imageUrl: 'https://images.unsplash.com/photo-1601758064226-0c3e4f1e7fc1?auto=format&fit=crop&w=900&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=900&q=80',
     imageAlt: 'Perro cómodo en un espacio de hospedaje',
     icon: 'pet_hotel',
   },
