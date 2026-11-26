@@ -1,6 +1,7 @@
 from functools import lru_cache
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     appointment_tolerance_minutes: int = 15
     appointment_worker_interval_seconds: int = 30
     booking_url: str = "http://localhost:4200/reservar-cita"
+    whatsapp_provider: Literal["manual", "meta", "twilio"] = "meta"
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_whatsapp_from: str = ""
+    twilio_public_url: str = ""
     whatsapp_api_url: str = "https://graph.facebook.com/v21.0"
     whatsapp_phone_number_id: str | None = None
     whatsapp_access_token: str | None = None

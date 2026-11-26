@@ -8,7 +8,8 @@ import { operationError } from '../admin/services/operations-api.service';
   <section class="mt-6 grid gap-3 rounded-2xl border bg-white p-5" aria-labelledby="attendance-title">
     <h2 id="attendance-title" class="text-lg font-bold">Confirmar asistencia por WhatsApp</h2>
     <p class="text-sm text-slate-600">Para citas de hoy o mañana, envía el mensaje preparado desde el número de contacto de la reserva. Abrir WhatsApp no confirma la asistencia: debe recibirse el mensaje en la clínica.</p>
-    <button type="button" class="justify-self-start rounded-xl border px-3 py-2 text-sm font-bold" (click)="refresh.emit()" [disabled]="busy()">Ya envié el mensaje: actualizar asistencia</button>
+    @if (!manual()) { <button type="button" class="justify-self-start rounded-xl border px-3 py-2 text-sm font-bold" (click)="refresh.emit()" [disabled]="busy()">Ya envié el mensaje: actualizar asistencia</button> }
+    @if (manual()) { <p class="text-sm text-slate-600">La clínica revisará tu mensaje en WhatsApp y registrará su referencia en la agenda. Abrir el enlace no confirma la asistencia por sí solo.</p><button type="button" class="justify-self-start rounded-xl border px-3 py-2 text-sm font-bold" (click)="refresh.emit()" [disabled]="busy()">Actualizar confirmación registrada por la clínica</button> }
     @if (!eligibleAppointments().length) { <p class="text-sm text-slate-500">No hay citas de hoy o mañana disponibles para confirmar asistencia.</p> }
     @if (error()) { <p role="alert" class="text-rose-700">{{ error() }}</p> }
     @for (appointment of appointments(); track appointment.id) {
@@ -29,6 +30,7 @@ export class AttendanceConfirmationComponent {
   readonly eligibleAppointments = computed(() => this.appointments().filter(appointment => this.eligible(appointment)));
   private readonly http = inject(HttpClient);
   readonly busy = signal(false); readonly error = signal(''); readonly linkId = signal(0);
+  readonly manual = signal(false);
   private readonly preparedLink = signal(''); private readonly preparedFor = signal('');
   readonly link = computed(() => this.preparedFor() === this.signature(this.linkId()) ? this.preparedLink() : '');
   private signature(id: number): string {
@@ -45,6 +47,6 @@ export class AttendanceConfirmationComponent {
     if (this.busy()) return;
     const signature = this.signature(id);
     this.busy.set(true); this.error.set(''); this.preparedLink.set(''); this.linkId.set(id);
-    this.http.get<{ whatsapp_url: string }>(`${environment.apiUrl}/portal/citas/${id}/asistencia-whatsapp`).subscribe({ next: data => { if (this.signature(id) === signature) { this.preparedFor.set(signature); this.preparedLink.set(data.whatsapp_url); } this.busy.set(false); }, error: error => { this.error.set(operationError(error)); this.busy.set(false); } });
+    this.http.get<{ whatsapp_url: string; modo?: string }>(`${environment.apiUrl}/portal/citas/${id}/asistencia-whatsapp`).subscribe({ next: data => { if (this.signature(id) === signature) { this.preparedFor.set(signature); this.preparedLink.set(data.whatsapp_url); this.manual.set(data.modo === 'manual'); } this.busy.set(false); }, error: error => { this.error.set(operationError(error)); this.busy.set(false); } });
   }
 }

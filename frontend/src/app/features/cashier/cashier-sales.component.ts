@@ -6,6 +6,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { CashierApiService } from './cashier-api.service';
 import { DiscountAuthorizationsComponent } from '../billing/discount-authorizations.component';
 import { DiscountAuthorization } from '../billing/billing-api.service';
+import { ManualCommunicationsLinkComponent } from '../messaging/manual-communications-link.component';
 import {
   CashierAttention,
   CashierCategory,
@@ -33,7 +34,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
 @Component({
   selector: 'app-cashier-sales',
   standalone: true,
-  imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent],
+  imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent, ManualCommunicationsLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-[1500px]">
@@ -98,7 +99,7 @@ type PaymentMethod = 'efectivo' | 'yape' | 'plin' | 'tarjeta' | 'transferencia';
           </div>
         </aside>
       </div>
-      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><h3 class="text-xl font-black">Últimas ventas · reimpresión</h3><div class="mt-3 max-h-64 overflow-y-auto">@for (order of history(); track order.id) {<div class="flex items-center justify-between gap-3 border-t py-2 text-sm"><span>{{ order.codigo_orden }} · S/ {{ money(order.monto_total) }}</span><button type="button" (click)="reopenReceipt(order)" class="font-bold text-[#168ba1]">Ver boleta</button></div>} @empty {<p class="text-sm text-slate-500">Aún no hay ventas.</p>}</div></section>
+      <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><h3 class="text-xl font-black">Últimas ventas · reimpresión</h3><div class="mt-3 max-h-64 overflow-y-auto">@for (order of history(); track order.id) {<div class="flex flex-wrap items-center justify-between gap-3 border-t py-2 text-sm"><span>{{ order.codigo_orden }} · S/ {{ money(order.monto_total) }}</span><button type="button" (click)="reopenReceipt(order)" class="font-bold text-[#168ba1]">Ver boleta</button><app-manual-communications-link tipo="venta" [referencia]="order.id" label="Enviar boleta por WhatsApp" /></div>} @empty {<p class="text-sm text-slate-500">Aún no hay ventas.</p>}</div></section>
     </section>
 
     @if (receipt(); as currentReceipt) {

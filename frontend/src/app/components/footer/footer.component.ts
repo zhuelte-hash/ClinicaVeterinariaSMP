@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-footer',
@@ -49,7 +50,7 @@ import { RouterLink } from '@angular/router';
         <div>
            <h2 class="mb-3 font-bold text-brand-200">Contacto</h2>
           <ul class="space-y-2 text-sm">
-           <li><b>Celular:</b> <a href="tel:965939522" class="hover:text-brand-300">965 939 522</a></li>
+            <li><b>Celular:</b> <a [href]="contact.telUrl()" class="hover:text-brand-300">{{ contact.displayPhone() }}</a></li>
            <li><b>Correo:</b> <a href="mailto:vamospetshop@gmail.com" class="break-all hover:text-brand-300">vamospetshop@gmail.com</a></li>
             <li><b>Dirección:</b> Jr. Quinua N° 178 - Cercado, Ayacucho</li>
             <li class="pt-2 text-xs text-gray-400">Lun - Sáb: 8am - 8pm<br/>Dom: 9am - 2pm</li>
@@ -65,4 +66,4 @@ import { RouterLink } from '@angular/router';
     </footer>
   `,
 })
-export class FooterComponent {}
+export class FooterComponent { readonly contact = inject(ClinicContactService); }

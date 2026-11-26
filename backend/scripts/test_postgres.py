@@ -2,6 +2,7 @@
 
 Desde la raíz: backend/.venv/Scripts/python.exe backend/scripts/test_postgres.py
 Agrega --all para ejecutar toda la suite con PostgreSQL disponible.
+Usa --port 55433 si el puerto predeterminado 55432 está ocupado.
 """
 
 import argparse
@@ -17,7 +18,6 @@ COMPOSE = [
     "docker", "compose", "--project-name", "clinica-tests",
     "--file", str(ROOT_DIR / "compose.test.yaml"),
 ]
-DATABASE_URL = "postgresql://postgres:postgres@localhost:55432/test_clinica"
 POSTGRES_TESTS = [
     "tests/test_sales_flow.py",
     "tests/test_appointment_flow_postgres.py",
@@ -33,12 +33,17 @@ POSTGRES_TESTS = [
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--all", action="store_true", help="Ejecutar toda la suite")
+    parser.add_argument("--port", type=int, default=55432, help="Puerto local de PostgreSQL temporal (predeterminado: 55432)")
     args = parser.parse_args()
+    if not 1 <= args.port <= 65535:
+        parser.error("El puerto debe estar entre 1 y 65535")
+    database_url = f"postgresql://postgres:postgres@localhost:{args.port}/test_clinica"
     env = os.environ.copy()
     env.update({
-        "DATABASE_URL": DATABASE_URL,
-        "TEST_DATABASE_URL": DATABASE_URL,
-        "TEST_APPOINTMENT_DATABASE_URL": DATABASE_URL,
+        "DATABASE_URL": database_url,
+        "TEST_DATABASE_URL": database_url,
+        "TEST_APPOINTMENT_DATABASE_URL": database_url,
+        "TEST_POSTGRES_PORT": str(args.port),
         "SECRET_KEY": "clinica-postgres-integration-tests-only",
         "DEBUG": "false",
         "PURCHASE_DELIVERY_COST": "10.00",

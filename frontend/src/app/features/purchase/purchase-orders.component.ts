@@ -5,9 +5,10 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LocalPurchaseService, WebOrder } from '../../core/services/local-purchase.service';
+import { ManualCommunicationsLinkComponent } from '../messaging/manual-communications-link.component';
 
 @Component({
-  selector: 'app-purchase-orders', standalone: true, imports: [CommonModule, FormsModule],
+  selector: 'app-purchase-orders', standalone: true, imports: [CommonModule, FormsModule, ManualCommunicationsLinkComponent],
   template: `
     <section class="mx-auto max-w-7xl p-4 sm:p-6">
       <h1 class="text-2xl font-black text-slate-900">{{ staff ? 'Pedidos web / Pagos pendientes' : 'Mis compras web' }}</h1>
@@ -33,6 +34,7 @@ import { LocalPurchaseService, WebOrder } from '../../core/services/local-purcha
           <section role="dialog" aria-modal="true" aria-labelledby="order-title" (click)="$event.stopPropagation()" class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-5 sm:p-8">
             <div class="flex justify-between gap-4"><h2 id="order-title" class="text-xl font-black">{{ order.codigo_pedido }}</h2><button (click)="close()" [disabled]="busy()" aria-label="Cerrar detalle" class="rounded-lg border px-3 py-1">✕</button></div>
             <p class="mt-3">{{ order.estado_pedido }} · Pago {{ order.estado_pago }}</p>
+            @if (order.venta_id; as saleId) { @if (staff) { <app-manual-communications-link tipo="venta" [referencia]="saleId" label="Enviar confirmación y boleta por WhatsApp" /> } }
             <div class="my-4 grid gap-3 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2"><p><strong>Cliente:</strong> {{ order.datos_cliente.nombreCompleto }}</p><p><strong>DNI / RUC:</strong> {{ order.datos_cliente.dni || order.datos_cliente.ruc }}</p><p><strong>Contacto:</strong> {{ order.datos_cliente.celular }} · {{ order.datos_cliente.correo }}</p><p><strong>Entrega:</strong> {{ order.datos_cliente.tipoEntrega }} {{ order.datos_cliente.direccion }} {{ order.datos_cliente.referencia }}</p><p><strong>Observaciones:</strong> {{ order.observaciones || 'Sin observaciones' }}</p><p><strong>Operación:</strong> {{ order.numero_operacion }}</p></div>
             @for (item of order.detalles; track item.producto_id) { <div class="flex gap-3 border-b py-3 text-sm"><img [src]="item.imagen_url" [alt]="item.nombre_producto" class="h-12 w-12 rounded-lg object-cover" /><div class="flex-1 font-semibold">{{ item.nombre_producto }}<p class="font-normal">{{ item.cantidad }} × {{ item.precio_unitario | currency:'PEN':'S/ ' }}</p></div><strong>{{ item.subtotal | currency:'PEN':'S/ ' }}</strong></div> }
             <p class="mt-4 text-sm">Subtotal: {{ order.subtotal | currency:'PEN':'S/ ' }} · Descuento: {{ order.descuento | currency:'PEN':'S/ ' }} · Delivery: {{ order.costo_delivery | currency:'PEN':'S/ ' }}</p>

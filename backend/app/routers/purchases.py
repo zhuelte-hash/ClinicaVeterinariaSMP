@@ -28,8 +28,8 @@ User = Annotated[Usuario, Depends(purchase_user)]
 
 
 @router.get("/configuracion")
-def configuration():
-    return payment_config()
+def configuration(db: Db):
+    return payment_config(db)
 
 
 @router.post("", status_code=201, response_model=PedidoRead)

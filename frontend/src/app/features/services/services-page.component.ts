@@ -12,6 +12,7 @@ import { ESTHETIC_SERVICES } from './services-menu.data';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { ClinicService } from '../appointments/appointments.models';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-services-page',
@@ -22,6 +23,7 @@ import { ClinicService } from '../appointments/appointments.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServicesPageComponent {
+  readonly contact = inject(ClinicContactService);
   private readonly dialog = inject(Dialog);
   readonly categories = SERVICE_CATEGORIES;
   readonly selectedCategory = signal<ServiceCategoryFilter>('Todos');

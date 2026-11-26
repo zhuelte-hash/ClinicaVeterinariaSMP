@@ -1,0 +1,26 @@
+@startuml
+title Anexo 6.7. Secuencia - Recepción de mercadería
+autonumber
+hide footbox
+actor Administrador
+boundary Angular as UI
+control "FastAPI / InventoryService" as API
+database PostgreSQL as BD
+Administrador -> UI : Registrar proveedor, documento y líneas
+UI -> API : POST /admin/operaciones/compras
+API -> BD : Verificar proveedor y documento no duplicado
+loop Por cada línea de recepción
+  API -> BD : Bloquear producto de la sede y consultar lote
+  API -> API : Validar cantidad, unidad y vencimiento\nConvertir unidades cuando corresponda
+  API -> BD : Preparar actualización de lote, stock,\ncosto promedio y MovimientoInventario
+end
+alt Todas las líneas válidas
+  API -> BD : Guardar CompraProveedor y Egreso si hay costo
+  API -> BD : COMMIT
+  API --> UI : Recepción registrada
+  UI --> Administrador : Mostrar inventario actualizado
+else Documento, producto, unidad o lote inválido
+  API -> BD : ROLLBACK de toda la recepción
+  API --> UI : Informar motivo sin recepción parcial
+end
+@enduml

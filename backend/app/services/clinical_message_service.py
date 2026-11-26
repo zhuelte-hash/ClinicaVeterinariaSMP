@@ -10,7 +10,7 @@ from app.services.operational_message_service import global_row
 
 
 def clinical_message_ready(db, item, current):
-    if item.canal != "whatsapp" or item.evento not in {"cita_cancelada", "receta"}:
+    if item.canal != "whatsapp" or item.evento not in {"cita_cancelada", "cita_no_asistio", "receta"}:
         return True
 
     def cancel(reason):
@@ -37,8 +37,9 @@ def clinical_message_ready(db, item, current):
             return wait("Falta el PDF de la receta para realizar el envío.")
     else:
         appointment = global_row(db, Cita, Cita.id == item.entidad_id)
-        if appointment is None or appointment.estado != EstadoCita.CANCELADA:
-            return cancel("La cita ya no tiene una cancelación vigente.")
+        expected = EstadoCita.NO_ASISTIO if item.evento == "cita_no_asistio" else EstadoCita.CANCELADA
+        if appointment is None or appointment.estado != expected:
+            return cancel("La cita ya no tiene una cancelación o inasistencia vigente.")
     if appointment is None or appointment.mascota.cliente_id != owner.id:
         return cancel("La cita ya no corresponde al propietario destinatario.")
     branch = db.get(Sucursal, appointment.sucursal_id)

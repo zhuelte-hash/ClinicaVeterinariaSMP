@@ -1,0 +1,42 @@
+@startuml
+title Anexo 6.4. Secuencia - Pago de una orden
+autonumber
+hide footbox
+actor Cliente
+actor Cajero
+boundary Angular as UI
+control "FastAPI / BillingService" as API
+control CashierService as Ventas
+database PostgreSQL as BD
+Cliente -> UI : Adjuntar comprobante e importe
+UI -> API : POST /operaciones/ordenes/{id}/comprobantes
+API -> API : Validar archivo, propiedad, importe y orden
+API -> BD : Guardar AbonoOrden enviado; COMMIT
+API --> UI : Pendiente de revisión
+Cajero -> UI : Revisar comprobante
+alt Rechaza comprobante
+  UI -> API : POST /operaciones/pagos/{id}/rechazar
+  API -> BD : Guardar rechazo y motivo; COMMIT
+  API --> UI : Saldo pendiente conservado
+else Solicita validación
+  UI -> API : POST /operaciones/pagos/{id}/validar
+  API -> BD : Bloquear orden y abono; consultar saldo y caja
+  API -> API : Comprobar estado y límites del pago
+  alt Operación válida
+    API -> BD : Validar abono y crear MovimientoCaja
+    alt El pago completa el saldo
+      API -> Ventas : _create_sale(..., commit=False, pre_order=orden)
+      Ventas -> BD : Revalidar stock y consumir lotes\nGuardar venta, Kardex, boleta y aviso PDF
+      Ventas --> API : Venta y comprobante
+      API -> BD : Marcar orden pagada
+    else Queda saldo
+      API -> BD : Marcar orden parcial
+    end
+    API -> BD : COMMIT
+    API --> UI : Orden y saldo actualizados
+  else Error de estado, importe, caja o stock
+    API -> BD : ROLLBACK si hubo cambios
+    API --> UI : Informar motivo; conservar saldo
+  end
+end
+@enduml

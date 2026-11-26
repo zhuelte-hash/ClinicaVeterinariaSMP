@@ -23,6 +23,7 @@ import { PanelHeaderComponent } from '../../shared/panel-header/panel-header.com
         </div>
         <nav class="flex-1 space-y-2 overflow-y-auto px-3 py-5" aria-label="Navegación de caja">
           @if (auth.can('ventas')) { <a routerLink="ordenes" routerLinkActive="active" (click)="closeDrawer()" class="nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold" title="Órdenes y pagos"><span aria-hidden="true">▤</span>@if (!collapsed()) { <span>Órdenes, pagos y descuentos</span> }</a> }
+          @if (auth.can('ventas')) { <a routerLink="comunicaciones" routerLinkActive="active" (click)="closeDrawer()" class="nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold" title="WhatsApp manual"><span aria-hidden="true">✉</span>@if (!collapsed()) { <span>WhatsApp manual</span> }</a> }
           @if (!collapsed()) { <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#8bd7e5]">Operación de caja</p> }
           @if (auth.can('ventas')) {
           <a routerLink="pedidos-web" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeDrawer()" class="nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold" [attr.aria-label]="collapsed() ? 'Pedidos web / Pagos pendientes' : null" [title]="collapsed() ? 'Pedidos web / Pagos pendientes' : ''">

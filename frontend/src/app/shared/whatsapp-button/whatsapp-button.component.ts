@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-whatsapp-button',
@@ -6,7 +7,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
-      href="https://wa.me/51965939522?text=Hola%20necesito%20m%C3%A1s%20informaci%C3%B3n"
+      [href]="contact.whatsappUrl('Hola necesito más información')"
       target="_blank"
       rel="noopener noreferrer"
       class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-50 grid h-[50px] w-[50px] place-items-center rounded-full bg-[#25D366] text-white shadow-[0_8px_24px_rgba(37,211,102,0.35)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(37,211,102,0.45)] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#0B1B6D] sm:bottom-6 sm:right-6 sm:h-[54px] sm:w-[54px]"
@@ -19,4 +20,4 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     </a>
   `,
 })
-export class WhatsappButtonComponent {}
+export class WhatsappButtonComponent { readonly contact = inject(ClinicContactService); }

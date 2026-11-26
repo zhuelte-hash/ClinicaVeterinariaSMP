@@ -1,0 +1,39 @@
+@startuml
+title Anexo 6.8. Secuencia - WhatsApp manual
+autonumber
+hide footbox
+actor "Personal autorizado" as Personal
+boundary Angular as UI
+control "FastAPI / ManualMessageService" as API
+database PostgreSQL as BD
+participant "WhatsApp / WhatsApp Web" as WA
+Personal -> UI : Seleccionar aviso y prepararlo
+UI -> API : POST /operaciones/comunicaciones/manuales/{id}/preparar
+API -> BD : Consultar aviso autorizado\nRevalidar operación, sede y contacto
+break Aviso no vigente o no autorizado
+  API --> UI : Informar motivo; no preparar envío
+end
+API --> UI : Texto, enlace wa.me y disponibilidad de PDF
+Personal -> UI : Abrir WhatsApp
+UI -> WA : Abrir enlace wa.me
+opt Existe PDF
+  Personal -> UI : Descargar documento
+  UI -> API : POST /operaciones/comunicaciones/manuales/{id}/pdf
+  API --> UI : PDF autenticado después de revalidar
+  Personal -> WA : Adjuntar PDF
+end
+Personal -> WA : Pulsar Enviar
+Personal -> UI : Registrar gestión manual
+UI -> API : POST /operaciones/comunicaciones/manuales/{id}/gestionar
+API -> BD : Revalidar aviso y autorización
+alt Aviso gestionable
+  API -> BD : Guardar gestionado_manual y auditoría; COMMIT
+  API --> UI : Gestión registrada
+else Cambió la vigencia o autorización
+  API --> UI : Informar motivo
+end
+note over Personal, WA
+  El envío lo realiza la persona.
+  La gestión registrada no acredita entrega ni lectura.
+end note
+@enduml

@@ -1,0 +1,80 @@
+@startuml
+!pragma layout smetana
+title Anexo 7. Diagrama de componentes - Clínica Veterinaria SMP
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+package "Frontend Angular 21" {
+  [Portal público y cliente] as Portal
+  [Panel administrativo] as Admin
+  [Panel veterinario] as Vet
+  [Panel de caja] as Caja
+  [Servicios HTTP, interceptores\ny guards] as HTTP
+  [Bandeja WhatsApp manual] as Bandeja
+}
+
+package "Backend Python / FastAPI" {
+  [Routers REST y esquemas Pydantic] as API
+  [Seguridad JWT, permisos\ny contexto de sucursal] as Seguridad
+  [Cuentas y usuarios] as Usuarios
+  [Agenda y atención clínica] as Clinica
+  [Órdenes, caja, ventas\ny pedidos web] as Ventas
+  [Inventario y proveedores] as Inventario
+  [Configuración, reportes,\nauditoría y respaldo] as Gestion
+  [Mensajería y gestión manual] as Mensajes
+  [Documentos PDF / ReportLab] as PDF
+  [Worker y automatizaciones] as Worker
+  [Modelos y sesiones SQLAlchemy] as ORM
+}
+
+database "PostgreSQL / Neon" as BD
+folder "uploads/ y clinical_private/" as Archivos
+cloud "Servidor SMTP" as SMTP
+cloud "WhatsApp / WhatsApp Web" as WA
+
+Portal --> HTTP
+Admin --> HTTP
+Vet --> HTTP
+Caja --> HTTP
+Bandeja --> HTTP
+Admin --> Bandeja
+Vet --> Bandeja
+Caja --> Bandeja
+HTTP --> API : REST / JSON y archivos\nJWT + X-Sucursal-ID
+API --> Seguridad
+API --> Usuarios
+API --> Clinica
+API --> Ventas
+API --> Inventario
+API --> Gestion
+API --> Mensajes
+Clinica --> Ventas : orden al cerrar atención
+Ventas --> Inventario : consumo y devolución
+Clinica --> Mensajes
+Ventas --> Mensajes
+Usuarios --> Mensajes
+Ventas --> PDF
+Clinica --> PDF
+Gestion --> PDF
+Worker --> Clinica
+Worker --> Mensajes
+Worker --> Inventario
+Usuarios --> ORM
+Clinica --> ORM
+Ventas --> ORM
+Inventario --> ORM
+Gestion --> ORM
+Mensajes --> ORM
+ORM --> BD : SQL / transacciones
+Clinica --> Archivos : adjuntos clínicos y fotos
+Gestion --> Archivos : galería y respaldo
+Mensajes --> SMTP : verificación y recuperación
+Bandeja --> WA : enlace wa.me\nenvío humano y adjuntos
+
+note bottom of Mensajes
+  MensajeSalida persiste cola y PDF en la base de datos.
+  El worker prepara avisos programados.
+  WhatsApp se gestiona manualmente en el modo vigente.
+end note
+@enduml

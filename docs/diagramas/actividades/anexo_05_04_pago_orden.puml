@@ -1,0 +1,38 @@
+@startuml
+title Anexo 5.4. Actividades - Pago de una orden
+skinparam shadowing false
+|Cliente|
+start
+:Consultar orden y presentar comprobante digital;
+|Sistema|
+:Validar propiedad, archivo, importe\ny vigencia de la orden;
+if (¿Comprobante registrable?) then (Sí)
+  :Guardar AbonoOrden en estado enviado;
+else (No)
+  :Informar motivo;
+  stop
+endif
+|Cajero|
+:Revisar comprobante con caja abierta;
+if (¿Aprueba el comprobante?) then (Sí)
+  |Sistema|
+  :Revalidar orden, saldo, sede, caja\ny stock si el abono liquida la orden;
+  if (¿Validación correcta?) then (Sí)
+    :Validar abono y registrar MovimientoCaja;
+    if (¿Saldo igual a cero?) then (Sí)
+      :Crear venta, descontar productos\ny registrar Kardex;
+      :Emitir boleta y preparar aviso con PDF;
+      :Marcar orden pagada;
+    else (No)
+      :Mantener orden parcial;
+    endif
+    :Confirmar transacción;
+  else (No)
+    :Revertir validación y conservar saldo;
+  endif
+else (No)
+  |Sistema|
+  :Registrar rechazo con motivo\ny conservar saldo pendiente;
+endif
+stop
+@enduml

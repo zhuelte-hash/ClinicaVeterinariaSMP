@@ -28,6 +28,8 @@ router = APIRouter(tags=["Mensajería y encuestas"])
 
 @router.get("/whatsapp/webhook")
 def verify_webhook(mode: str = Query(alias="hub.mode"), token: str = Query(alias="hub.verify_token"), challenge: str = Query(alias="hub.challenge")):
+    if get_settings().whatsapp_provider == "manual":
+        raise HTTPException(503, "Modo manual: las respuestas se revisan directamente en WhatsApp")
     expected = get_settings().whatsapp_verify_token
     if mode != "subscribe" or not expected or not hmac.compare_digest(token, expected):
         raise HTTPException(403, "Verificación no autorizada")
@@ -61,14 +63,14 @@ def download_whatsapp_proof(media_id):
     return bytes(content)
 
 
-async def receive_message(message, db):
+async def receive_message(message, db, *, download_proof=None):
     message_id = message["id"]
     if db.scalar(select(MensajeEntrante.id).where(MensajeEntrante.proveedor_id == message_id)):
         return
     phone = normalized_phone(message.get("from", ""))
     kind = message.get("type", "")
     caption = message.get("text", {}).get("body", "") if kind == "text" else message.get(kind, {}).get("caption", "")
-    item = MensajeEntrante(proveedor_id=message_id, telefono=phone, contenido=caption)
+    item = MensajeEntrante(proveedor_id=message_id, telefono=phone, contenido=caption, fecha=now())
     db.add(item)
     try:
         confirmation = re.fullmatch(r"\s*ASISTIR[EÉ]\s+(\d+)(?:\s+([A-Za-z0-9_-]+))?\s*", caption, re.I)
@@ -122,7 +124,7 @@ async def receive_message(message, db):
             db.info["actor_id"] = owner.id
             check_permission(db, owner, "ventas", "crear")
             data = InstallmentWrite(monto=amount[1], medio=method[1].lower(), codigo_operacion=operation[1] if operation else None, canal="whatsapp", clave_idempotencia=f"wa:{message_id}")
-            content = download_whatsapp_proof(message[kind]["id"])
+            content = (download_proof or download_whatsapp_proof)(message[kind]["id"])
             BillingService(db).add_payment(owner, order.id, data, content, commit=False)
             item.resultado = f"comprobante_vinculado:{order.codigo}"
         else:
@@ -149,6 +151,8 @@ async def receive_message(message, db):
 
 @router.post("/whatsapp/webhook")
 async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+    if get_settings().whatsapp_provider == "manual":
+        raise HTTPException(503, "Modo manual: las respuestas y comprobantes se registran por el personal")
     secret = get_settings().whatsapp_app_secret
     if not secret:
         raise HTTPException(503, "Configura WHATSAPP_APP_SECRET")
@@ -187,7 +191,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/admin/operaciones/automatizaciones", dependencies=[Depends(require_permission("usuarios", "editar"))])
 def automation_cycle(db: Session = Depends(get_db)):
-    return run_automations(db)
+    return run_automations(db, manual_button=get_settings().whatsapp_provider == "manual")
 
 
 @router.get("/encuestas/{token}")

@@ -1,0 +1,102 @@
+@startuml
+title Resumen general de secuencia - Cierre de atención y cobro
+hide footbox
+autonumber
+skinparam shadowing false
+
+actor Veterinario as Vet
+actor Cliente
+actor Cajero
+boundary "Frontend Angular" as UI
+control "API FastAPI" as API
+control AppointmentService as Atencion
+control BillingService as Cobro
+control CashierService as Caja
+control MessagingService as Mensajes
+database "PostgreSQL / Neon" as BD
+
+note over Vet, BD
+  Precondición: atención en curso, datos clínicos guardados
+  y servicio con costo o productos facturables.
+  Cada petición valida JWT, permisos, propiedad y sede.
+end note
+
+group Cierre transaccional de la atención
+  Vet -> UI : Cerrar atención
+  UI -> API : PATCH /portal/veterinario/atenciones/{id}/estado\n{estado: "cerrada"}
+  API -> Atencion : update_attention_status(...)
+  Atencion -> BD : Consultar atención autorizada
+  Atencion -> Atencion : Validar transición de estado
+  Atencion -> Cobro : from_attention(veterinario, proceso)
+  Cobro -> BD : Crear o reutilizar OrdenPendiente compatible
+  Cobro -> Mensajes : Preparar aviso orden_creada si es nueva
+  Mensajes -> BD : Guardar MensajeSalida
+  opt Existe receta
+    Cobro -> Cobro : Generar receta PDF con código de orden
+    Cobro -> Mensajes : Preparar aviso receta y PDF
+    Mensajes -> BD : Guardar MensajeSalida con documento
+  end
+  Cobro --> Atencion : Orden pendiente
+  Atencion -> BD : Guardar cierre, cita atendida y COMMIT
+  Atencion --> API : Atención cerrada
+  API --> UI : Datos clínicos actualizados
+  UI --> Vet : Mostrar cierre correcto
+end
+
+note over Cobro, BD
+  Crear la orden no registra un pago ni descuenta stock.
+  Si la facturación falla, se revierte también el cierre.
+end note
+
+group Presentación del comprobante digital
+  Cliente -> UI : Consultar Mis pagos
+  UI -> API : GET /operaciones/ordenes
+  API -> Cobro : list(cliente)
+  Cobro -> BD : Consultar órdenes y abonos propios
+  BD --> Cobro : Código, total y pagos
+  Cobro --> API : Órdenes con saldo
+  API --> UI : Mostrar órdenes
+  Cliente -> UI : Adjuntar comprobante e importe
+  UI -> API : POST /operaciones/ordenes/{id}/comprobantes
+  API -> Cobro : add_payment(cliente, orden, datos, archivo)
+  Cobro -> BD : Guardar AbonoOrden en estado enviado; COMMIT
+  Cobro --> API : Comprobante pendiente de revisión
+  API --> UI : Mostrar pendiente de validación
+end
+
+group Validación autorizada del pago
+  Cajero -> UI : Aprobar comprobante
+  UI -> API : POST /operaciones/pagos/{id}/validar
+  API -> Cobro : validate_payment(cajero, abono)
+  Cobro -> BD : Bloquear abono y orden; consultar saldo
+  Cobro -> Caja : get_open_register(cajero)
+  Caja -> BD : Consultar caja abierta de la sede
+  BD --> Caja : Caja
+  Caja --> Cobro : Caja abierta
+  alt Abono y orden válidos
+    Cobro -> BD : Validar abono y registrar MovimientoCaja
+    alt El abono completa el saldo
+      Cobro -> Caja : _create_sale(..., commit=False, pre_order=orden)
+      Caja -> BD : Verificar stock y consumir lotes\nCrear venta, detalles, Kardex y ComprobanteVenta
+      Caja -> Mensajes : Preparar pago_validado con boleta PDF
+      Mensajes -> BD : Guardar MensajeSalida con documento
+      Caja --> Cobro : Venta y boleta
+      Cobro -> BD : Marcar orden pagada y COMMIT
+    else Queda saldo pendiente
+      Cobro -> BD : Marcar orden parcial y COMMIT
+    end
+    Cobro --> API : Orden y saldo actualizados
+    API --> UI : Mostrar resultado
+  else Error de estado, importe, caja o stock
+    Cobro -> BD : ROLLBACK si hubo cambios
+    Cobro --> API : Error de validación
+    API --> UI : Informar motivo y conservar saldo
+  end
+end
+
+note over Cajero, Mensajes
+  En modo manual, caja prepara el aviso de pago total,
+  descarga la boleta y la envía desde WhatsApp.
+  Abrir el chat no envía ni confirma entrega.
+end note
+@enduml

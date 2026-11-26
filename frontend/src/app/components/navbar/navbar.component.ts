@@ -9,6 +9,7 @@ import { CartService } from '../../services/cart.service';
 import { PetCarrierIconComponent } from '../../shared/icons/pet-carrier-icon.component';
 import { ServiceMenuIconComponent } from '../../features/services/service-menu-icon.component';
 import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId } from '../../features/services/services-menu.data';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-navbar',
@@ -53,7 +54,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
           <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
           <span class="truncate">Jr. Quinua N° 178 – Cercado, Ayacucho</span>
           <span class="hidden md:inline text-[#1A98A2]">|</span>
-           <a href="tel:965939522" class="hidden md:inline hover:text-brand-200">965 939 522</a>
+           <a [href]="contact.telUrl()" class="hidden md:inline hover:text-brand-200">{{ contact.displayPhone() }}</a>
         </p>
       </div>
     </div>
@@ -271,6 +272,7 @@ import { RELATED_PRODUCT_LINKS, SERVICES_MENU_CATEGORIES, ServicesMenuCategoryId
   `,
 })
 export class NavbarComponent implements OnDestroy {
+  readonly contact = inject(ClinicContactService);
   readonly cart = inject(CartService);
   readonly auth = inject(AuthService);
   private readonly notice = inject(NoticeService);

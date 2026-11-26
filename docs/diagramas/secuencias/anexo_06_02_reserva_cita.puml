@@ -1,0 +1,30 @@
+@startuml
+title Anexo 6.2. Secuencia - Reserva y confirmación de cita
+autonumber
+hide footbox
+actor Cliente
+actor Veterinario
+boundary Angular as UI
+control "FastAPI / AppointmentService" as API
+database PostgreSQL as BD
+Cliente -> UI : Seleccionar mascota, servicio y horario
+UI -> API : POST /portal/citas
+API -> BD : Validar propiedad, sede y disponibilidad\nControlar cruces concurrentes
+alt Reserva válida
+  API -> BD : Guardar cita pendiente_contacto\ny notificación; COMMIT
+  API --> UI : Solicitud registrada
+  UI --> Cliente : Mostrar pendiente de coordinación
+  Veterinario -> UI : Revisar solicitud y confirmar horario acordado
+  UI -> API : PATCH /portal/veterinario/solicitudes/{id}
+  API -> BD : Revalidar horario y transición
+  alt Confirmación válida
+    API -> BD : Guardar confirmada, notificación\ny aviso WhatsApp manual; COMMIT
+    API --> UI : Cita confirmada
+  else Conflicto o transición inválida
+    API --> UI : Informar motivo; conservar coordinación
+  end
+else Horario o datos inválidos
+  API --> UI : Error de reserva
+  UI --> Cliente : Solicitar corrección u otro horario
+end
+@enduml

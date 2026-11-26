@@ -14,6 +14,7 @@ export const VETERINARIAN_ROUTES: Routes = [{
   component: VeterinarianLayoutComponent,
   canActivateChild: [permissionGuard],
   children: [
+    { path: 'comunicaciones', title: 'WhatsApp clínico manual | Clínica SMP', loadComponent: () => import('../messaging/manual-inbox.component').then(m => m.ManualInboxComponent) },
     { path: 'derivaciones', title: 'Derivaciones clínicas | Clínica SMP', loadComponent: () => import('./referrals.component').then(m => m.ReferralsComponent) },
     { path: 'ordenes', title: 'Órdenes clínicas | Clínica SMP', loadComponent: () => import('../billing/billing-orders.component').then(m => m.BillingOrdersComponent) },
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },

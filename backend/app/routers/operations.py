@@ -1,4 +1,5 @@
 import datetime as dt
+import re
 from pathlib import Path
 from typing import Annotated, Literal
 from uuid import uuid4
@@ -25,7 +26,7 @@ from app.services.policy_service import PolicyService
 from app.services.user_service import UserService
 from app.services.sales_service import SalesService
 from app.schemas.appointments import ScheduleRead, ScheduleUpdate
-from app.schemas.operations import GalleryWrite, TemplatePreview, VaccinePolicy, WhatsAppProofWrite
+from app.schemas.operations import GalleryWrite, ManualPreparation, TemplatePreview, TwilioTestMessage, VaccinePolicy, WhatsAppProofWrite
 from app.services.appointment_service import AppointmentService, InvalidScheduleError, ScheduleBlockNotFoundError
 
 router = APIRouter(tags=["Operaciones clínicas"])
@@ -87,6 +88,12 @@ def save(db, item):
 @router.get("/publico/institucional")
 def institutional(db: Db):
     return PolicyService(db).get()
+
+
+@router.get("/publico/contacto")
+def public_clinic_contact(db: Db):
+    from app.services.whatsapp_config_service import public_contact
+    return public_contact(db)
 
 
 @router.get("/publico/sucursales")
@@ -280,7 +287,6 @@ def order_detail(order_id: int, db: Db, user: User):
 def prepare_whatsapp_proof(order_id: int, data: WhatsAppProofWrite, db: Db, user: User, response: Response):
     import re
     from urllib.parse import quote
-    from app.models.clinic import ConfiguracionClinica
     if user.tipo != TipoUsuario.CLIENTE:
         raise HTTPException(403, "El comprobante debe enviarlo el cliente propietario")
     check_permission(db, user, "ventas", "crear")
@@ -290,18 +296,19 @@ def prepare_whatsapp_proof(order_id: int, data: WhatsAppProofWrite, db: Db, user
         raise HTTPException(409, "La orden no admite este importe; actualiza su saldo")
     if not re.fullmatch(r"(?:\d{9}|\d{10,15})", re.sub(r"\D", "", user.telefono or "")):
         raise HTTPException(409, "Actualiza el teléfono de tu perfil antes de enviar el comprobante")
-    config = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
-    phone = re.sub(r"\D", "", config.telefono if config else "")
-    if len(phone) == 9:
-        phone = "51" + phone
+    from app.services.whatsapp_config_service import receiver_phone
+    phone = receiver_phone(db)
     if not 10 <= len(phone) <= 15:
         raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp")
     caption = f"{order.codigo} MONTO={data.monto:.2f} MEDIO={data.medio}"
     if data.codigo_operacion:
         caption += f" OPERACION={data.codigo_operacion}"
     response.headers["Cache-Control"] = "private, no-store"
+    from app.config import get_settings
+    instructions = ("Adjunta JPG, PNG o PDF de hasta 5 MB con esta leyenda. La clínica debe registrar manualmente el comprobante recibido en la orden y caja debe validarlo. WhatsApp no registra ni confirma el pago automáticamente."
+                    if get_settings().whatsapp_provider == "manual" else "Adjunta JPG, PNG o PDF de hasta 5 MB y pega esta leyenda en el mismo archivo. Enviar solo el texto no registra el comprobante. Caja debe revisar y validar el pago.")
     return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(caption)}", "leyenda": caption, "telefono_remitente": user.telefono,
-            "instrucciones": "Adjunta JPG, PNG o PDF de hasta 5 MB y pega esta leyenda en el mismo archivo. Enviar solo el texto no registra el comprobante. Caja debe revisar y validar el pago."}
+            "instrucciones": instructions}
 
 
 @router.get("/operaciones/atenciones")
@@ -498,6 +505,27 @@ def communication_readiness(db: Db, _user: Admin, response: Response):
     return communication_status(db)
 
 
+@router.post("/admin/operaciones/comunicaciones/prueba-twilio", status_code=201)
+def twilio_test(data: TwilioTestMessage, db: Db, user: Admin, response: Response):
+    from app.config import get_settings
+    from app.services.twilio_service import has_window
+    from app.services.whatsapp_config_service import normalized_phone, twilio_missing
+    check_permission(db, user, "usuarios", "editar")
+    if get_settings().whatsapp_provider != "twilio" or twilio_missing():
+        raise HTTPException(409, "Completa la configuración de Twilio y reinicia API y worker")
+    phone = normalized_phone(data.telefono)
+    if not re.fullmatch(r"[1-9]\d{9,14}", phone):
+        raise HTTPException(422, "Indica un teléfono internacional válido")
+    if not has_window(db, phone):
+        raise HTTPException(409, "Envía hola desde ese teléfono al Sandbox después de configurar el webhook. Si aún no está vinculado, envía primero join con tu código.")
+    item = MensajeSalida(clave=f"prueba-twilio:{uuid4()}", canal="whatsapp", evento="prueba_twilio", destinatario=phone,
+                         contenido="Prueba de conexión de la Clínica Veterinaria San Martín de Porres con Twilio Sandbox.")
+    db.add(item)
+    db.commit()
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"id": item.id, "estado": item.estado, "detalle": "Prueba encolada para el worker; consulta su entrega en Comunicaciones."}
+
+
 @router.put("/admin/operaciones/plantillas/{event}")
 def write_template(event: str, data: TemplateWrite, db: Db, user: Admin):
     check_permission(db, user, "usuarios", "editar")
@@ -525,6 +553,55 @@ def message_log(db: Db, _user: Admin, response: Response, evento: str | None = N
 def incoming_message_log(db: Db, _user: Admin, response: Response):
     response.headers["Cache-Control"] = "private, no-store"
     return [row_data(row, exclude={"contenido"}) for row in db.scalars(select(MensajeEntrante).order_by(MensajeEntrante.id.desc()).limit(200)).all()]
+
+
+@router.post("/admin/operaciones/mensajes/{message_id}/preparar-manual")
+def prepare_manual_message(message_id: int, db: Db, user: Admin, response: Response, data: ManualPreparation | None = None):
+    from app.services.manual_message_service import ManualMessageService
+    service = ManualMessageService(db, user)
+    item = service.prepare(message_id, str(data.url_aplicacion) if data and data.url_aplicacion else None)
+    response.headers["Cache-Control"] = "private, no-store"
+    return service.instructions(item)
+
+
+@router.get("/operaciones/comunicaciones/manuales")
+def staff_manual_messages(db: Db, user: User, response: Response, evento: str | None = Query(default=None, max_length=80), estado: str | None = Query(default=None, max_length=30), tipo: Literal["cita", "atencion", "orden", "venta", "cliente"] | None = None, referencia: int | None = Query(default=None, gt=0)):
+    from app.services.manual_message_service import ManualMessageService
+    response.headers["Cache-Control"] = "private, no-store"
+    return ManualMessageService(db, user).listing(evento, estado, tipo, referencia)
+
+
+@router.post("/operaciones/comunicaciones/manuales/{message_id}/preparar")
+def staff_prepare_manual_message(message_id: int, db: Db, user: User, response: Response, data: ManualPreparation | None = None):
+    return prepare_manual_message(message_id, db, user, response, data)
+
+
+@router.post("/operaciones/comunicaciones/manuales/{message_id}/pdf")
+def staff_manual_pdf(message_id: int, db: Db, user: User, data: ManualPreparation | None = None):
+    return manual_message_pdf(message_id, db, user, data)
+
+
+@router.post("/operaciones/comunicaciones/manuales/{message_id}/gestionar")
+def staff_finish_manual_message(message_id: int, db: Db, user: User, response: Response, data: ManualPreparation | None = None):
+    return finish_manual_message(message_id, db, user, response, data)
+
+
+@router.post("/admin/operaciones/mensajes/{message_id}/pdf-manual")
+def manual_message_pdf(message_id: int, db: Db, user: Admin, data: ManualPreparation | None = None):
+    from app.services.manual_message_service import ManualMessageService
+    item = ManualMessageService(db, user).prepare(message_id, str(data.url_aplicacion) if data and data.url_aplicacion else None)
+    if not item.documento:
+        raise HTTPException(404, "Este mensaje no tiene PDF")
+    return Response(item.documento, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="mensaje-{item.id}.pdf"', "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/admin/operaciones/mensajes/{message_id}/gestionar-manual")
+def finish_manual_message(message_id: int, db: Db, user: Admin, response: Response, data: ManualPreparation | None = None):
+    from app.services.manual_message_service import ManualMessageService
+    item = ManualMessageService(db, user).finish(message_id, str(data.url_aplicacion) if data and data.url_aplicacion else None)
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"id": item.id, "estado": item.estado, "alcance": "Gestión declarada por el operador; no acredita entrega ni lectura de WhatsApp."}
 
 
 @router.post("/admin/operaciones/mensajes/{message_id}/reintentar")

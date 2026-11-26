@@ -2,7 +2,7 @@ import datetime as dt
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Money = Decimal
 PaymentMethod = Literal["efectivo", "yape", "plin", "tarjeta", "transferencia"]
@@ -240,6 +240,26 @@ class WhatsAppProofWrite(TextModel):
     monto: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     medio: Literal["yape", "plin", "tarjeta", "transferencia"]
     codigo_operacion: str | None = Field(default=None, max_length=100, pattern=r"^[A-Za-z0-9-]+$")
+
+
+class TwilioTestMessage(TextModel):
+    telefono: str = Field(min_length=9, max_length=30, pattern=r"^\+?[0-9 ()-]+$")
+
+
+class ManualAttendance(TextModel):
+    telefono_remitente: str = Field(min_length=9, max_length=30, pattern=r"^\+?[0-9 ()-]+$")
+    referencia: str = Field(min_length=16, max_length=1000)
+
+
+class ManualPreparation(TextModel):
+    url_aplicacion: AnyHttpUrl | None = None
+
+    @field_validator("url_aplicacion")
+    @classmethod
+    def application_origin(cls, value):
+        if value and (value.username or value.password or value.query or value.fragment or value.path not in {None, "/"}):
+            raise ValueError("Indica el origen HTTP/HTTPS de la aplicación, sin credenciales ni rutas")
+        return value
 
 
 class SurveyAnswer(TextModel):

@@ -1,0 +1,39 @@
+@startuml
+title Anexo 6.5. Secuencia - Compra de productos por web
+autonumber
+hide footbox
+actor Cliente
+actor "Cajero o administrador" as Personal
+boundary Angular as UI
+control "FastAPI / PurchaseService" as API
+control CashierService as Ventas
+database PostgreSQL as BD
+Cliente -> UI : Confirmar carrito y adjuntar comprobante
+UI -> API : POST /pedidos-web
+API -> BD : Consultar productos, stock y precios
+API -> API : Validar importes, medio de pago y archivo
+API -> BD : Guardar pedido PENDIENTE\ny pago PAGO_ENVIADO; COMMIT
+API --> UI : Código y estado del pedido
+Personal -> UI : Revisar pedido y comprobante
+UI -> API : POST /pedidos-web/{id}/revision
+API -> BD : Bloquear pedido pendiente
+alt Rechaza pedido
+  API -> BD : Guardar RECHAZADO y motivo; COMMIT
+else Aprueba pedido
+  API -> Ventas : _create_sale(..., commit=False, expected_prices=...)
+  Ventas -> BD : Revalidar caja, precios y stock
+  alt Venta válida
+    Ventas -> BD : Guardar venta, boleta, consumo de stock\ny aviso de pago con PDF
+    Ventas --> API : Venta creada
+    API -> BD : Vincular venta y marcar APROBADO / VALIDADO; COMMIT
+  else Caja, precios o stock incompatibles
+    Ventas --> API : Error de venta
+    API -> BD : ROLLBACK; conservar PENDIENTE
+  end
+end
+API --> UI : Resultado de revisión
+Cliente -> UI : Consultar Mis compras
+UI -> API : GET /pedidos-web
+API -> BD : Consultar pedidos del cliente
+API --> UI : Estados actualizados
+@enduml

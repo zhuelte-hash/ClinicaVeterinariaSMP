@@ -1,0 +1,37 @@
+@startuml
+title Anexo 5.5. Actividades - Compra de productos por web
+skinparam shadowing false
+|Cliente|
+start
+:Agregar productos al carrito;
+:Completar entrega, pago y comprobante;
+:Enviar pedido;
+|Sistema|
+:Validar productos, stock, importes,\nmedio de pago y archivo;
+if (¿Pedido válido?) then (Sí)
+  :Guardar pedido PENDIENTE\ny pago PAGO_ENVIADO;
+else (No)
+  :Solicitar corrección del pedido;
+  stop
+endif
+|Cajero o administrador|
+:Revisar pedido y comprobante;
+if (¿Aprueba el pedido?) then (Sí)
+  |Sistema|
+  :Revalidar caja abierta, precios y stock;
+  if (¿Venta realizable?) then (Sí)
+    :Registrar venta y boleta; descontar stock;
+    :Marcar pedido APROBADO y pago VALIDADO;
+    :Preparar aviso de pago con boleta PDF;
+    :Confirmar transacción;
+  else (No)
+    :Revertir aprobación y mantener PENDIENTE;
+  endif
+else (No)
+  |Sistema|
+  :Guardar pedido y pago RECHAZADOS con motivo;
+endif
+|Cliente|
+:Consultar estado en Mis compras;
+stop
+@enduml

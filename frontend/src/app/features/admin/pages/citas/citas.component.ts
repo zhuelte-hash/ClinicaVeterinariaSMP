@@ -9,12 +9,18 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
 import { AppointmentCalendarComponent } from './appointment-calendar.component';
 import { AppointmentHistoryComponent } from './appointment-history.component';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ClinicContactService } from '../../../../core/services/clinic-contact.service';
+import { ManualCommunicationsLinkComponent } from '../../../messaging/manual-communications-link.component';
 
-@Component({ selector: 'app-admin-citas', standalone: true, imports: [FormsModule, PageHeaderComponent, AppointmentCalendarComponent, AppointmentHistoryComponent], templateUrl: './citas.component.html', styleUrl: '../../shared/admin-ui.css', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-admin-citas', standalone: true, imports: [FormsModule, PageHeaderComponent, AppointmentCalendarComponent, AppointmentHistoryComponent, ManualCommunicationsLinkComponent], templateUrl: './citas.component.html', styleUrl: '../../shared/admin-ui.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class CitasComponent {
   private readonly api = inject(AdminApiService);
   private readonly notice = inject(NoticeService);
   private readonly auth = inject(AuthService);
+  private readonly contact = inject(ClinicContactService);
+  readonly attendance = signal<AdminAppointment | null>(null);
+  readonly attendanceError = signal(''); readonly attendanceBusy = signal(false);
+  attendanceForm = { telefono_remitente: '', referencia: '' };
   readonly historyId = signal<number | null>(null);
   readonly date = signal(clinicToday().slice(0, 7) + '-01'); readonly status = signal(''); readonly appointments = signal<AdminAppointment[]>([]); readonly loading = signal(true); readonly error = signal('');
   readonly endDate = signal(clinicToday());
@@ -47,6 +53,17 @@ export class CitasComponent {
       });
   }
   canEdit(item: AdminAppointment): boolean { return this.auth.can('citas', 'editar') && !['atendida', 'cancelada', 'no_asistio'].includes(item.estado); }
+  canRegisterAttendance(item: AdminAppointment): boolean {
+    const scheduled = new Date(item.fecha_hora_programada);
+    const day = (value: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(value);
+    return this.contact.contact().modo_whatsapp === 'manual' && this.auth.can('citas', 'editar') && !item.asistencia_confirmada_en && ['confirmada', 'reprogramada'].includes(item.estado) && scheduled.getTime() > Date.now() && day(scheduled) <= day(new Date(Date.now() + 86400000));
+  }
+  openAttendance(item: AdminAppointment): void { this.attendance.set(item); this.attendanceError.set(''); this.attendanceForm = { telefono_remitente: '', referencia: '' }; }
+  registerAttendance(): void {
+    const item = this.attendance(); if (!item || this.attendanceBusy()) return;
+    this.attendanceBusy.set(true); this.attendanceError.set('');
+    this.api.registerManualAttendance(item.id, this.attendanceForm).pipe(finalize(() => this.attendanceBusy.set(false))).subscribe({ next: () => { this.attendance.set(null); this.notice.show('Asistencia recibida registrada'); this.load(); }, error: error => this.attendanceError.set(this.errorText(error)) });
+  }
   edit(item: AdminAppointment): void {
     this.form = { estado: item.estado, veterinario_id: item.veterinario_id, fecha: this.localDate(item.fecha_hora_programada), nota_coordinacion: item.nota_coordinacion || '' };
     this.formError.set(''); this.editing.set(item);

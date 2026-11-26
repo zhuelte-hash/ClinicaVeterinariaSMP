@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { VeterinaryService } from './service.model';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-service-card',
@@ -44,7 +45,8 @@ import { VeterinaryService } from './service.model';
   `,
 })
 export class ServiceCardComponent {
+  private readonly contact = inject(ClinicContactService);
   readonly service = input.required<VeterinaryService>();
   readonly showDetails = output<VeterinaryService>();
-  whatsappUrl(): string { return `https://wa.me/51965939522?text=${encodeURIComponent('Hola, deseo información sobre el servicio de ' + this.service().name + '.')}`; }
+  whatsappUrl(): string { return this.contact.whatsappUrl('Hola, deseo información sobre el servicio de ' + this.service().name + '.'); }
 }

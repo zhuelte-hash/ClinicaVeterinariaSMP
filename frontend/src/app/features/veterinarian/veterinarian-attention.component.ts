@@ -9,11 +9,12 @@ import { clinicToday, ClinicalRecord, ExamOrder, PrescriptionDetail, Veterinaria
 import { PatientAlertsComponent } from './patient-alerts.component';
 import { PrescriptionProductsComponent } from '../billing/prescription-products.component';
 import { PrivateClinicalNotesComponent } from './private-clinical-notes.component';
+import { ManualCommunicationsLinkComponent } from '../messaging/manual-communications-link.component';
 
 @Component({
   selector: 'app-veterinarian-attention',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent, PrescriptionProductsComponent, PrivateClinicalNotesComponent],
+  imports: [ReactiveFormsModule, RouterLink, PatientAlertsComponent, PrescriptionProductsComponent, PrivateClinicalNotesComponent, ManualCommunicationsLinkComponent],
   templateUrl: './veterinarian-attention.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

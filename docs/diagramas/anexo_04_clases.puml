@@ -1,0 +1,251 @@
+@startuml
+!pragma layout smetana
+title Anexo 4. Diagrama de clases principales - Clínica Veterinaria SMP
+top to bottom direction
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide methods
+
+package "Usuarios y sedes" {
+  class Sucursal {
+    id : Long
+    nombre : String
+    activa : Boolean
+  }
+  class Usuario {
+    id : Long
+    nombre : String
+    correo : String
+    contrasena : String
+    tipo : TipoUsuario
+    correo_verificado : Boolean
+  }
+  enum TipoUsuario {
+    cliente
+    veterinario
+    cajero
+    administrador
+  }
+  class Cliente {
+    usuario_id : Long
+    telefono : String
+    direccion : String
+  }
+  class Veterinario {
+    usuario_id : Long
+    colegiatura : String
+    especialidad : String
+  }
+  class Cajero {
+    usuario_id : Long
+  }
+  class Administrador {
+    usuario_id : Long
+  }
+}
+
+package "Agenda y atención clínica" {
+  class Mascota {
+    id : Long
+    nombre : String
+    especie : String
+    alergias : Text
+  }
+  class Servicio {
+    id : Long
+    nombre : String
+    precio_referencial : Decimal
+    duracion_estimada_min : Integer
+  }
+  class Cita {
+    id : Long
+    fecha_hora_programada : DateTime
+    estado : EstadoCita
+    asistencia_confirmada_en : DateTime
+  }
+  class ProcesoAtencion {
+    id : Long
+    tipo : TipoProcesoAtencion
+    estado : EstadoProcesoAtencion
+    fecha_cierre : DateTime
+  }
+  class ProcesoAtencionMedica {
+    proceso_id : Long
+    diagnostico : Text
+    tratamiento : Text
+  }
+  class FichaClinica {
+    id : Long
+    peso : Decimal
+    temperatura : Decimal
+    examenes_resultados : Text
+  }
+  class Receta {
+    id : Long
+    indicaciones_generales : Text
+    fecha_emision : DateTime
+  }
+  class DetalleReceta {
+    id : Long
+    medicamento : String
+    dosis : String
+    frecuencia : String
+    duracion : String
+  }
+  class OrdenExamen {
+    id : Long
+    tipo : String
+    estado : EstadoOrdenExamen
+    resultado : Text
+  }
+  class AplicacionPreventiva {
+    id : Long
+    tipo : TipoAplicacionPreventiva
+    producto : String
+    proxima_fecha : Date
+  }
+}
+
+package "Productos e inventario" {
+  class Proveedor {
+    id : Long
+    razon_social : String
+  }
+  class Producto {
+    id : Long
+    nombre : String
+    precio_venta : Decimal
+    stock_actual : Decimal
+  }
+  class LoteInventario {
+    id : Long
+    codigo : String
+    vencimiento : Date
+    cantidad : Decimal
+  }
+  class MovimientoInventario {
+    id : Long
+    tipo : String
+    cantidad : Decimal
+    saldo_nuevo : Decimal
+  }
+}
+
+package "Órdenes, pagos y ventas" {
+  class OrdenPendiente {
+    id : Long
+    codigo : String
+    total : Decimal
+    estado : String
+    detalles : JSON
+  }
+  class AbonoOrden {
+    id : Long
+    monto : Decimal
+    medio : String
+    estado : String
+    comprobante : Binary
+  }
+  class Caja {
+    id : Long
+    fondo_inicial : Decimal
+    estado_caja : String
+  }
+  class MovimientoCaja {
+    id : Long
+    monto : Decimal
+    medio : String
+  }
+  class OrdenCobro {
+    id : Long
+    codigo_orden : String
+    monto_total : Decimal
+    estado_pago : EstadoPago
+  }
+  class DetalleOrdenCobro {
+    id : Long
+    cantidad : Decimal
+    precio_unitario : Decimal
+    subtotal : Decimal
+  }
+  class ComprobanteVenta {
+    id : Long
+    serie_correlativo : String
+    total_pagar : Decimal
+  }
+}
+
+package "Pedidos web y comunicaciones" {
+  class PedidoWeb {
+    id : Long
+    codigo_pedido : String
+    total : Decimal
+    estado_pedido : String
+  }
+  class DetallePedidoWeb {
+    id : Long
+    cantidad : Integer
+    subtotal : Decimal
+  }
+  class MensajeSalida {
+    id : Long
+    canal : String
+    evento : String
+    estado : String
+    documento : Binary
+  }
+}
+
+Sucursal "1" -- "0..*" Usuario
+Sucursal "1" -- "0..*" Cita
+Sucursal "1" -- "0..*" Producto
+Usuario ..> TipoUsuario
+Usuario "1" *-- "0..1" Cliente
+Usuario "1" *-- "0..1" Veterinario
+Usuario "1" *-- "0..1" Cajero
+Usuario "1" *-- "0..1" Administrador
+Cliente "1" -- "0..*" Mascota : posee
+Mascota "1" -- "0..*" Cita
+Servicio "1" -- "0..*" Cita
+Veterinario "0..1" -- "0..*" Cita : asignado
+Cita "0..1" -- "0..1" ProcesoAtencion
+Mascota "1" -- "0..*" ProcesoAtencion
+ProcesoAtencion "1" *-- "0..1" ProcesoAtencionMedica
+Veterinario "1" -- "0..*" ProcesoAtencionMedica
+ProcesoAtencionMedica "1" *-- "0..1" FichaClinica
+ProcesoAtencion "1" *-- "0..1" Receta
+Receta "1" *-- "0..*" DetalleReceta
+DetalleReceta "0..*" -- "0..1" Producto
+ProcesoAtencion "1" *-- "0..*" OrdenExamen
+ProcesoAtencion "1" *-- "0..*" AplicacionPreventiva
+Proveedor "1" -- "0..*" Producto
+Producto "1" -- "0..*" LoteInventario
+Producto "1" -- "0..*" MovimientoInventario
+Cliente "1" -- "0..*" OrdenPendiente
+ProcesoAtencion "0..1" -- "0..1" OrdenPendiente
+OrdenPendiente "1" -- "0..*" AbonoOrden
+Cajero "1" -- "0..*" Caja
+Caja "1" -- "0..*" MovimientoCaja
+AbonoOrden "1" -- "0..*" MovimientoCaja
+OrdenPendiente "0..1" -- "0..1" OrdenCobro : liquidación
+Caja "1" -- "0..*" OrdenCobro
+OrdenCobro "1" *-- "0..*" DetalleOrdenCobro
+DetalleOrdenCobro "0..*" -- "0..1" Producto
+DetalleOrdenCobro "0..*" -- "0..1" Servicio
+OrdenCobro "1" -- "0..1" ComprobanteVenta
+Cliente "1" -- "0..*" PedidoWeb
+PedidoWeb "1" *-- "0..*" DetallePedidoWeb
+DetallePedidoWeb "0..*" -- "1" Producto
+PedidoWeb "0..1" -- "0..1" OrdenCobro : aprobación
+Usuario "0..1" -- "0..*" MensajeSalida : destinatario
+
+note bottom of Usuario
+  Los perfiles se vinculan por usuario_id.
+  La contraseña se almacena como hash.
+end note
+note bottom of OrdenPendiente
+  OrdenPendiente: solicitud de cobro.
+  OrdenCobro: registro de venta del sistema.
+  Un detalle de venta tiene producto o servicio.
+end note
+@enduml

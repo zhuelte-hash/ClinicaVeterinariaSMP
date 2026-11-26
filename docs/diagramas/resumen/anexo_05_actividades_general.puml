@@ -1,0 +1,99 @@
+@startuml
+title Resumen general de actividades - Reserva, atención y cobro
+skinparam shadowing false
+
+|Cliente|
+start
+:Iniciar sesión con cuenta verificada;
+:Registrar o seleccionar mascota;
+:Elegir servicio, fecha y veterinario;
+
+|Sistema|
+:Comprobar permisos, sede,\nhorarios, bloqueos y cruces;
+if (¿Horario disponible?) then (Sí)
+  :Guardar cita en pendiente_contacto;
+  :Notificar internamente al veterinario;
+else (No)
+  :Informar conflicto y solicitar otro horario;
+  stop
+endif
+
+|Veterinario|
+:Revisar solicitud y coordinar con el cliente;
+if (¿Se acuerda el horario?) then (Sí)
+  |Sistema|
+  :Confirmar cita o registrar\nreprogramación aceptada;
+  :Preparar aviso en bandeja WhatsApp manual;
+else (No)
+  |Sistema|
+  :Mantener coordinación pendiente;
+  stop
+endif
+
+|Veterinario|
+:Registrar llegada del paciente;
+:Iniciar atención;
+:Registrar ficha, diagnóstico y tratamiento;
+if (¿Requiere receta, exámenes\no aplicaciones preventivas?) then (Sí)
+  :Registrar los elementos clínicos necesarios;
+endif
+:Solicitar cierre de atención;
+
+|Sistema|
+if (¿Servicio con costo\no productos facturables?) then (Sí)
+  :Crear o reutilizar OrdenPendiente compatible;
+  :Preparar receta PDF y aviso si hay receta;
+  :Cerrar atención y marcar cita atendida\nen una sola transacción;
+else (No)
+  :Cerrar atención y marcar cita atendida;
+  :Habilitar consulta del historial;
+  stop
+endif
+
+|Cliente|
+:Consultar código, importe y saldo de la orden;
+:Realizar pago digital y presentar comprobante;
+
+|Cajero|
+:Cargar comprobante si llegó por WhatsApp;
+|Sistema|
+:Guardar AbonoOrden en estado enviado,\npendiente de revisión;
+|Cajero|
+:Abrir caja y revisar pago;
+if (¿Comprobante aceptado?) then (Sí)
+  |Sistema|
+  :Validar sede, estado de orden, saldo,\ncaja abierta y stock si liquida la orden;
+  if (¿Operación válida?) then (Sí)
+    :Validar abono y registrar ingreso en caja;
+    if (¿Saldo igual a cero?) then (Sí)
+      :Marcar orden pagada y crear venta;
+      :Descontar productos y registrar Kardex;
+      :Emitir boleta y preparar aviso con PDF;
+      :Confirmar transacción;
+    else (No)
+      :Confirmar abono y mantener orden parcial;
+      stop
+    endif
+  else (No)
+    :Revertir validación e informar el motivo;
+    stop
+  endif
+else (No)
+  |Sistema|
+  :Registrar rechazo y conservar saldo pendiente;
+  stop
+endif
+
+|Cajero|
+:Preparar aviso y descargar boleta PDF;
+:Abrir WhatsApp, adjuntar PDF y enviar;
+:Registrar gestión manual;
+
+|Sistema|
+:Guardar gestionado_manual y auditoría;
+note right
+  La gestión manual registra lo declarado
+  por el operador; no confirma entrega.
+end note
+stop
+@enduml

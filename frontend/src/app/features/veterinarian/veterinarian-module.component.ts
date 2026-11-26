@@ -7,6 +7,7 @@ import { NoticeService } from '../../core/services/notice.service';
 import { VeterinarianApiService } from './veterinarian-api.service';
 import { AppointmentSummary, ClinicalRecord, VeterinarianAppointment, VeterinarianClinicalRecord } from './veterinarian.models';
 import { clinicalDate, clinicalSearch, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, VeterinarianTableState } from './veterinarian-table';
+import { ManualCommunicationsLinkComponent } from '../messaging/manual-communications-link.component';
 
 type HistorySubject = Pick<VeterinarianAppointment, 'mascota' | 'cliente_nombre' | 'cliente_correo' | 'telefono_contacto'>;
 
@@ -45,7 +46,7 @@ const MODULES: Record<ModuleKey, ModuleDefinition> = {
 @Component({
   selector: 'app-veterinarian-module',
   standalone: true,
-  imports: [RouterLink, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent],
+  imports: [RouterLink, VeterinarianIconComponent, VeterinarianPaginationComponent, VeterinarianStatusComponent, ManualCommunicationsLinkComponent],
   templateUrl: './veterinarian-module.component.html',
   styleUrl: './veterinarian-module.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

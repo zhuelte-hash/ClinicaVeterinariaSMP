@@ -186,8 +186,8 @@ def test_client_acceptance_and_admin_cancellation_notify_correct_veterinarian_on
         else:
             assert row.usuario_id == 1 and row.destinatario == "51999888777"
         MessagingService(db).deliver(row)
-        assert row.estado == "enviado"
-    assert len(sent) == 4
+        assert row.estado == ("cancelado" if row.evento in {"cita_reprogramada", "veterinario_reprogramacion"} else "enviado")
+    assert len(sent) == 2  # La cancelación posterior invalida los avisos de reprogramación aún pendientes.
 
 
 def test_all_templates_are_editable_with_correct_variables_and_read_only_is_enforced(operations):

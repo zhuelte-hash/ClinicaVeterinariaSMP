@@ -77,7 +77,11 @@ def get_current_active_user(request: Request, user: Usuario = Depends(get_curren
     if location is None or not location.activa:
         raise HTTPException(422, "La sucursal no está disponible")
     db.info["sucursal_id"] = branch
-    permission = portal_permission(request.url.path, request.method)
+    path = request.url.path
+    root_path = request.scope.get("root_path", "")
+    if root_path and path.startswith(root_path + "/"):
+        path = path[len(root_path):]
+    permission = portal_permission(path, request.method)
     if permission:
         check_permission(db, user, *permission)
     return user

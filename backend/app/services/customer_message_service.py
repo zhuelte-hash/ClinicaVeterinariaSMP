@@ -1,15 +1,17 @@
 """Vigencia de bienvenida, laboratorio y encuestas antes de usar el proveedor."""
 import datetime as dt
+import re
 
 from sqlalchemy import select
 
 from app.models.clinic import Cita, EstadoProcesoAtencion, ProcesoAtencion
-from app.models.operations import EncuestaConsulta, Sucursal
+from app.models.operations import EncuestaConsulta, PlantillaMensaje, Sucursal
 from app.models.user import TipoUsuario, Usuario
-from app.services.access_service import aware
+from app.services.access_service import aware, digest
+from app.config import get_settings
 
 
-def customer_message_ready(db, item, current):
+def customer_message_ready(db, item, current, application_url=None):
     if item.canal != "whatsapp" or item.evento not in {"bienvenida", "laboratorio", "encuesta"}:
         return True
 
@@ -45,4 +47,22 @@ def customer_message_ready(db, item, current):
         item.proximo_intento = current + dt.timedelta(minutes=5)
         return False
     item.destinatario = phone
+    if item.evento in {"laboratorio", "encuesta"}:
+        template = db.scalar(select(PlantillaMensaje).where(PlantillaMensaje.evento == item.evento))
+        variables = template.variables if template else ["nombre", "mascota", "enlace"]
+        values = dict(zip(variables, item.parametros))
+        previous = values.get("enlace", "")
+        base = (application_url or get_settings().frontend_url).rstrip("/")
+        replacement = None
+        if item.evento == "laboratorio" and "/mis-mascotas" in previous:
+            replacement = base + "/mis-mascotas"
+        elif item.evento == "encuesta" and "/encuesta/" in previous:
+            token = re.search(r"/encuesta/([A-Za-z0-9_-]+)", previous)
+            if token is None or digest(token[1]) != survey.token_hash:
+                return cancel("El enlace de encuesta ya no corresponde a su referencia privada.")
+            replacement = base + "/encuesta/" + token[1]
+        if replacement and replacement != previous:
+            item.contenido = item.contenido.replace(previous, replacement)
+            values["enlace"] = replacement
+            item.parametros = [values[name] for name in variables]
     return True

@@ -1,0 +1,39 @@
+@startuml
+title Anexo 6.3. Secuencia - Atención veterinaria
+autonumber
+hide footbox
+actor Veterinario
+boundary Angular as UI
+control "FastAPI / AppointmentService" as API
+control BillingService as Cobro
+database PostgreSQL as BD
+Veterinario -> UI : Registrar llegada e iniciar atención
+UI -> API : Registrar llegada y solicitar inicio de atención
+API -> BD : Validar cita y profesional\nGuardar llegada y proceso en_atencion
+API --> UI : Atención iniciada
+loop Registro clínico según necesidad
+  Veterinario -> UI : Guardar ficha, diagnóstico, receta o exámenes
+  UI -> API : Petición de registro clínico
+  API -> BD : Guardar datos autorizados; COMMIT
+  API --> UI : Datos actualizados
+end
+Veterinario -> UI : Cerrar atención
+UI -> API : PATCH /portal/veterinario/atenciones/{id}/estado
+API -> API : Validar transición a cerrada
+opt Servicio con costo o productos facturables
+  API -> Cobro : from_attention(veterinario, proceso)
+  Cobro -> BD : Crear o reutilizar orden compatible\nPreparar avisos y receta PDF si corresponde
+  Cobro --> API : Orden o error de facturación
+end
+alt Cierre válido
+  API -> BD : Guardar cierre y cita atendida; COMMIT
+  API --> UI : Atención finalizada
+else Fallo de cierre o facturación
+  API -> BD : ROLLBACK del intento de cierre
+  API --> UI : Informar motivo
+end
+note over Cobro, BD
+  La orden pendiente no descuenta stock.
+  El pago se procesa en el anexo 6.4.
+end note
+@enduml

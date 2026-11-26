@@ -1,0 +1,31 @@
+@startuml
+title Anexo 5.7. Actividades - Recepción de mercadería
+skinparam shadowing false
+|Administrador|
+start
+:Seleccionar proveedor y registrar documento;
+:Ingresar productos, cantidades, costos,\nunidades, lotes y vencimientos;
+|Sistema|
+:Validar permiso, sede, proveedor\ny documento no duplicado;
+if (¿Cabecera válida?) then (Sí)
+  while (¿Quedan líneas por procesar?) is (Sí)
+    :Validar producto, cantidad, unidad\ny datos del lote;
+    if (¿Línea válida?) then (Sí)
+      :Convertir unidades si corresponde;
+      :Actualizar lote, stock y costo promedio;
+      :Preparar movimiento de Kardex;
+    else (No)
+      :Revertir toda la recepción e informar motivo;
+      stop
+    endif
+  endwhile (No)
+  :Guardar compra y egreso si tiene costo;
+  :Confirmar transacción;
+  |Administrador|
+  :Consultar recepción e inventario actualizado;
+else (No)
+  |Sistema|
+  :Informar motivo;
+endif
+stop
+@enduml

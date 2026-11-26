@@ -13,6 +13,9 @@ def default_permission(role, module, action):
 
 
 def portal_permission(path, method):
+    if path == "/operaciones/comunicaciones/manuales" or path.startswith("/operaciones/comunicaciones/manuales/"):
+        # La bandeja aplica su módulo por rol y por evento, además de sede/propiedad.
+        return None
     if path.startswith("/auth/") or "notificaciones" in path:
         return None
     if path.startswith(("/api/ventas", "/api/admin/ventas", "/caja", "/pedidos-web", "/operaciones/")):

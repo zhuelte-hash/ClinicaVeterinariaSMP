@@ -1,7 +1,7 @@
 import datetime as dt
 import secrets
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, EstadoProcesoAtencion, Mascota, Notificacion, ProcesoAtencion, Producto, TipoAplicacionPreventiva
@@ -20,17 +20,22 @@ def notify_result(db, process, key):
         return MessagingService(db).to_user(user, "laboratorio", key, {"nombre": user.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url.rstrip('/')}/mis-mascotas"}, entity_id=process.id)
 
 
-def run_automations(db):
+def run_automations(db, *, manual_button=False):
     from app.services.appointment_service import AppointmentService
     service = MessagingService(db)
     count = 0
     current_branch = db.info.get("sucursal_id", 1)
     current = now()
-    for location in db.scalars(select(Sucursal).where(Sucursal.activa)).all():
+    before = db.scalar(select(func.count()).select_from(MensajeSalida)) if manual_button else 0
+    locations = select(Sucursal).where(Sucursal.activa)
+    if manual_button:
+        locations = locations.where(Sucursal.id == current_branch)
+    for location in db.scalars(locations).all():
         db.info["sucursal_id"] = location.id
         policy = PolicyService(db).get()
         settings = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
-        AppointmentService(db).expire_unattended_appointments()
+        if not manual_button:
+            AppointmentService(db).expire_unattended_appointments()
         appointments = db.scalars(select(Cita).where(Cita.estado.in_([EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA]), Cita.fecha_hora_programada > current, Cita.fecha_hora_programada <= current + dt.timedelta(hours=24)).with_for_update(skip_locked=True)).all()
         if not settings or settings.recordatorios_citas:
             for appointment in appointments:
@@ -59,12 +64,13 @@ def run_automations(db):
         for order in pending:
             if not has_payment_or_proof(db, order):
                 if current - aware(order.fecha) >= dt.timedelta(hours=48):
-                    order.estado = "vencida"
+                    if not manual_button:
+                        order.estado = "vencida"
                     continue
                 owner = db.get(Usuario, order.cliente_id)
                 if owner.activo:
                     service.to_user(owner, "orden_recordatorio", f"orden_2h:{order.id}", {"nombre": owner.nombre, "codigo": order.codigo, "total": f"{order.total:.2f}"}, entity_id=order.id)
-        admins = db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo, Usuario.sucursal_id == location.id)).all()
+        admins = [] if manual_button else db.scalars(select(Usuario).where(Usuario.tipo == TipoUsuario.ADMINISTRADOR, Usuario.activo, Usuario.sucursal_id == location.id)).all()
         today = now().astimezone(ZONE).date()
         lots = db.execute(select(LoteInventario, Producto).join(Producto, Producto.id == LoteInventario.producto_id).where(LoteInventario.cantidad > 0, LoteInventario.vencimiento <= today + dt.timedelta(days=policy.dias_alerta_vencimiento)).with_for_update(skip_locked=True)).all()
         for lot, product in lots:
@@ -86,5 +92,7 @@ def run_automations(db):
             service.to_user(owner, "encuesta", f"encuesta:{process.id}", {"nombre": owner.nombre, "mascota": process.mascota.nombre, "enlace": f"{get_settings().frontend_url.rstrip('/')}/encuesta/{token}"}, entity_id=process.id)
         db.commit()
     db.info["sucursal_id"] = current_branch
+    if manual_button:
+        return {"mensajes_procesados": 0, "mensajes_preparados": db.scalar(select(func.count()).select_from(MensajeSalida)) - before}
     count += service.process()
     return {"mensajes_procesados": count}

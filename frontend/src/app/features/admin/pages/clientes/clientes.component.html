@@ -19,7 +19,7 @@
     @for (client of filtered(); track client.id) {
       <tr>
         <td><div class="flex items-center gap-3"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal-50 font-bold text-teal-700">{{ client.nombre.charAt(0) }}</span><b class="text-slate-800">{{ client.nombre }}</b></div></td>
-        <td><span class="block">{{ client.correo }}</span><span class="block text-sm text-slate-500">{{ client.telefono || 'Sin teléfono' }}</span></td>
+        <td><span class="block">{{ client.correo }}</span><span class="block text-sm text-slate-500">{{ client.telefono || 'Sin teléfono' }}</span><app-manual-communications-link tipo="cliente" [referencia]="client.id" evento="bienvenida" label="Enviar bienvenida por WhatsApp" /></td>
         <td>{{ client.mascotas }}</td><td>{{ client.citas }}</td>
         <td>{{ client.ultima_cita ? formatDate(client.ultima_cita) : 'Sin citas' }}</td>
         <td><div class="flex justify-end gap-2"><button type="button" class="admin-secondary" (click)="edit(client)">Editar</button><button type="button" class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40" [disabled]="client.mascotas > 0 || client.citas > 0 || deletingId() === client.id" [title]="client.mascotas > 0 || client.citas > 0 ? 'No se puede eliminar un cliente con mascotas o citas' : 'Eliminar cliente'" (click)="deleteClient(client)">{{ deletingId() === client.id ? 'Eliminando...' : 'Eliminar' }}</button></div></td>

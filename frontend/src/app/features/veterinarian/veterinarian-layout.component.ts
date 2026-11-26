@@ -99,7 +99,7 @@ export class VeterinarianLayoutComponent {
     { label: 'Área de trabajo', items: [{ label: 'Inicio', route: 'inicio', icon: 'home' }, { label: 'Citas', route: 'agenda', icon: 'calendar' }, { label: 'Pacientes e historial', route: 'mascotas', icon: 'users' }, { label: 'Propietarios', route: 'clientes', icon: 'users' }, { label: 'Nueva atención', route: 'nueva-atencion', icon: 'plus' }] },
     { label: 'Pacientes', items: [{ label: 'Derivaciones clínicas', route: 'derivaciones', icon: 'file' }, { label: 'Hospedaje', route: 'hospedaje', icon: 'bed' }] },
     { label: 'Servicios clínicos', items: [{ label: 'Laboratorio', route: 'laboratorio', icon: 'lab' }, { label: 'Rayos X / Ecografía', route: 'imagenes', icon: 'image' }, { label: 'Vacunas y controles', route: 'vacunacion', icon: 'vaccine' }, { label: 'Cirugía', route: 'cirugia', icon: 'surgery' }, { label: 'Hospitalización', route: 'hospitalizacion', icon: 'bed' }, { label: 'Estética', route: 'estetica', icon: 'sparkle' }] },
-    { label: 'Otros servicios', items: [{ label: 'Órdenes de cobro', route: 'ordenes', icon: 'file' }, { label: 'Documentos', route: 'documentos', icon: 'file' }] },
+    { label: 'Otros servicios', items: [{ label: 'WhatsApp manual', route: 'comunicaciones', icon: 'file' }, { label: 'Órdenes de cobro', route: 'ordenes', icon: 'file' }, { label: 'Documentos', route: 'documentos', icon: 'file' }] },
   ];
   readonly navigation = computed(() => this.allNavigation.map(group => ({ ...group, items: group.items.filter(item => { const module = routeModule(`/veterinario/${item.route}`); return !module || this.auth.can(module); }) })).filter(group => group.items.length));
 

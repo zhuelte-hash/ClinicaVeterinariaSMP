@@ -1,4 +1,4 @@
-"""HU-095/116/039/093/114 en Edge, escritorio/móvil, con API controlada."""
+"""HU-095/116/039/093/114 y WhatsApp manual/Twilio en Edge con API controlada."""
 import datetime as dt
 import json
 from functools import partial
@@ -21,6 +21,7 @@ def run():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="msedge", headless=True)
             for viewport in ({"width": 1440, "height": 1000}, {"width": 390, "height": 844}):
+                previous_count = count
                 context = browser.new_context(viewport=viewport, accept_downloads=True)
                 context.add_init_script("localStorage.setItem('clinic_access_token', 'controlled-ui-session')")
                 page = context.new_page()
@@ -28,9 +29,9 @@ def run():
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 zone = ZoneInfo("America/Lima")
                 tomorrow = dt.datetime.combine(dt.datetime.now(zone).date() + dt.timedelta(days=1), dt.time(10), zone).isoformat()
-                state = {"role": "administrador", "write": True, "confirmed": False, "bad_restore": False}
+                state = {"role": "administrador", "write": True, "confirmed": False, "bad_restore": False, "twilio_window": False, "manual_obsolete": False}
                 communication = json.loads(json.dumps(COMMUNICATION_STATUS))
-                outgoing = [{"id": 10, "evento": "receta", "destinatario": "51999888777", "estado": "error", "intentos": 2, "proveedor_id": None, "error": "Proveedor no disponible"}]
+                outgoing = [{"id": 10, "canal": "whatsapp", "evento": "receta", "destinatario": "51999888777", "estado": "error", "intentos": 2, "proveedor_id": None, "error": "Proveedor no disponible"}]
                 policy = {"horarios": [{"dia": i, "cerrado": i == 6, "inicio": "08:00", "fin": "20:00", "descanso_inicio": "12:00", "descanso_fin": "13:00"} for i in range(7)], "excepciones": [], "galeria": [], "horas_cancelacion": 4, "horas_reprogramacion": 4, "dias_alerta_vencimiento": 30, "dias_recordatorio_vacuna": 3}
                 pet = {"id": 1, "cliente_id": 1, "nombre": "Luna", "especie": "Perro", "raza": "Mestiza", "sexo": "hembra", "foto_url": None}
                 service = {"id": 1, "codigo": "consulta", "nombre": "Consulta", "descripcion": "Consulta", "precio_referencial": "50.00", "duracion_estimada_min": 30}
@@ -56,8 +57,29 @@ def run():
                         data = {"nombre": "Clínica SMP", "correo": "clinica@example.com", "telefono": "965939522", "direccion": "Av. Prueba", "umbral_stock_bajo": 8, "recordatorios_citas": True, "alertas_stock": True}
                     elif path == "/admin/operaciones/comunicaciones/estado":
                         data = communication
+                    elif path == "/admin/operaciones/comunicaciones/prueba-twilio":
+                        assert state["write"] and body == {"telefono": "+51 999888777"}
+                        if not state["twilio_window"]:
+                            data, status = {"detail": "Envía hola desde ese teléfono al Sandbox después de configurar el webhook."}, 409
+                        else:
+                            outgoing.append({"id": 20, "evento": "prueba_twilio", "destinatario": "51999888777", "estado": "pendiente", "intentos": 0, "proveedor_id": None, "error": None})
+                            data, status = {"id": 20, "estado": "pendiente"}, 201
                     elif path == "/admin/operaciones/mensajes-entrantes":
                         data = []
+                    elif path == "/admin/operaciones/mensajes/10/preparar-manual":
+                        assert state["write"]
+                        if state["manual_obsolete"]:
+                            data, status = {"detail": "La orden ya no está vigente; actualiza las comunicaciones."}, 409
+                        else:
+                            outgoing[0].update(estado="pendiente_manual", error=None)
+                            data = {"id": 10, "evento": "receta", "destinatario": "51999888777", "contenido": "Hola María, receta de Luna. Orden OC-PRUEBA.", "whatsapp_url": "https://wa.me/51999888777?text=Hola%20Mar%C3%ADa", "documento_disponible": True, "instrucciones": "Abre WhatsApp y pulsa Enviar. Descarga y adjunta el PDF."}
+                    elif path == "/admin/operaciones/mensajes/10/pdf-manual":
+                        assert state["write"]
+                        route.fulfill(status=200, content_type="application/pdf", body=b"%PDF-1.4 controlled manual attachment"); return
+                    elif path == "/admin/operaciones/mensajes/10/gestionar-manual":
+                        assert state["write"]
+                        outgoing[0].update(estado="gestionado_manual")
+                        data = {"id": 10, "estado": "gestionado_manual"}
                     elif path.startswith("/admin/operaciones/plantillas/"):
                         assert state["write"]
                         event = path.rsplit("/", 1)[1]
@@ -104,7 +126,7 @@ def run():
                     elif path == "/portal/mascotas":
                         data = [pet]
                     elif path == "/portal/citas/1/asistencia-whatsapp":
-                        data = {"whatsapp_url": "https://wa.me/51965939522?text=ASISTIRE%201"}
+                        data = {"whatsapp_url": "https://wa.me/51965939522?text=ASISTIRE%201", "modo": "manual" if state.get("attendance_manual") else "automatico"}
                     else:
                         data = []
                     route.fulfill(status=status, content_type="application/json", body=json.dumps(data))
@@ -160,6 +182,78 @@ def run():
                 count += 1
 
                 state["write"] = True
+                communication.update(proveedor_whatsapp="twilio", twilio={"modo": "Sandbox / ventana de 24 h", "numero": "whatsapp:+14155238886", "urls": {"entrada": "https://example.test/whatsapp/twilio/incoming", "estados": "https://example.test/whatsapp/twilio/status"}, "instrucciones": "Envía join y después hola. Los envíos requieren una ventana de 24 horas."})
+                page.reload(wait_until="domcontentloaded")
+                expect(page.get_by_role("heading", name="Conectar Twilio Sandbox")).to_be_visible()
+                expect(page.get_by_text("https://example.test/whatsapp/twilio/incoming", exact=True)).to_be_visible()
+                count += 1
+                page.get_by_label("Teléfono vinculado para la prueba").fill("+51 999888777")
+                page.get_by_role("button", name="Encolar prueba de Twilio", exact=True).click()
+                expect(page.get_by_text("Envía hola desde ese teléfono al Sandbox después de configurar el webhook.", exact=True)).to_be_visible()
+                count += 1
+                state["twilio_window"] = True
+                page.get_by_role("button", name="Encolar prueba de Twilio", exact=True).click()
+                expect(page.get_by_text("Prueba #20 encolada.", exact=False)).to_be_visible()
+                expect(page.get_by_label("Evento de comunicación")).to_have_value("prueba_twilio")
+                count += 1
+                outgoing[-1].update(estado="entregado", proveedor_id="SM" + "a" * 32)
+                page.get_by_role("button", name="Actualizar comunicaciones", exact=True).click()
+                expect(page.get_by_role("cell", name="entregado", exact=True)).to_be_visible()
+                count += 1
+                page.get_by_text("Personalizar textos de WhatsApp", exact=True).click()
+                expect(page.get_by_label("Nombre aprobado en Meta")).to_have_count(0)
+                expect(page.get_by_role("button", name="Guardar plantilla receta", exact=True)).to_be_enabled()
+                count += 1
+                state["write"] = False
+                page.reload(wait_until="domcontentloaded")
+                expect(page.get_by_role("heading", name="Conectar Twilio Sandbox")).to_be_visible()
+                expect(page.get_by_role("button", name="Encolar prueba de Twilio", exact=True)).to_have_count(0)
+                count += 1
+
+                state["write"] = True
+                outgoing[0].update(estado="pendiente_manual", intentos=0, error=None)
+                communication.update(proveedor_whatsapp="manual", twilio=None,
+                                     manual={"telefono_clinica": "51965939522", "prueba_url": "https://wa.me/51965939522?text=Hola", "instrucciones": "Abre WhatsApp normal y pulsa Enviar. Descarga los PDF y adjúntalos en el chat."},
+                                     alcance="Modo manual: abrir un enlace no envía ni confirma la entrega.")
+                page.reload(wait_until="domcontentloaded")
+                expect(page.get_by_role("heading", name="WhatsApp manual: listo para usar con tu cuenta normal")).to_be_visible()
+                expect(page.get_by_role("heading", name="Conectar Twilio Sandbox")).to_have_count(0)
+                expect(page.get_by_role("link", name="Probar enlace de WhatsApp")).to_have_attribute("href", "https://wa.me/51965939522?text=Hola")
+                count += 1
+                page.get_by_label("Estado del envío").select_option("pendiente_manual")
+                page.get_by_role("button", name="Filtrar envíos", exact=True).click()
+                expect(page.get_by_role("button", name="Preparar WhatsApp #10", exact=True)).to_be_visible()
+                count += 1
+                state["manual_obsolete"] = True
+                page.get_by_role("button", name="Preparar WhatsApp #10", exact=True).click()
+                expect(page.get_by_text("La orden ya no está vigente; actualiza las comunicaciones.", exact=True)).to_be_visible()
+                expect(page.get_by_role("link", name="Abrir WhatsApp y enviar", exact=True)).to_have_count(0)
+                count += 1
+                state["manual_obsolete"] = False
+                page.get_by_role("button", name="Preparar WhatsApp #10", exact=True).click()
+                expect(page.get_by_label("Mensaje preparado", exact=True)).to_have_value("Hola María, receta de Luna. Orden OC-PRUEBA.")
+                expect(page.get_by_role("link", name="Abrir WhatsApp y enviar", exact=True)).to_have_attribute("href", "https://wa.me/51999888777?text=Hola%20Mar%C3%ADa")
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "Desbordamiento horizontal"
+                count += 1
+                with page.expect_download() as download:
+                    page.get_by_role("button", name="Descargar PDF para adjuntar", exact=True).click()
+                assert download.value.suggested_filename == "mensaje-10.pdf"
+                count += 1
+                page.get_by_role("button", name="Marcar como gestionado", exact=True).click()
+                expect(page.get_by_text("Gestión manual registrada; no es una confirmación de entrega de WhatsApp.", exact=True)).to_be_visible()
+                expect(page.get_by_role("button", name="Preparar WhatsApp #10", exact=True)).to_have_count(0)
+                count += 1
+                page.get_by_label("Estado del envío").select_option("gestionado_manual")
+                page.get_by_role("button", name="Filtrar envíos", exact=True).click()
+                expect(page.get_by_role("cell", name="gestionado_manual", exact=True)).to_be_visible()
+                count += 1
+                state["write"] = False
+                page.reload(wait_until="domcontentloaded")
+                expect(page.get_by_role("heading", name="WhatsApp manual: listo para usar con tu cuenta normal")).to_be_visible()
+                expect(page.get_by_role("button", name="Preparar WhatsApp #10", exact=True)).to_have_count(0)
+                count += 1
+
+                state["write"] = True
                 page.goto(base + "/admin/horarios")
                 page.get_by_label("Horas mínimas para cancelar").fill("12")
                 page.get_by_label("Horas mínimas para reprogramar").fill("24")
@@ -211,12 +305,21 @@ def run():
                 expect(page.get_by_text("Asistencia confirmada por WhatsApp", exact=True)).to_be_visible()
                 expect(page.get_by_role("button", name="Preparar confirmación", exact=True)).to_have_count(0)
                 count += 1
+                state.update(confirmed=False, attendance_manual=True)
+                page.reload(wait_until="domcontentloaded")
+                page.get_by_role("button", name="Preparar confirmación", exact=True).click()
+                expect(page.get_by_text("La clínica revisará tu mensaje en WhatsApp y registrará su referencia en la agenda. Abrir el enlace no confirma la asistencia por sí solo.", exact=True)).to_be_visible()
+                expect(page.get_by_role("button", name="Actualizar confirmación registrada por la clínica", exact=True)).to_be_visible()
+                expect(page.get_by_role("button", name="Ya envié el mensaje: actualizar asistencia", exact=True)).to_have_count(0)
+                assert not state["confirmed"]
+                count += 1
+                state["confirmed"] = True
                 state["role"] = "administrador"
                 page.goto(base + "/admin/citas")
                 expect(page.get_by_text("Asistencia confirmada por WhatsApp ·", exact=False)).to_be_visible()
                 count += 1
                 assert not errors, errors
-                print(f"OK: 17 recorridos fundamentales y comunicaciones, {viewport['width']}x{viewport['height']}; sin errores JavaScript")
+                print(f"OK: {count - previous_count} recorridos fundamentales y WhatsApp manual/Twilio, {viewport['width']}x{viewport['height']}; sin errores JavaScript")
                 context.close()
             browser.close()
     finally:

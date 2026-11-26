@@ -22,7 +22,7 @@ from app.services.cashier_service import CashierService, CajaNoAbiertaError, Pro
 MAX_PROOF_BYTES = 5 * 1024 * 1024
 
 
-def payment_config():
+def payment_config(db=None):
     settings = get_settings()
     methods = {}
     for name in ("yape", "plin"):
@@ -32,8 +32,12 @@ def payment_config():
         methods[name.capitalize()] = {"holder": holder, "phone": phone, "qrUrl": qr,
             "enabled": bool(holder and phone and qr),
             "instructions": "Paga el importe exacto y adjunta el comprobante. Caja verificará la operación."}
+    phone = settings.purchase_whatsapp_number
+    if db is not None and settings.whatsapp_provider == "manual":
+        from app.services.whatsapp_config_service import receiver_phone
+        phone = receiver_phone(db)
     return {"payment": methods, "deliveryCost": settings.purchase_delivery_cost,
-            "whatsappNumber": settings.purchase_whatsapp_number,
+            "whatsappNumber": phone,
             "confirmationMessage": "Tu pedido está registrado y pendiente de revisión por caja.",
             "maxProofBytes": MAX_PROOF_BYTES}
 

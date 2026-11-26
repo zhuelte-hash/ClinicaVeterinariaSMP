@@ -7,9 +7,10 @@ import { AuthService } from '../../core/auth/auth.service';
 import { apiError, BillingApiService, BillingAttention, BillingCatalog, BillingOrder, DiscountAuthorization, OrderLine, OwnPayments, PaymentMethod, StaffSale } from './billing-api.service';
 import { DiscountAuthorizationsComponent } from './discount-authorizations.component';
 import { WhatsAppProofComponent } from './whatsapp-proof.component';
+import { ManualCommunicationsLinkComponent } from '../messaging/manual-communications-link.component';
 
 @Component({
-  selector: 'app-billing-orders', standalone: true, imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent, WhatsAppProofComponent],
+  selector: 'app-billing-orders', standalone: true, imports: [FormsModule, RouterLink, DiscountAuthorizationsComponent, WhatsAppProofComponent, ManualCommunicationsLinkComponent],
   templateUrl: './billing-orders.component.html', styleUrl: '../admin/shared/admin-ui.css',
 })
 export class BillingOrdersComponent implements OnDestroy {

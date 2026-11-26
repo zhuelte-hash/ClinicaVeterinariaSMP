@@ -1,0 +1,35 @@
+@startuml
+title Anexo 5.8. Actividades - WhatsApp manual
+skinparam shadowing false
+|Personal autorizado|
+start
+:Abrir bandeja y seleccionar aviso;
+:Solicitar preparación del mensaje;
+|Sistema|
+:Validar permisos, sede, caso,\noperación vigente y contacto;
+if (¿Aviso preparable?) then (Sí)
+  :Devolver texto, enlace wa.me\ny disponibilidad de PDF;
+else (No)
+  :Informar motivo o configuración pendiente;
+  stop
+endif
+|Personal autorizado|
+:Abrir chat en WhatsApp;
+if (¿Incluye documento?) then (Sí)
+  :Descargar PDF y adjuntarlo al chat;
+endif
+:Pulsar Enviar en WhatsApp;
+:Solicitar registro de gestión manual;
+|Sistema|
+:Revalidar aviso y autorización;
+if (¿Sigue siendo gestionable?) then (Sí)
+  :Guardar gestionado_manual y auditoría;
+else (No)
+  :Informar cambio de vigencia;
+endif
+note right
+  gestionado_manual es la declaración del operador.
+  No confirma entrega ni lectura del destinatario.
+end note
+stop
+@enduml

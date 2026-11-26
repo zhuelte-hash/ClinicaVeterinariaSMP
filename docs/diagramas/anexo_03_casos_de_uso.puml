@@ -1,0 +1,109 @@
+@startuml
+!pragma layout smetana
+title Anexo 3. Diagrama de casos de uso - Clínica Veterinaria SMP
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor Visitante
+actor "Usuario autenticado" as Usuario <<abstract>>
+actor Cliente
+actor "Personal autorizado" as Personal <<abstract>>
+actor Veterinario
+actor Cajero
+actor Administrador
+actor "Servidor de correo" as SMTP
+actor "WhatsApp / WhatsApp Web" as WA
+
+Usuario <|-- Cliente
+Usuario <|-- Personal
+Personal <|-- Veterinario
+Personal <|-- Cajero
+Personal <|-- Administrador
+
+rectangle "Sistema de Gestión de la Clínica Veterinaria San Martín de Porres" {
+  package "Acceso y portal del cliente" {
+    usecase "Consultar información,\nservicios y productos" as Catalogo
+    usecase "Registrarse y\nverificar correo" as Registro
+    usecase "Iniciar sesión" as Login
+    usecase "Recuperar contraseña" as Recuperacion
+    usecase "Actualizar perfil" as Perfil
+    usecase "Registrar y actualizar\nmis mascotas" as Mascotas
+    usecase "Consultar disponibilidad" as Disponibilidad
+    usecase "Reservar cita" as Reserva
+    usecase "Cancelar o solicitar\nreprogramación de cita" as Cambios
+    usecase "Consultar historial,\nreceta y carnet de vacunas" as Historial
+    usecase "Realizar y consultar\npedidos web" as Compra
+    usecase "Consultar órdenes y\npresentar comprobantes de pago" as MisPagos
+  }
+  package "Agenda y atención veterinaria" {
+    usecase "Coordinar citas y\nconsultar agenda" as Agenda
+    usecase "Gestionar horarios\ny bloqueos" as Horarios
+    usecase "Registrar atención\nmédica o estética" as Atencion
+    usecase "Emitir receta" as Receta
+    usecase "Registrar exámenes,\nprocedimientos y preventivos" as Clinica
+    usecase "Derivar y aceptar\ncasos clínicos" as Derivaciones
+    usecase "Registrar confirmación\nde asistencia recibida" as Asistencia
+  }
+  package "Cobro y operaciones" {
+    usecase "Emitir orden pendiente" as Orden
+    usecase "Registrar, validar o\nrechazar abonos" as Pagos
+    usecase "Registrar ventas\ny emitir boletas" as Ventas
+    usecase "Abrir y cerrar caja" as Caja
+    usecase "Revisar pedidos web" as Revision
+    usecase "Gestionar comunicaciones\nmanuales y PDF" as Comunicaciones
+  }
+  package "Administración" {
+    usecase "Administrar usuarios\ny permisos por rol" as Usuarios
+    usecase "Administrar catálogos,\nproveedores e inventario" as Inventario
+    usecase "Configurar clínica, sedes,\npolíticas y plantillas" as Configuracion
+    usecase "Consultar reportes\ny auditoría" as Reportes
+    usecase "Generar respaldo y\nverificar restauración" as Respaldo
+  }
+}
+
+Visitante -- Catalogo
+Visitante -- Registro
+Visitante -- Login
+Visitante -- Recuperacion
+Usuario -- Catalogo
+Usuario -- Perfil
+Cliente -- Mascotas
+Cliente -- Reserva
+Cliente -- Cambios
+Cliente -- Historial
+Cliente -- Compra
+Cliente -- MisPagos
+Veterinario -- Agenda
+Veterinario -- Horarios
+Veterinario -- Atencion
+Veterinario -- Derivaciones
+Personal -- Orden
+Personal -- Comunicaciones
+Cajero -- Pagos
+Cajero -- Ventas
+Cajero -- Caja
+Cajero -- Revision
+Administrador -- Agenda
+Administrador -- Horarios
+Administrador -- Asistencia
+Administrador -- Pagos
+Administrador -- Revision
+Administrador -- Usuarios
+Administrador -- Inventario
+Administrador -- Configuracion
+Administrador -- Reportes
+Administrador -- Respaldo
+Registro -- SMTP
+Recuperacion -- SMTP
+Comunicaciones -- WA
+
+Reserva ..> Disponibilidad : <<include>>
+Receta ..> Atencion : <<extend>>\n[requiere medicación]
+Clinica ..> Atencion : <<extend>>\n[según el servicio]
+
+note bottom of Comunicaciones
+  Modo vigente: envío humano por WhatsApp.
+  Acceso según rol, permisos, sede y caso.
+end note
+@enduml

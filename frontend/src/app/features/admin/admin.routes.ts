@@ -4,6 +4,7 @@ import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const ADMIN_ROUTES: Routes = [{
   path: '', component: AdminLayoutComponent, canActivateChild: [permissionGuard], children: [
+    { path: 'comunicaciones', title: 'WhatsApp manual | Clínica SMP', loadComponent: () => import('../messaging/manual-inbox.component').then(m => m.ManualInboxComponent) },
     { path: 'ocupacion', title: 'Ocupación de agenda | Clínica SMP', loadComponent: () => import('./pages/reportes/occupancy.component').then(m => m.OccupancyComponent) },
     { path: 'sucursales', title: 'Sucursales | Clínica SMP', loadComponent: () => import('./pages/configuracion/branches.component').then(m => m.BranchesComponent) },
     { path: 'cierres', title: 'Cierres de caja | Clínica SMP', loadComponent: () => import('./pages/reportes/cash-closures.component').then(m => m.CashClosuresComponent) },

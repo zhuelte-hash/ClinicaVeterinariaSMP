@@ -6,7 +6,7 @@ import { AuthService } from '../auth/auth.service';
 export function routeModule(url: string): string | null {
   const path = url.split('?')[0].split('/').filter(Boolean);
   if (path[0] === 'admin') {
-    const operations: Record<string, string> = { ocupacion: 'citas', sucursales: 'usuarios', servicios: 'citas', horarios: 'citas', recepciones: 'inventario', finanzas: 'ventas', cierres: 'ventas', auditoria: 'usuarios' };
+    const operations: Record<string, string> = { comunicaciones: 'usuarios', ocupacion: 'citas', sucursales: 'usuarios', servicios: 'citas', horarios: 'citas', recepciones: 'inventario', finanzas: 'ventas', cierres: 'ventas', auditoria: 'usuarios' };
     if (operations[path[1]]) return operations[path[1]];
     return ({ productos: 'productos', categorias: 'productos', proveedores: 'productos', inventario: 'inventario', citas: 'citas', ventas: 'ventas', ordenes: 'ventas', dashboard: 'ventas', usuarios: 'usuarios', clientes: 'usuarios', configuracion: 'usuarios', 'historial-clinico': 'historias_clinicas' } as Record<string, string>)[path[1]] || null;
   }

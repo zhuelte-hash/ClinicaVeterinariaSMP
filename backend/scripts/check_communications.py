@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import get_settings
+from app.services.whatsapp_config_service import twilio_missing, twilio_urls
 
 
 def main():
@@ -17,14 +18,28 @@ def main():
     settings = get_settings()
     required = {
         "Correo (HU-002/HU-004)": ("smtp_host", "mail_from"),
-        "WhatsApp (HU-036/HU-050/HU-098)": ("whatsapp_phone_number_id", "whatsapp_access_token"),
-        "Webhook de entrega": ("whatsapp_app_secret", "whatsapp_verify_token"),
     }
+    if settings.whatsapp_provider == "meta":
+        required.update({"WhatsApp (HU-036/HU-050/HU-098)": ("whatsapp_phone_number_id", "whatsapp_access_token"),
+                         "Webhook de entrega": ("whatsapp_app_secret", "whatsapp_verify_token")})
+    print(f"Proveedor WhatsApp: {settings.whatsapp_provider}")
     ready = True
     for label, fields in required.items():
         missing = [field.upper() for field in fields if not getattr(settings, field)]
         print(f"{label}: " + ("faltan " + ", ".join(missing) if missing else "variables presentes"))
         ready = ready and not missing
+    if settings.whatsapp_provider == "twilio":
+        missing = twilio_missing(settings)
+        print("Twilio Sandbox: " + ("faltan/corregir " + ", ".join(missing) if missing else "variables presentes y formato válido"))
+        ready = ready and not missing
+        if not missing:
+            for label, url in twilio_urls(settings).items():
+                print(f"Webhook {label} (POST): {url}")
+        print("Cada destinatario debe unirse con join y enviar hola con el webhook activo; ventana de 24 horas. No se enviaron mensajes.")
+    elif settings.whatsapp_provider == "manual":
+        print("WhatsApp manual: preparado para abrir enlaces wa.me con WhatsApp normal; una persona pulsa Enviar.")
+        print("Guarda tu número en Administración > Configuración > Información de la clínica > Teléfono.")
+        print("Desde Comunicaciones prepara los mensajes y descarga sus PDF para adjuntarlos. La recepción y el pago se registran manualmente.")
     if settings.smtp_ssl and settings.smtp_starttls:
         print("SMTP: elige SSL implícito o STARTTLS; establece solo uno en true.")
         ready = False
@@ -49,7 +64,10 @@ def main():
             except (smtplib.SMTPException, OSError):
                 print("SMTP: falló la conexión o autenticación; revisa los datos del proveedor.")
                 ready = False
-    print("Verifica las plantillas aprobadas y ejecuta el worker. La recepción externa se acredita por separado.")
+    instruction = ("Los avisos programados necesitan worker para prepararse; el envío lo hace una persona." if settings.whatsapp_provider == "manual"
+                   else "Ejecuta el worker y comprueba la ventana del Sandbox." if settings.whatsapp_provider == "twilio"
+                   else "Verifica las plantillas aprobadas y ejecuta el worker.")
+    print(instruction + " La recepción externa se acredita por separado.")
     return 0 if ready else 1
 
 

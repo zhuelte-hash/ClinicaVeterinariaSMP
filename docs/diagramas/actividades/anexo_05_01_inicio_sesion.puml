@@ -1,0 +1,20 @@
+@startuml
+title Anexo 5.1. Actividades - Inicio de sesión
+skinparam shadowing false
+|Usuario|
+start
+:Ingresar correo y contraseña;
+|Sistema|
+:Consultar cuenta y comprobar contraseña;
+if (¿Credenciales correctas y cuenta\nactiva, verificada y sin bloqueo?) then (Sí)
+  :Reiniciar contador de intentos fallidos;
+  :Generar token JWT;
+  |Usuario|
+  :Acceder al portal correspondiente a su rol;
+else (No)
+  |Sistema|
+  :Denegar acceso e informar motivo;
+  :Registrar intento fallido y aplicar\nbloqueo cuando corresponda;
+endif
+stop
+@enduml

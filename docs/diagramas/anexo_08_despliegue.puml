@@ -1,0 +1,56 @@
+@startuml
+!pragma layout smetana
+title Anexo 8. Diagrama de despliegue - Ejecución local con Neon
+left to right direction
+skinparam shadowing false
+
+node "Dispositivo del usuario\nPC o móvil" as Equipo {
+  node "Navegador web" as Navegador {
+    artifact "Aplicación Angular 21\nHTML, CSS y JavaScript" as SPA
+  }
+  artifact "WhatsApp / WhatsApp Web\nSesión del operador o cliente" as WA
+}
+
+node "Equipo local de la clínica" as Servidor {
+  node "Servidor de desarrollo Angular\nNode.js / puerto 4200" as Front {
+    artifact "frontend/\nng serve" as Angular
+  }
+  node "Servidor de aplicación\nPython / Uvicorn / puerto 8000" as Back {
+    artifact "app.main:app\nAPI FastAPI" as API
+  }
+  node "Proceso de tareas Python" as Tareas {
+    artifact "app.tasks.appointment_worker" as Worker
+  }
+  folder "Almacenamiento local" as Disco {
+    artifact "backend/uploads/\nImágenes públicas" as Publicos
+    artifact "backend/clinical_private/\nAdjuntos clínicos privados" as Privados
+  }
+}
+
+cloud "Neon - servicio de base de datos" as Neon {
+  database "PostgreSQL\nEsquema: clinica_veterinaria" as BD
+}
+cloud "Proveedor de correo" as Correo {
+  node "Servidor SMTP" as SMTP
+}
+cloud "Servicio WhatsApp" as ServicioWA
+
+Navegador --> Front : HTTP :4200\ndescarga del frontend
+SPA --> API : HTTP :8000\nREST, JWT y X-Sucursal-ID
+API --> BD : PostgreSQL / TLS
+Worker --> BD : PostgreSQL / TLS
+API --> Disco : lectura y escritura autorizadas
+API --> SMTP : SMTP con TLS\nprimer envío de correo
+Worker --> SMTP : SMTP con TLS\nreintentos de correo
+SPA --> WA : abrir enlace wa.me
+WA --> ServicioWA : Internet\nenvío manual
+
+note bottom of Back
+  FastAPI también puede servir frontend/dist/browser
+  y exponer la API bajo /api en el mismo origen.
+end note
+note bottom of BD
+  Datos operativos, comprobantes de pago
+  y PDF de MensajeSalida se guardan en PostgreSQL.
+end note
+@enduml

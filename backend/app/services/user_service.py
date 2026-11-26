@@ -80,6 +80,18 @@ class UserService:
         )
         self._apply_role_profile(user, data)
         self.db.add(user)
+        if user.tipo == TipoUsuario.CLIENTE:
+            from app.config import get_settings
+            if get_settings().whatsapp_provider == "manual":
+                # Alta realizada por personal autorizado: usa la misma clave de
+                # bienvenida que el registro público para conservar la unicidad.
+                try:
+                    self.db.flush()
+                except IntegrityError as exc:
+                    self.db.rollback()
+                    raise CorreoDuplicadoError from exc
+                from app.services.messaging_service import MessagingService
+                MessagingService(self.db).to_user(user, "bienvenida", f"bienvenida:{user.id}", {"nombre": user.nombre}, entity_id=user.id)
         return self._commit(user)
 
     def create_client(self, data: ClientRegisterRequest, *, commit=True) -> Usuario:

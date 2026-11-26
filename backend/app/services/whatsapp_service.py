@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.clinic import Cita, WhatsAppMessage
+from app.models.operations import MensajeSalida
+from app.services.whatsapp_config_service import normalized_phone
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,18 @@ class WhatsAppService:
         self.db = db
         self.settings = get_settings()
 
-    def send_once(self, appointment: Cita, event: str, message: str, template_name: str | None = None, parameters: list[str] | None = None) -> WhatsAppMessage:
+    def send_once(self, appointment: Cita, event: str, message: str, template_name: str | None = None, parameters: list[str] | None = None) -> WhatsAppMessage | MensajeSalida:
+        if self.settings.whatsapp_provider in {"manual", "twilio"}:
+            key = f"cita:{appointment.id}:{event}"
+            existing = self.db.scalar(select(MensajeSalida).where(MensajeSalida.clave == key))
+            if existing is not None:
+                return existing
+            owner = appointment.mascota.cliente.usuario
+            record = MensajeSalida(clave=key, canal="whatsapp", evento=event, entidad_id=appointment.id,
+                                   usuario_id=owner.id, destinatario=normalized_phone(appointment.telefono_contacto or owner.telefono), contenido=message,
+                                   estado="pendiente_manual" if self.settings.whatsapp_provider == "manual" else "pendiente")
+            self.db.add(record)
+            return record
         existing = self.db.scalar(select(WhatsAppMessage).where(WhatsAppMessage.cita_id == appointment.id, WhatsAppMessage.evento == event))
         if existing is not None:
             return existing

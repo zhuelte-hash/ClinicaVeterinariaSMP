@@ -56,6 +56,7 @@ export class AdminApiService {
   getNotifications(): Observable<AdminNotification[]> { return this.http.get<AdminNotification[]>(`${environment.apiUrl}/portal/notificaciones`); }
   getAppointmentVeterinarians(): Observable<CatalogOption[]> { return this.http.get<CatalogOption[]>(`${this.baseUrl}/citas/veterinarios`); }
   updateAppointment(id: number, data: { estado?: string; fecha_hora_programada?: string; veterinario_id?: number | null; nota_coordinacion?: string }): Observable<AdminAppointment> { return this.http.patch<AdminAppointment>(`${this.baseUrl}/citas/${id}`, data); }
+  registerManualAttendance(id: number, data: { telefono_remitente: string; referencia: string }): Observable<{ cita_id: number; asistencia_confirmada_en: string }> { return this.http.post<{ cita_id: number; asistencia_confirmada_en: string }>(`${this.baseUrl}/operaciones/citas/${id}/asistencia-manual`, data); }
   getClinicalRecords(): Observable<AdminClinicalRecord[]> { return this.http.get<AdminClinicalRecord[]>(`${this.baseUrl}/historial-clinico`); }
   getAdminNotifications(unread = false): Observable<AdminUserNotification[]> { return this.http.get<AdminUserNotification[]>(`${this.baseUrl}/notificaciones`, { params: unread ? { no_leidas: 'true' } : {} }); }
   createNotification(data: { usuario_id: number; tipo: string; titulo: string; mensaje: string }): Observable<AdminUserNotification> { return this.http.post<AdminUserNotification>(`${this.baseUrl}/notificaciones`, data); }

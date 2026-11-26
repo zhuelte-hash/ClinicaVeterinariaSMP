@@ -1,0 +1,31 @@
+@startuml
+title Anexo 6.6. Secuencia - Apertura y cierre de caja
+autonumber
+hide footbox
+actor Cajero
+boundary Angular as UI
+control "FastAPI / CashierService" as API
+database PostgreSQL as BD
+Cajero -> UI : Ingresar fondo y abrir caja
+UI -> API : POST /caja/abrir
+API -> BD : Consultar caja abierta del cajero en la sede
+alt No existe caja abierta
+  API -> BD : Guardar caja abierta y fondo inicial; COMMIT
+  API --> UI : Caja creada
+else Ya existe caja abierta
+  API --> UI : Informar que debe usar la caja existente
+end
+... Operaciones de cobro de la jornada ...
+Cajero -> UI : Informar efectivo contado y cerrar caja
+UI -> API : POST /caja/cerrar
+API -> BD : Bloquear caja y consultar pagos pendientes
+alt Hay pagos que impiden cerrar
+  API --> UI : Solicitar revisión; mantener caja abierta
+else Cierre permitido
+  API -> BD : Consultar ingresos netos en efectivo
+  API -> API : Calcular efectivo esperado y diferencia
+  API -> BD : Guardar cierre, efectivo y diferencia; COMMIT
+  API --> UI : Resumen de cierre
+  UI --> Cajero : Mostrar arqueo de caja
+end
+@enduml

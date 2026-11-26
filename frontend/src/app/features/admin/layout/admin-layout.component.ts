@@ -28,6 +28,7 @@ export class AdminLayoutComponent {
   readonly administratorInitials = computed(() => this.administratorName().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase());
   readonly today = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   private readonly allNavItems: NavItem[] = [
+    { label: 'WhatsApp manual', path: 'comunicaciones', icon: 'bell' },
     { label: 'Ocupación de agenda', path: 'ocupacion', icon: 'calendar' },
     { label: 'Sucursales', path: 'sucursales', icon: 'settings' },
     { label: 'Tarifas y servicios', path: 'servicios', icon: 'tag' },

@@ -139,7 +139,7 @@ class BillingService:
             order = self.create(user, PendingOrderCreate(cliente_id=process.mascota.cliente_id, proceso_id=process.id, detalles=items, clave_idempotencia=f"atencion-{process.id}"), commit=False)
         if process.receta:
             client = process.mascota.cliente.usuario
-            document = make_pdf("Receta veterinaria", [f"Paciente: {process.mascota.nombre}", f"Profesional: {user.nombre}", process.receta.indicaciones_generales or ""], [["Medicamento", "Dosis", "Vía", "Frecuencia", "Duración"]] + [[item.medicamento, item.dosis + " " + item.unidad, item.via, item.frecuencia, item.duracion] for item in process.receta.detalles])
+            document = make_pdf("Receta veterinaria", [f"Paciente: {process.mascota.nombre}", f"Profesional: {user.nombre}", f"Orden de pago: {order.codigo}", process.receta.indicaciones_generales or ""], [["Medicamento", "Dosis", "Vía", "Frecuencia", "Duración"]] + [[item.medicamento, item.dosis + " " + item.unidad, item.via, item.frecuencia, item.duracion] for item in process.receta.detalles])
             MessagingService(self.db).to_user(client, "receta", f"receta:{process.receta.id}", {"nombre": client.nombre, "mascota": process.mascota.nombre, "codigo": order.codigo}, document, "receta.pdf", entity_id=process.id, phone=process.cita.telefono_contacto)
         return order
 

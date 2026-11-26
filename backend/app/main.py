@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.config import get_settings
 from app.services import audit_service
-from app.routers import operations, clinical_operations, messaging, reports
+from app.routers import operations, clinical_operations, messaging, reports, twilio
 from app.routers import admin, appointments, auth, cashier, catalog, sales, users, purchases
 
 settings = get_settings()
@@ -35,7 +35,8 @@ class PublicUploads(StaticFiles):
         return await super().get_response(path, scope)
 
 
-app.mount("/uploads", PublicUploads(directory=UPLOADS_DIR), name="uploads")
+public_uploads = PublicUploads(directory=UPLOADS_DIR)
+app.mount("/uploads", public_uploads, name="uploads")
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -48,7 +49,16 @@ app.include_router(purchases.router)
 app.include_router(operations.router)
 app.include_router(clinical_operations.router)
 app.include_router(messaging.router)
+app.include_router(twilio.router)
 app.include_router(reports.router)
+
+# La API conserva las rutas locales y se publica además bajo /api para compartir
+# dominio con el frontend. Ambos accesos usan las mismas dependencias/permisos.
+api = FastAPI(title=settings.app_name, version="1.0.0")
+api.dependency_overrides = app.dependency_overrides
+for router in (auth.router, users.router, admin.router, cashier.router, sales.router, appointments.router, catalog.router, purchases.router, operations.router, clinical_operations.router, messaging.router, twilio.router, reports.router):
+    api.include_router(router)
+api.mount("/uploads", public_uploads, name="api-uploads")
 
 
 @app.get("/")
@@ -63,3 +73,9 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+api.add_api_route("/health", health_check, methods=["GET"])
+app.mount("/api", api, name="same-origin-api")
+from app.services.frontend_service import install_frontend
+install_frontend(app)

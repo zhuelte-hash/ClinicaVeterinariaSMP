@@ -87,6 +87,7 @@ def test_vet_programs_next_vaccine_and_worker_notifies_exactly_once(operations, 
     monkeypatch.setattr(get_settings(), "whatsapp_access_token", "")
     fixed = dt.datetime(2026, 11, 18, 2, tzinfo=dt.timezone.utc)  # Todavía 17/11 en Perú.
     monkeypatch.setattr(automation_service, "now", lambda: fixed)
+    monkeypatch.setattr(messaging_service, "now", lambda: fixed)
     process = ProcesoAtencion(cita_id=1 if with_appointment else None, mascota_id=1, tipo="medica", estado="en_atencion")
     db.add(process); db.flush()
     db.add(ProcesoAtencionMedica(proceso_id=process.id, veterinario_id=2)); db.commit()
@@ -109,6 +110,7 @@ def test_vaccine_window_type_and_branch_do_not_duplicate_or_notify_inactive_owne
     monkeypatch.setattr(get_settings(), "whatsapp_access_token", "")
     fixed = dt.datetime(2026, 11, 18, 2, tzinfo=dt.timezone.utc)
     monkeypatch.setattr(automation_service, "now", lambda: fixed)
+    monkeypatch.setattr(messaging_service, "now", lambda: fixed)
     today = fixed.astimezone(ZONE).date()
     db.add(Sucursal(id=2, nombre="Segunda sede")); db.flush()
     owner = db.get(Usuario, 1); owner.sucursal_id = branch; owner.activo = not inactive

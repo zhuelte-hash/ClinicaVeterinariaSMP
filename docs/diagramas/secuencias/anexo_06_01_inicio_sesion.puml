@@ -1,0 +1,23 @@
+@startuml
+title Anexo 6.1. Secuencia - Inicio de sesión
+autonumber
+hide footbox
+actor Usuario
+boundary Angular as UI
+control "FastAPI / AccessService" as API
+database PostgreSQL as BD
+Usuario -> UI : Ingresar correo y contraseña
+UI -> API : POST /auth/login
+API -> BD : Consultar y bloquear cuenta
+BD --> API : Cuenta y estado de acceso
+API -> API : Verificar contraseña, bloqueo,\nactividad y correo verificado
+alt Acceso válido
+  API -> BD : Reiniciar intentos fallidos; COMMIT
+  API --> UI : JWT y datos del usuario
+  UI --> Usuario : Abrir portal según su rol
+else Acceso rechazado
+  API -> BD : Guardar intento o bloqueo si corresponde
+  API --> UI : Error y motivo
+  UI --> Usuario : Mostrar mensaje de acceso
+end
+@enduml

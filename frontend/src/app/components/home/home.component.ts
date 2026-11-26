@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { PublicProductsService } from '../../core/services/public-products.service';
 import { ProductCardComponent } from '../../shared/product-card/product-card.component';
 import { InstallationsGalleryComponent } from './installations-gallery.component';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-home',
@@ -17,7 +18,7 @@ import { InstallationsGalleryComponent } from './installations-gallery.component
         <p class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#aee5e9] sm:text-sm">Atención veterinaria en Ayacucho</p>
         <h1 class="mx-auto max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">Clínica Veterinaria San Martín de Porres</h1>
         <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">Cuidado, amor y salud para tus mejores amigos. Atención cercana y profesional para tu mascota.</p>
-        <p class="mt-3 text-sm text-white/80">Jr. Quinua N° 178 – Cercado, Ayacucho · 965 939 522</p>
+        <p class="mt-3 text-sm text-white/80">Jr. Quinua N° 178 – Cercado, Ayacucho · {{ contact.displayPhone() }}</p>
         <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           <a routerLink="/reservar-cita" class="site-button min-h-12 px-6">Reservar cita</a>
           <a routerLink="/contacto" class="inline-flex min-h-12 items-center justify-center rounded-full border border-white/75 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-pet-900">Contáctanos</a>
@@ -142,6 +143,7 @@ import { InstallationsGalleryComponent } from './installations-gallery.component
   `,
 })
 export class HomeComponent {
+  readonly contact = inject(ClinicContactService);
   readonly catalog = inject(PublicProductsService);
   readonly featuredProducts = computed(() => this.catalog.products().filter((product) => product.stock > 0).slice(0, 3));
   constructor() { this.catalog.load(); }

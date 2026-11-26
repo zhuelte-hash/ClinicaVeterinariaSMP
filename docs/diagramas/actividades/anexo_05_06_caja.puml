@@ -1,0 +1,27 @@
+@startuml
+title Anexo 5.6. Actividades - Apertura y cierre de caja
+skinparam shadowing false
+|Cajero|
+start
+:Ingresar fondo inicial y solicitar apertura;
+|Sistema|
+if (¿Ya tiene caja abierta en la sede?) then (Sí)
+  :Informar que debe usar la caja existente;
+else (No)
+  :Guardar caja abierta y fondo inicial;
+endif
+|Cajero|
+:Realizar operaciones de cobro de la jornada;
+:Contar efectivo y solicitar cierre;
+|Sistema|
+if (¿Existen pagos pendientes\nque bloquean el cierre?) then (Sí)
+  :Solicitar revisión y mantener caja abierta;
+else (No)
+  :Calcular efectivo esperado:\nfondo inicial + ingresos netos en efectivo;
+  :Calcular diferencia:\nefectivo contado - efectivo esperado;
+  :Guardar caja cerrada y fecha de cierre;
+  |Cajero|
+  :Consultar resumen de cierre;
+endif
+stop
+@enduml

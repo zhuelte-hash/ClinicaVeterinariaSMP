@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { RouterLink } from '@angular/router';
 import { VeterinaryService } from './service.model';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-service-detail-dialog',
@@ -26,7 +27,7 @@ import { VeterinaryService } from './service.model';
         <dl class="mt-5 rounded-xl bg-brand-50 p-4"><div><dt class="text-sm">Duración estimada</dt><dd class="font-bold">{{ service.duration }} minutos</dd></div></dl>
         <p class="mt-2 text-xs text-slate-500">La atención se adapta a las necesidades de tu mascota. Contáctanos para conocer más sobre este servicio.</p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-          <a href="tel:965939522" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-6 py-3 font-bold text-white transition hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">Llamar ahora</a>
+          <a [href]="contact.telUrl()" class="inline-flex items-center justify-center rounded-full bg-[#1A98A2] px-6 py-3 font-bold text-white transition hover:bg-[#276508] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A98A2]">Llamar ahora</a>
           <a [href]="whatsappUrl" target="_blank" rel="noopener" class="site-button">Consultar por WhatsApp</a>
           <a routerLink="/reservar-cita" [queryParams]="{ servicio: service.slug }" (click)="dialogRef.close()" class="inline-flex items-center justify-center rounded-full border-2 border-[#1A1E27] px-6 py-3 font-bold text-[#1A1E27] transition hover:bg-[#1A1E27] hover:text-white">Reservar cita</a>
         </div>
@@ -35,7 +36,8 @@ import { VeterinaryService } from './service.model';
   `,
 })
 export class ServiceDetailDialogComponent {
+  readonly contact = inject(ClinicContactService);
   readonly dialogRef = inject<DialogRef<void>>(DialogRef);
   readonly service = inject<VeterinaryService>(DIALOG_DATA);
-  readonly whatsappUrl = `https://wa.me/51965939522?text=${encodeURIComponent('Hola, deseo información sobre el servicio de ' + this.service.name + '.')}`;
+  get whatsappUrl(): string { return this.contact.whatsappUrl('Hola, deseo información sobre el servicio de ' + this.service.name + '.'); }
 }

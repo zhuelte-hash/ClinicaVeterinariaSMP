@@ -10,6 +10,11 @@ Ejecuta los comandos de PowerShell desde `backend`.
 
 API: <http://localhost:8000/docs>. Estado del servidor: <http://localhost:8000/health>.
 
+**Revisión del 26/11/2026:** 593 pruebas backend aprobadas con PostgreSQL temporal,
+sin omisiones ni fallos; compilación Angular correcta, dos recorridos integrados y
+64 comprobaciones de interfaz aprobadas. Resultados y configuración pendiente de
+correo en [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md#revisión-del-sistema--26112026).
+
 ## Catálogo comercial de 50 productos
 
 Integración local preparada en las tablas existentes, con seed idempotente y SQL
@@ -34,18 +39,105 @@ Validación sin conexión, desde `backend`:
 Verificación local: 433 pruebas aprobadas con PostgreSQL temporal; build Angular
 correcto y dos recorridos Edge integrados contra FastAPI/JWT y SQLite aislada.
 
+## WhatsApp normal — modo manual elegido
+
+**E35 — alcance por botones:** las 18 historias de WhatsApp están implementadas
+para envío humano y listas para la prueba del usuario. Accesos contextuales desde
+citas, atención, clientes, órdenes, últimas ventas y pedidos web aprobados; apertura
+directa, copia, PDF y gestión manual. Los recordatorios incluyen la referencia
+completa de asistencia y los enlaces de laboratorio/encuesta usan la dirección
+actual de la aplicación. Los textos personalizados se aplican a avisos pendientes.
+
+Usa **Preparar avisos programados ahora** desde la bandeja administrativa para
+generar avisos de la sede cuya fecha corresponda. El recorrido de bienvenida por
+**Clientes → Nuevo cliente** prepara el aviso sin SMTP. Matriz de prueba de las
+18 historias: [PRUEBAS_WHATSAPP_BOTONES.md](PRUEBAS_WHATSAPP_BOTONES.md).
+
+Verificación E35 con PostgreSQL 15 temporal: **588 pruebas backend aprobadas,
+0 omitidas y 0 fallos**, 158,10 s; migraciones hasta `20261124_27` y limpieza
+confirmada del contenedor/red de pruebas. Las 29 integraciones omitidas en la
+ejecución inicial ya pasaron. Incluye **13 casos nuevos**; build Angular correcto y
+**2 recorridos Edge integrados** en escritorio/móvil. Informe Word actualizado a
+**3.19/E35**, con implementación por botones y prueba de aceptación del usuario pendiente.
+
+**E34 — 24/11/2026:** WhatsApp institucional **938 304 590**. Contacto único
+persistido y enlaces públicos/privados actualizados. Bandejas en
+`/admin/comunicaciones`, `/veterinario/comunicaciones` y `/caja/comunicaciones`;
+asistencia recibida registrada desde Citas, casos derivados aceptados, avisos de
+cita/vacuna revalidados y preparación de avisos programados desde el panel.
+
+`WHATSAPP_PROVIDER=manual` permite preparar mensajes, abrir WhatsApp y descargar
+los PDF para adjuntarlos. Configura el teléfono en **Configuración → Información
+de la clínica**. En **Comunicaciones**, pulsa **Preparar WhatsApp** y después
+**Abrir WhatsApp y enviar**. El estado `gestionado_manual` es una declaración del
+operador, no confirmación de entrega. Guía breve: [GUIA_WHATSAPP_MANUAL.md](GUIA_WHATSAPP_MANUAL.md).
+
+Verificación histórica E34: **515 pruebas aprobadas y 24 omitidas**, con **42 casos nuevos**;
+compilación Angular correcta, **2 recorridos Edge integrados** con API/JWT reales
+y **64 comprobaciones de regresión** con API controlada. La matriz y los criterios
+finales están en [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md). E35 registra el alcance
+por botones y la aceptación de usuario pendiente.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_manual_story_completion.py
+# Desde la raíz, después de compilar frontend:
+.\backend\.venv\Scripts\python.exe backend/scripts/check_manual_stories_ui.py
+```
+
+Verificación inicial anterior a E34 (histórica): **28 casos HTTP/JWT nuevos**, con transporte externo
+bloqueado, permisos, vigencia de operación, contactos, PDF y SMTP local. Suite
+general: **473 aprobadas y 24 omitidas** que requieren PostgreSQL de pruebas.
+Frontend compilado; **64 comprobaciones Edge** con API controlada en escritorio
+y móvil, incluidas preparación, enlace, descarga, gestión manual y consulta.
+
+## WhatsApp con Twilio Sandbox clásico (alternativa técnica anterior)
+
+La prueba nueva de la consola Twilio exige plantillas `ContentSid` predefinidas;
+las instrucciones de texto/PDF libre siguientes corresponden al Sandbox clásico,
+no a esa prueba limitada nueva. El entorno local ahora usa el modo manual.
+
+Sigue [GUIA_TWILIO.md](GUIA_TWILIO.md) para activar la cuenta, vincular el teléfono,
+abrir el túnel HTTPS y conectar los webhooks. Configuración local asistida:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/configure_twilio.py
+```
+
+`WHATSAPP_PROVIDER=twilio` habilita texto, PDF, asistencia, comprobantes entrantes y
+estados con firma Twilio. Configuración muestra las URLs y permite encolar una
+prueba. Cada teléfono debe unirse al Sandbox y enviar `hola` con el webhook activo;
+los envíos requieren una ventana de 24 horas. El modo Sandbox no implementa
+plantillas proactivas fuera de esa ventana. `WHATSAPP_PROVIDER=meta` selecciona
+la integración Cloud API descrita en los apartados históricos siguientes.
+
+Verificación local de Twilio: 53 casos nuevos HTTP/JWT con SQLite aislada,
+firmas del SDK oficial y transporte controlado; suite completa con **445 aprobadas
+y 24 omitidas** por PostgreSQL de prueba no disponible (Docker inactivo).
+Compilación Angular correcta y 46 comprobaciones Edge de comunicaciones/fundamentales
+con API controlada en escritorio y móvil, sin errores JavaScript. Los recorridos
+nuevos incluyen URLs, prueba sin/con ventana, seguimiento y permisos de consulta.
+La recepción real en WhatsApp requiere completar la cuenta y el túnel de la guía.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_twilio_sandbox.py
+# Desde la raíz, después de npm run build en frontend:
+.\backend\.venv\Scripts\python.exe backend/scripts/check_fundamental_stories_ui.py
+```
+
 ## Revisión actual de parciales y pendientes
 
-Estado vigente **E33 — 23/11/2026: 96 completadas, 19 parciales y 0 pendientes (115)**.
-HU-002 y HU-004 cerradas mediante recepción real en Gmail y aceptación manual del
+Estado de aceptación: **96 completadas, 19 parciales y 0 pendientes (115)**.
+E35 entrega las 18 historias de WhatsApp implementadas por botones para su prueba
+posterior; las filas conservan la aceptación final pendiente, junto con HU-018.
+Como antecedente E33, HU-002 y HU-004 cerraron mediante recepción real en Gmail y aceptación manual del
 usuario: verificación e ingreso, recuperación, rechazo de contraseña anterior/enlace
 anterior y acceso con nueva clave. Tras otra recuperación en incógnito, la sesión
 normal previa perdió el acceso y volvió a funcionar al autenticar con la última clave.
 La comprobación de sesiones fue visual; no se inspeccionó la respuesta HTTP.
-SMTP conectado y autenticado correctamente. Se añadió recuperación al diálogo de
+En E33 SMTP se conectó y autenticó correctamente. Se añadió recuperación al diálogo de
 login; `npm run build` correcto (625,71 kB; avisos de presupuesto/CommonJS).
 
-Consulta [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md) para la evidencia E33 y la matriz
+Consulta [ESTADO_HISTORIAS.md](ESTADO_HISTORIAS.md) para la evidencia E34, los antecedentes E33 y la matriz
 de las 19 historias parciales (18 de WhatsApp y HU-018 de fotografías reales).
 La revalidación local anterior a E33 obtuvo 392 pruebas aprobadas
 y 24 omitidas por falta de PostgreSQL de prueba, sin fallos, y compilación correcta.
@@ -424,6 +516,15 @@ Para ejecutar **toda la suite** con PostgreSQL disponible:
 ```powershell
 .\backend\.venv\Scripts\python.exe backend/scripts/test_postgres.py --all
 ```
+
+Si el puerto `55432` está ocupado, elige otro puerto para el contenedor temporal:
+
+```powershell
+.\backend\.venv\Scripts\python.exe backend/scripts/test_postgres.py --all --port 55433
+```
+
+El puerto elegido se aplica a Docker, las migraciones y todas las conexiones de
+prueba del proceso; la configuración operativa de `.env` se conserva.
 
 Para comprobar las pantallas en Microsoft Edge, instala la herramienta opcional `playwright`, compila el frontend y ejecuta desde la raíz del proyecto:
 

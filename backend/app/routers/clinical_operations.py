@@ -13,9 +13,9 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.models.clinic import AplicacionPreventiva, Cita, ConfiguracionClinica, EstadoCita, ExamenMedicoAdjunto, Mascota, Notificacion, ProcesoAtencion, TipoAplicacionPreventiva
-from app.models.operations import DerivacionClinica, EventoCita, MensajeSalida, OrdenPendiente, SolicitudReprogramacion
+from app.models.operations import DerivacionClinica, EventoCita, MensajeSalida, OrdenPendiente, SolicitudReprogramacion, Sucursal
 from app.models.user import Usuario, TipoUsuario
-from app.schemas.operations import PrivateNotes, ReferralAnswer, ReferralCreate, RescheduleRequest, RescheduleAnswer
+from app.schemas.operations import ManualAttendance, PrivateNotes, ReferralAnswer, ReferralCreate, RescheduleRequest, RescheduleAnswer
 from app.security import get_current_client_user, get_current_veterinarian_user, require_permission, check_permission
 from app.services.access_service import aware, now
 from app.services.appointment_service import AppointmentService, ACTIVE_BOOKING_STATES, InvalidScheduleError
@@ -154,10 +154,8 @@ def request_reschedule(db, user, appointment_id, data):
         raise HTTPException(409, "Ya hay una solicitud pendiente para esta cita")
     phone = ""
     if data.canal == "whatsapp":
-        config = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
-        phone = re.sub(r"\D", "", config.telefono if config else "")
-        if len(phone) == 9:
-            phone = "51" + phone
+        from app.services.whatsapp_config_service import receiver_phone
+        phone = receiver_phone(db)
         if not 10 <= len(phone) <= 15:
             raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp en Administración → Configuración")
     item = SolicitudReprogramacion(cita_id=appointment.id, cliente_id=user.id, fecha_propuesta=data.fecha_propuesta, motivo=data.motivo, canal=data.canal)
@@ -200,15 +198,55 @@ def attendance_whatsapp(appointment_id: int, db: Db, user: Client):
             or appointment.proceso_atencion is not None or appointment.fecha_hora_llegada is not None
             or scheduled <= now() or scheduled.astimezone(ZONE).date() > now().astimezone(ZONE).date() + dt.timedelta(days=1)):
         raise HTTPException(409, "La confirmación está disponible para citas de hoy o mañana aún no iniciadas")
-    config = db.scalar(select(ConfiguracionClinica).order_by(ConfiguracionClinica.id))
-    phone = re.sub(r"\D", "", config.telefono if config else "")
-    if len(phone) == 9:
-        phone = "51" + phone
+    from app.services.whatsapp_config_service import receiver_phone
+    phone = receiver_phone(db)
     if not 10 <= len(phone) <= 15:
         raise HTTPException(409, "La clínica debe configurar su teléfono de WhatsApp")
     from app.services.attendance_service import attendance_code
     command = f"ASISTIRE {appointment.id} {attendance_code(db, appointment)}"
-    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(command)}", "comando": command, "fecha_hora_programada": appointment.fecha_hora_programada}
+    from app.config import get_settings
+    manual = get_settings().whatsapp_provider == "manual"
+    if manual:
+        command = f"Hola, confirmo que asistiré a la cita #{appointment.id} de {appointment.mascota.nombre}, programada para el {scheduled.astimezone(ZONE):%d/%m/%Y a las %H:%M}.\nReferencia: {command}"
+    return {"whatsapp_url": f"https://wa.me/{phone}?text={quote(command)}", "comando": command, "fecha_hora_programada": appointment.fecha_hora_programada,
+            "modo": "manual" if manual else "automatico",
+            "instrucciones": "La clínica revisará el mensaje y registrará manualmente su referencia en Citas. El envío no confirma automáticamente la asistencia." if manual else "Envía el comando completo desde el contacto de la reserva para que lo registre el webhook."}
+
+
+@router.post("/admin/operaciones/citas/{appointment_id}/asistencia-manual")
+def register_manual_attendance(appointment_id: int, data: ManualAttendance, db: Db, user: Admin, response: Response):
+    import hmac
+    from app.services.attendance_service import attendance_code
+    from app.services.whatsapp_config_service import normalized_phone
+    from app.services.policy_service import ZONE
+    if get_settings().whatsapp_provider != "manual":
+        raise HTTPException(409, "La recepción manual está disponible en el modo manual de WhatsApp")
+    check_permission(db, user, "citas", "editar")
+    appointment = db.scalar(select(Cita).where(Cita.id == appointment_id).with_for_update())
+    if appointment is None:
+        raise HTTPException(404, "Cita no encontrada en la sede seleccionada")
+    owner = appointment.mascota.cliente.usuario
+    branch = db.get(Sucursal, appointment.sucursal_id)
+    if not owner.activo or not owner.correo_verificado or branch is None or not branch.activa:
+        raise HTTPException(409, "La cuenta propietaria y la sede deben estar activas")
+    phone = normalized_phone(data.telefono_remitente)
+    if phone != normalized_phone(appointment.telefono_contacto or owner.telefono):
+        raise HTTPException(409, "El remitente debe coincidir con el teléfono actual de la reserva")
+    references = re.findall(r"\bASISTIR[EÉ]\s+(\d+)\s+([0-9a-f]{16})\b", data.referencia, re.I)
+    if len(references) != 1 or int(references[0][0]) != appointment.id or not hmac.compare_digest(references[0][1].lower(), attendance_code(db, appointment)):
+        raise HTTPException(409, "La referencia no corresponde al horario y contacto actuales; el cliente debe preparar otro mensaje")
+    scheduled = aware(appointment.fecha_hora_programada)
+    if (appointment.estado not in {EstadoCita.CONFIRMADA, EstadoCita.REPROGRAMADA}
+            or appointment.proceso_atencion is not None or appointment.fecha_hora_llegada is not None
+            or scheduled <= now() or scheduled.astimezone(ZONE).date() > now().astimezone(ZONE).date() + dt.timedelta(days=1)):
+        raise HTTPException(409, "Solo se registra la asistencia de citas de hoy o mañana aún no iniciadas")
+    if appointment.asistencia_confirmada_en is None:
+        appointment.asistencia_confirmada_en = now()
+        if appointment.veterinario_id:
+            db.add(Notificacion(usuario_id=appointment.veterinario_id, cita_id=appointment.id, tipo="asistencia_confirmada", titulo="Asistencia registrada desde WhatsApp manual", mensaje=f"El personal registró la confirmación recibida para {appointment.mascota.nombre}, cita #{appointment.id}."))
+    db.commit()
+    response.headers["Cache-Control"] = "private, no-store"
+    return {"cita_id": appointment.id, "asistencia_confirmada_en": appointment.asistencia_confirmada_en, "canal": "whatsapp_manual", "alcance": "Confirmación registrada por el personal a partir del mensaje recibido; no es una lectura automática de WhatsApp."}
 
 
 def client_communications(db, user, appointment_id):
@@ -226,6 +264,7 @@ def client_communications(db, user, appointment_id):
 
 @router.get("/portal/citas/{appointment_id}/comunicaciones")
 def own_communications(appointment_id: int, db: Db, user: Client, response: Response):
+    from app.config import get_settings
     response.headers["Cache-Control"] = "private, no-store"
     appointment, process, rows = client_communications(db, user, appointment_id)
     # El permiso clínico también se aplica al enlace y al estado de la receta.
@@ -240,7 +279,8 @@ def own_communications(appointment_id: int, db: Db, user: Client, response: Resp
             "receta_disponible": bool(recipe and process.estado.value == "cerrada"),
             "orden": {"codigo": order.codigo, "total": order.total, "estado": order.estado} if order else None,
             "mensajes": [{"id": row.id, "evento": row.evento, "estado": row.estado, "intentos": row.intentos, "enviado_en": row.enviado_en, "entregado_en": row.entregado_en} for row in rows if clinical_allowed or row.evento != "receta"],
-            "alcance": "Enviado: aceptado por el proveedor. Entregado/leído: confirmado por webhook. Descargar la receta no acredita recepción por WhatsApp."}
+            "alcance": ("En modo manual, la clínica prepara y envía el aviso desde WhatsApp normal. Gestión manual no confirma entrega ni lectura. Descargar la receta no acredita recepción por WhatsApp."
+                        if get_settings().whatsapp_provider == "manual" else "Enviado: aceptado por el proveedor. Entregado/leído: confirmado por webhook. Descargar la receta no acredita recepción por WhatsApp.")}
 
 
 @router.get("/portal/citas/{appointment_id}/receta-pdf")

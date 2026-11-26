@@ -3,6 +3,7 @@
   @else if (appointment(); as item) {
     <app-patient-alerts [pet]="item.mascota" />
     @if (record(); as currentRecord) {
+      <app-manual-communications-link tipo="atencion" [referencia]="currentRecord.id" label="WhatsApp de receta, vacunas y resultados" />
       <app-private-clinical-notes [processId]="currentRecord.id" />
       <app-prescription-products [processId]="currentRecord.id" />
     }

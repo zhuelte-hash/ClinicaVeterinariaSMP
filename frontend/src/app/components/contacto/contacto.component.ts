@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ClinicPolicy, ClinicPolicyService, WEEKDAYS, hoursLabel } from '../../core/services/clinic-policy.service';
 import { environment } from '../../../environments/environment';
+import { ClinicContactService } from '../../core/services/clinic-contact.service';
 
 @Component({
   selector: 'app-contacto',
@@ -26,7 +27,7 @@ import { environment } from '../../../environments/environment';
       <div>
         <h2 class="text-3xl font-extrabold text-pet-900 mb-4">Contáctanos</h2>
         <div class="space-y-3 text-gray-700 mb-6">
-          <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">📱</span><span><b>Teléfono:</b> 965 939 522</span></p>
+          <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">📱</span><span><b>Teléfono:</b> {{ contact.displayPhone() }}</span></p>
           <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">✉️</span><span><b>Correo:</b> vamospetshop@gmail.com</span></p>
           <p class="flex gap-2 items-center"><span class="w-9 h-9 bg-brand-50 rounded-full flex items-center justify-center">📍</span><span><b>Dirección:</b> Jr. Quinua N° 178 – Cercado, Ayacucho</span></p>
           <section class="rounded-xl bg-slate-50 p-4" aria-label="Horario de atención">
@@ -69,6 +70,7 @@ import { environment } from '../../../environments/environment';
   `,
 })
 export class ContactoComponent {
+  readonly contact = inject(ClinicContactService);
   readonly policy = signal<ClinicPolicy | null>(null);
   readonly photos = computed(() => this.policy()?.galeria ?? []);
   imageUrl(url: string): string { return /^https?:\/\//.test(url) ? url : environment.apiUrl + url; }
@@ -83,8 +85,8 @@ export class ContactoComponent {
   ok = false;
   enviar() {
     if (!this.form.nombre || !this.form.telefono || !this.form.mensaje) return;
-    const txt = `Hola necesito más información sobre:%0A%0A*Nombre:* ${this.form.nombre}%0A*Servicio:* ${this.form.servicio}%0A*Tel:* ${this.form.telefono}%0A*Msg:* ${this.form.mensaje}`;
-    window.open(`https://wa.me/51965939522?text=${txt}`, '_blank');
+    const txt = `Hola necesito más información sobre:\n\nNombre: ${this.form.nombre}\nServicio: ${this.form.servicio}\nTel: ${this.form.telefono}\nMensaje: ${this.form.mensaje}`;
+    window.open(this.contact.whatsappUrl(txt), '_blank', 'noopener,noreferrer');
     this.ok = true;
   }
 }

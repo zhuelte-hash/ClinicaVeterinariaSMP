@@ -7,11 +7,12 @@ import { NoticeService } from '../../../../core/services/notice.service';
 import { AdminApiService, AdminClient } from '../../services/admin-api.service';
 import { AdminUsersApiService, CreateAdminUser, UpdateAdminUser } from '../../services/admin-users-api.service';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { ManualCommunicationsLinkComponent } from '../../../messaging/manual-communications-link.component';
 
 @Component({
   selector: 'app-admin-clientes',
   standalone: true,
-  imports: [FormsModule, RouterLink, PageHeaderComponent],
+  imports: [FormsModule, RouterLink, PageHeaderComponent, ManualCommunicationsLinkComponent],
   templateUrl: './clientes.component.html',
   styleUrl: '../../shared/admin-ui.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

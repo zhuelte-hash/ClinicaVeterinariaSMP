@@ -1,0 +1,36 @@
+@startuml
+title Anexo 5.2. Actividades - Reserva y confirmación de cita
+skinparam shadowing false
+|Cliente|
+start
+:Seleccionar mascota, servicio,\nfecha y veterinario;
+|Sistema|
+:Comprobar propiedad de mascota, sede,\nhorarios, bloqueos y cruces;
+if (¿Reserva válida?) then (Sí)
+  :Guardar cita en pendiente_contacto;
+  :Crear notificación interna al veterinario;
+else (No)
+  :Informar motivo y solicitar otro horario;
+  stop
+endif
+|Veterinario|
+:Revisar solicitud y contactar al cliente;
+if (¿Se acuerda el horario?) then (Sí)
+  :Confirmar horario acordado;
+  |Sistema|
+  :Revalidar agenda y transición de estado;
+  if (¿Confirmación válida?) then (Sí)
+    :Guardar cita confirmada y notificación;
+    :Preparar aviso para WhatsApp manual;
+    |Cliente|
+    :Consultar confirmación en Mis citas;
+  else (No)
+    |Sistema|
+    :Informar conflicto y mantener coordinación;
+  endif
+else (No)
+  |Sistema|
+  :Mantener cita en coordinación;
+endif
+stop
+@enduml

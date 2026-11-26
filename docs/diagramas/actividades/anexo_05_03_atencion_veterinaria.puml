@@ -1,0 +1,34 @@
+@startuml
+title Anexo 5.3. Actividades - Atención veterinaria
+skinparam shadowing false
+|Veterinario|
+start
+:Seleccionar cita confirmada o reprogramada;
+:Registrar llegada e iniciar atención;
+|Sistema|
+:Validar asignación, sede, permisos y estado;
+if (¿Puede iniciar atención?) then (Sí)
+  :Guardar proceso en_atencion;
+else (No)
+  :Informar motivo;
+  stop
+endif
+|Veterinario|
+:Registrar ficha, diagnóstico y tratamiento;
+:Guardar receta, exámenes o preventivos\ncuando correspondan;
+:Solicitar cierre de atención;
+|Sistema|
+if (¿Requiere cobro por servicio\no productos facturables?) then (Sí)
+  :Crear o reutilizar OrdenPendiente compatible;
+  if (¿Orden compatible y artículos disponibles?) then (Sí)
+    :Preparar avisos de orden y receta PDF\nsegún corresponda;
+  else (No)
+    :Revertir intento de cierre e informar motivo;
+    stop
+  endif
+endif
+:Guardar atención cerrada y cita atendida\nen una sola transacción;
+|Veterinario|
+:Consultar atención finalizada;
+stop
+@enduml
