@@ -7,6 +7,7 @@ import re
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -14,7 +15,7 @@ from urllib.request import Request, urlopen
 from dotenv import set_key
 
 BACKEND = Path(__file__).resolve().parents[1]
-TEMP = Path(r"C:\Users\nomad\AppData\Local\Temp\opencode")
+TEMP = Path(tempfile.gettempdir()) / "opencode"
 CLOUDFLARED = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
 
 
